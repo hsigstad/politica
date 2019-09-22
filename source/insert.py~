@@ -1,0 +1,46 @@
+import os
+import sys
+os.chdir('/home/henrik/external-mirror/brazil/politica/source')
+import define_db_schemas as db
+sys.path.append('/home/henrik/external-mirror/brazil/diarios')
+os.chdir('/home/henrik/external-mirror/brazil/politica')
+import diarios
+import diarios.database
+
+
+engine = diarios.database.get_db_engine('politica')
+db.Base.metadata.drop_all(engine)
+db.Base.metadata.create_all(engine)  
+
+diarios.database.insert(
+    database='politica',
+    table=db.Eleicao
+    files=["source/eleicao.csv"]
+)
+
+diarios.database.insert(
+    database='politica',
+    table=db.Politico,
+    files=["build/clean/politico.csv"]
+)
+
+diarios.database.insert(
+    database='politica',
+    table=db.Candidato,
+    files=["build/clean/candidato.csv"]
+)
+
+diarios.database.create_index(
+    database='politica',
+    table='politico',
+    columns=['name'],
+    name='name',
+    index_type='FULLTEXT'
+)
+
+diarios.database.create_index(
+    database='politica',
+    table='politico',
+    columns=['name'],
+    name='name'
+)

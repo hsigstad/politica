@@ -1,0 +1,10 @@
+external_external-mirror_directory: /home/henrik/external-mirror/ls_data
+external_local_directory: /home/henrik/ls_data
+cache_directory: /home/henrik/caches/cache
+mysql_host: 127.0.0.1
+mysql_user: root
+mysql_pw: t4r3e2
+mysql_db: proc
+
+
+
