@@ -16,7 +16,7 @@ class Politico(Base):
     gender = Column(String(255))
     birthdate = Column(Date)    
     birth_municipio_id = Column(Integer)
-    birth_estado_id = Column(Integer)
+    birth_estado = Column(String(2))
     def __repr__(self):
         return "Politico(%s)" % (str(self.name))
     
@@ -24,7 +24,7 @@ class Candidato(Base):
     __tablename__ = 'candidato'
     id = Column(Integer, primary_key=True)
     cpf = Column(BigInteger, ForeignKey('politico.cpf'))
-    estado_id = Column(Integer)
+    estado = Column(String(2))
     municipio_id = Column(Integer)
     year = Column(Integer)
     office = Column(String(255))
@@ -39,6 +39,8 @@ class Candidato(Base):
     occupation = Column(String(255))
     education = Column(String(255))
     marital_status = Column(String(255))
+    rank = Column(Integer)
+    close = Column(Integer)    
     def __repr__(self):
         return "Candidato(%s)" % (str(self.name))
 
