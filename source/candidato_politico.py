@@ -26,13 +26,15 @@ def main():
         'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR',
         'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'TO'
     ]
-    # years = ['2006']
-    # states = ['AP']
+    # years = ['2004', '2006']
+    # states = ['PR', 'AC']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
+    results = results.query('cpf.notnull()') #NB!
+    # Doing this again to be sure:
+    results = balance_close(results)
     politico = (
         results
-        .query('cpf.notnull()') #NB!
         .drop_duplicates(subset='cpf')
         .loc[:, (
             'cpf', 'politico', 'race', 'nationality',
@@ -42,13 +44,14 @@ def main():
     )
     candidato = (
         results
-        .query('cpf.notnull()') #NB!!
         .loc[:, (
-            'cpf', 'year', 'estado', 'estado_id', 'municipio',
+            'eleicao', 'cpf', 'year', 'suplementar',
+            'estado', 'estado_id', 'municipio',
             'municipio_id', 'office', 'round', 'status',
             'party', 'votes', 'elected', 'electeddummy', 'margin',
             'rank', 'close', 'coalition',
-            'campaignexpenditure', 'education', 'marital_status', 'occupation'
+            'campaignexpenditure', 'education',
+            'marital_status', 'occupation'
         )]
     )
     candidato.to_csv(candidato_file, index=False)
@@ -87,6 +90,7 @@ def clean_election(state, year):
     results = add_office_type(results)
     results = add_win_margin(results)
     results = add_rank(results)
+    results = balance_close(results)
     return results
 
 
@@ -127,6 +131,7 @@ def get_column_mapping(year):
     if year == '2018':
         mapping = {
             'NM_CANDIDATO': 'politico',
+            'DS_ELEICAO': 'eleicao',
             'SG_UF': 'estado',
             'DS_CARGO': 'office',
             'DS_SIT_TOT_TURNO': 'elected',
@@ -141,6 +146,7 @@ def get_column_mapping(year):
     else:
        mapping = {
             'NOME_CANDIDATO': 'politico',
+            'DESCRICAO_ELEICAO': 'eleicao',
             'SIGLA_UF': 'estado',
             'DESCRICAO_CARGO': 'office',
             'DESC_SIT_CAND_TOT': 'elected',
@@ -168,7 +174,7 @@ def collapse_by_candidate(results, year):
     else:
         results['district'] = results['estado']        
     columns = [
-        'district', 'office',
+        'eleicao', 'district', 'office',
         'round', 'elected',
         'NUMERO_CAND', 'SQ_CANDIDATO', 'politico'
     ]
@@ -180,6 +186,10 @@ def clean_variables(results, year):
     results['electeddummy'] = results['elected'].str.match('elected').astype(float)
     results = clean.clean_text_columns(results)
     results['politico'] = clean.clean_text(results['politico'])
+    results['suplementar'] = (
+        results.eleicao.fillna('')
+        .str.contains('suplem|nova')
+    )*1
     if int(year) % 4 == 0:
         results['district'] = pd.to_numeric(
             results['district'].apply(clean_district),
@@ -234,22 +244,29 @@ def add_win_margin(results):
         results['electeddummy'] == False, 'notelectedvotes'
     ] = results['votes']
     results['upperthreshold_pr'] = (results
-        .groupby(['year', 'district', 'office', 'round', 'coalition'])
+        .groupby(['year', 'district', 'office',
+                  'round', 'coalition', 'suplementar'])
         ['electedvotes'].transform('min')
     )
     results['upperthreshold_majority'] = (results
-        .groupby(['year', 'district', 'office', 'round'])
+        .groupby(['year', 'district',
+                  'office', 'round', 'suplementar'])
         ['electedvotes'].transform('min')
     )
     results['lowerthreshold_pr'] = (results
-        .groupby(['year', 'district', 'office', 'round', 'coalition'])
+        .groupby(['year', 'district', 'office',
+                  'round', 'coalition', 'suplementar'])
         ['notelectedvotes'].transform('max')
     )
     results['lowerthreshold_majority'] = (results
-        .groupby(['year', 'district', 'office', 'round'])
+        .groupby(['year', 'district',
+                  'office', 'round', 'suplementar'])
         ['notelectedvotes'].transform('max')
     )
-    grouped = results.groupby(['district', 'office', 'round'])
+    grouped = results.groupby([
+        'district', 'office',
+        'round', 'suplementar'
+    ])
     results['nseats'] = grouped['electeddummy'].transform('sum')
     results['totalvotes'] = grouped['votes'].transform('sum')
     results['margin'] = results.apply(calculate_win_margin, axis=1)
@@ -262,6 +279,8 @@ def add_win_margin(results):
 
 
 def calculate_win_margin(row):
+    if row.totalvotes == 0:
+        return np.nan
     if not row['office_type'] in ['pr', 'majority']:
         return np.nan        
     if row['office_type'] == 'majority' and row['electeddummy']:
@@ -460,25 +479,34 @@ def merge_in_candidates(results, candidates, year):
         candidates,
         on=merge_vars,
         how='outer'
-    ).drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
+    ) #.drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
+
+
+def get_rank_cols():
+    cols = {
+        'majority': [
+            'year', 'estado',
+            'district',
+            'office', 'round',
+            'suplementar'
+        ],
+        'pr': [
+            'year', 'estado',
+            'district',
+            'office', 'round',
+            'coalition',
+            'suplementar'
+        ]
+    }
+    return cols
 
 
 def add_rank(results):
-    cols = {
-        'majority': [
-            'year', 'district',
-            'office', 'round'
-        ],
-        'pr': [
-            'year', 'district',
-            'office', 'round',
-            'coalition'
-        ]
-    }
+    cols = get_rank_cols()
     is_close = (
         lambda x:
-        (-x == x.shift(1)) |
-        (-x == x.shift(-1))
+        (1-x == x.shift(1)) |
+        (1-x == x.shift(-1))
     )
     for office_type in ['pr', 'majority']:            
         rank = (
@@ -498,15 +526,37 @@ def add_rank(results):
         results = results.sample(frac=1)
         close = (
             results
-            .sort_values('votes', kind='mergesort')
+            .sort_values(['votes', 'electeddummy'], kind='mergesort')
             .groupby(cols[office_type])
-            ['margin']
+            ['electeddummy']
             .apply(is_close)
         )*1
         results.loc[
             results.office_type == office_type,
             'close'
         ] = close
+    return results
+
+
+def balance_close(results):
+    cols = get_rank_cols()
+    for office_type in ['pr', 'majority']:          
+        results['n_close'] = (
+            results
+            .groupby(cols[office_type])
+            ['close']
+            .transform('sum')
+        )
+        not_balanced = (
+            ~results.n_close.isin([0,2]) &
+            results.n_close.notnull() &
+            (results.office_type == office_type)
+        )
+        print(
+            sum(not_balanced),
+            'not balanced, setting close=0'
+        )
+        results.loc[not_balanced, 'close'] = 0
     return results
 
 
