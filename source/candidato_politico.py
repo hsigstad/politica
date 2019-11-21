@@ -26,13 +26,11 @@ def main():
         'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR',
         'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'TO'
     ]
-    # years = ['2004', '2006']
-    # states = ['PR', 'AC']
+    # years = ['2004']
+    # states = ['AC']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
     results = results.query('cpf.notnull()') #NB!
-    # Doing this again to be sure:
-    results = balance_close(results)
     politico = (
         results
         .drop_duplicates(subset='cpf')
@@ -89,8 +87,6 @@ def clean_election(state, year):
         )
     results = add_office_type(results)
     results = add_win_margin(results)
-    results = add_rank(results)
-    results = balance_close(results)
     return results
 
 
@@ -479,85 +475,7 @@ def merge_in_candidates(results, candidates, year):
         candidates,
         on=merge_vars,
         how='outer'
-    ) #.drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
-
-
-def get_rank_cols():
-    cols = {
-        'majority': [
-            'year', 'estado',
-            'district',
-            'office', 'round',
-            'suplementar'
-        ],
-        'pr': [
-            'year', 'estado',
-            'district',
-            'office', 'round',
-            'coalition',
-            'suplementar'
-        ]
-    }
-    return cols
-
-
-def add_rank(results):
-    cols = get_rank_cols()
-    is_close = (
-        lambda x:
-        (1-x == x.shift(1)) |
-        (1-x == x.shift(-1))
-    )
-    for office_type in ['pr', 'majority']:            
-        rank = (
-            results
-            .groupby(cols[office_type])
-            ['votes']
-            .rank(ascending=False)
-        )
-        results.loc[
-            results.office_type == office_type,
-            'rank'
-        ] = rank
-        # to make sure to randomly
-        # drop one in the case of ties
-        # (need to be used with mergesort
-        # which preserves order of ties):
-        results = results.sample(frac=1)
-        close = (
-            results
-            .sort_values(['votes', 'electeddummy'], kind='mergesort')
-            .groupby(cols[office_type])
-            ['electeddummy']
-            .apply(is_close)
-        )*1
-        results.loc[
-            results.office_type == office_type,
-            'close'
-        ] = close
-    return results
-
-
-def balance_close(results):
-    cols = get_rank_cols()
-    for office_type in ['pr', 'majority']:          
-        results['n_close'] = (
-            results
-            .groupby(cols[office_type])
-            ['close']
-            .transform('sum')
-        )
-        not_balanced = (
-            ~results.n_close.isin([0,2]) &
-            results.n_close.notnull() &
-            (results.office_type == office_type)
-        )
-        print(
-            sum(not_balanced),
-            'not balanced, setting close=0'
-        )
-        results.loc[not_balanced, 'close'] = 0
-    return results
+    ).drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
 
 
 politico, candidato = main()

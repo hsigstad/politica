@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, BigInteger, Date
+from sqlalchemy import Column, Integer, String, BigInteger, Date, Numeric
 from sqlalchemy import Float, Text, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
@@ -39,8 +39,7 @@ class Candidato(Base):
     occupation = Column(String(255))
     education = Column(String(255))
     marital_status = Column(String(255))
-    rank = Column(Integer)
-    close = Column(Integer)    
+    suplementar = Column(Integer)
     def __repr__(self):
         return "Candidato(%s)" % (str(self.name))
 

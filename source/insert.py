@@ -15,19 +15,19 @@ db.Base.metadata.create_all(engine)
 diarios.database.insert(
     database='politica',
     table=db.Eleicao,
-    files=["source/eleicao.csv"]
+    files=['source/eleicao.csv']
 )
 
 diarios.database.insert(
     database='politica',
     table=db.Politico,
-    files=["build/clean/politico.csv"]
+    files=['build/clean/politico.csv']
 )
 
 diarios.database.insert(
     database='politica',
     table=db.Candidato,
-    files=["build/clean/candidato.csv"]
+    files=['build/clean/candidato.csv']
 )
 
 diarios.database.create_index(
