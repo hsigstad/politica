@@ -44,3 +44,17 @@ diarios.database.create_index(
     columns=['politico'],
     name='politico'
 )
+
+diarios.database.create_index(
+    database='politica',
+    table='candidato',
+    columns=['municipio_id'],
+    name='mun_id'
+)
+
+diarios.database.create_index(
+    database='politica',
+    table='candidato',
+    columns=['office'],
+    name='office'
+)
