@@ -1,60 +1,51 @@
-import os
-import sys
-os.chdir('/home/henrik/external-mirror/brazil/politica/source')
-import define_db_schemas as db
-sys.path.append('/home/henrik/external-mirror/brazil/diarios')
-os.chdir('/home/henrik/external-mirror/brazil/politica')
-import diarios
-import diarios.database
+import appendpath
+import diarios.database as db
 
+DBNAME = 'build/insert/politica.db'
 
-engine = diarios.database.get_db_engine('politica')
-db.Base.metadata.drop_all(engine)
-db.Base.metadata.create_all(engine)  
+db.insert(database=DBNAME,
+          table='eleicao',
+          columns=['id', 'year', 'round', 'electiondate', 'electiontype'],
+          files=['source/eleicao.csv'])
 
-diarios.database.insert(
-    database='politica',
-    table=db.Eleicao,
-    files=['source/eleicao.csv']
-)
+db.insert(database=DBNAME,
+          table='politico',
+          columns=[
+              'cpf', 'politico', 'race', 'nationality', 'gender', 'birthdate',
+              'birth_municipio_id', 'birth_estado'
+          ],
+          files=['build/clean/politico.csv'])
 
-diarios.database.insert(
-    database='politica',
-    table=db.Politico,
-    files=['build/clean/politico.csv']
-)
+db.insert(database=DBNAME,
+          table='candidato',
+          columns['cpf', 'estado', 'municipio_id', 'year', 'office', 'round',
+                  'votes', 'elected', 'electeddummy', 'margin', 'party',
+                  'coalition', 'campaignexpenditure', 'occupation',
+                  'education', 'marital_status', 'suplementar', 'SQ_CANDIDATO',
+                  'NUMERO_CAND'],
+          files=['build/clean/candidato.csv'])
 
-diarios.database.insert(
-    database='politica',
-    table=db.Candidato,
-    files=['build/clean/candidato.csv']
-)
+indices = [{
+    'table': 'politico',
+    'columns': ['politico'],
+    'name': 'politico_ix'
+}, {
+    'table': 'candidato',
+    'columns': ['municipio_id'],
+    'name': 'parte_mov_id'
+}, {
+    'table': 'candidato',
+    'columns': ['cpf'],
+    'name': 'candidato_cpf'
+}, {
+    'table': 'politico',
+    'columns': ['cpf'],
+    'name': 'politico_cpf'
+}, {
+    'table': 'candidato',
+    'columns': ['office'],
+    'name': 'office'
+}]
 
-diarios.database.create_index(
-    database='politica',
-    table='politico',
-    columns=['politico'],
-    name='politico_fulltext',
-    index_type='FULLTEXT'
-)
-
-diarios.database.create_index(
-    database='politica',
-    table='politico',
-    columns=['politico'],
-    name='politico'
-)
-
-diarios.database.create_index(
-    database='politica',
-    table='candidato',
-    columns=['municipio_id'],
-    name='mun_id'
-)
-
-diarios.database.create_index(
-    database='politica',
-    table='candidato',
-    columns=['office'],
-    name='office'
-)
+for index in indices:
+    db.create_index(database=DBNAME, **index)

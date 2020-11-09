@@ -41,8 +41,8 @@ class Candidato(Base):
     education = Column(String(255))
     marital_status = Column(String(255))
     suplementar = Column(Integer)
-    SQ_CANDIDATO = Column(Integer)
-    NUMERO_CAND = Column(Integer)
+    SQ_CANDIDATO = Column(BigInteger)
+    NUMERO_CAND = Column(BigInteger)
 
     def __repr__(self):
         return "Candidato(%s)" % (str(self.name))
