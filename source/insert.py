@@ -18,11 +18,12 @@ db.insert(database=DBNAME,
 
 db.insert(database=DBNAME,
           table='candidato',
-          columns['cpf', 'estado', 'municipio_id', 'year', 'office', 'round',
-                  'votes', 'elected', 'electeddummy', 'margin', 'party',
-                  'coalition', 'campaignexpenditure', 'occupation',
-                  'education', 'marital_status', 'suplementar', 'SQ_CANDIDATO',
-                  'NUMERO_CAND'],
+          columns=[
+              'cpf', 'estado', 'municipio_id', 'year', 'office', 'round',
+              'votes', 'elected', 'electeddummy', 'margin', 'party',
+              'coalition', 'campaignexpenditure', 'occupation', 'education',
+              'marital_status', 'suplementar', 'SQ_CANDIDATO', 'NUMERO_CAND'
+          ],
           files=['build/clean/candidato.csv'])
 
 indices = [{
