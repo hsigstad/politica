@@ -1,3 +1,4 @@
+import path
 import pandas as pd
 import numpy as np
 import random
@@ -8,7 +9,6 @@ import sys
 sys.path.append('/home/henrik/external-mirror/brazil/diarios')
 os.chdir('/home/henrik/external-mirror/brazil/politica')
 import diarios.clean as clean
-from diarios.misc import get_user_config
 
 
 def main():
@@ -83,11 +83,10 @@ def clean_election(state, year):
 
 def get_election_results(state, year):
     infile = os.path.join(
-        get_user_config('external_external-mirror_directory'), 'elections', year,
-        'votacao_candidato_munzona',
+        path.external-mirror_dir, 'elections', year, 'votacao_candidato_munzona',
         'votacao_candidato_munzona_{0}_{1}.txt'.format(year, state))
-    columns_file = os.path.join(get_user_config('external_external-mirror_directory'),
-                                'elections', year, 'votacao_candidato_munzona',
+    columns_file = os.path.join(path.external-mirror_dir, 'elections', year,
+                                'votacao_candidato_munzona',
                                 'variable-description.csv')
     if year == '2018':
         infile = infile.replace('.txt', '.csv')
@@ -250,8 +249,7 @@ def calculate_win_margin(row):
 
 
 def get_candidates(state, year):
-    infile = os.path.join(get_user_config('external_external-mirror_directory'),
-                          'elections', year, 'consulta_cand',
+    infile = os.path.join(path.external-mirror_dir, 'elections', year, 'consulta_cand',
                           'consulta_cand_{0}_{1}.txt'.format(year, state))
     column_mapping = get_candidate_column_mapping(year)
     if year == '2018':
