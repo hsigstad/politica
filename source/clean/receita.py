@@ -1,7 +1,9 @@
 import path
 import pandas as pd
 import re
+import os
 from glob import glob
+from diarios.clean import clean_cpf
 
 
 def clean_file(infile):
@@ -18,6 +20,11 @@ def clean_file(infile):
                      })
     cols = get_cols()
     df = df.rename(columns=cols).loc[:, cols.values()]
+    df['cpf'] = clean_cpf(df.cpf)
+    df['valor_receita'] = df.valor_receita.str.replace(',', '.')
+    df['valor_receita'] = pd.to_numeric(df.valor_receita, errors='coerce')
+    year = re.search('_([0-9]{4})_', infile).group(1)
+    df['year'] = year
     outfile = infile.replace('.txt', '.csv')
     outfile = outfile.replace('prestacao_contas_final/',
                               'prestacao_contas_final/clean/')
@@ -52,3 +59,6 @@ infiles = glob(
                  'TSE/*/prestacao_contas_final/receitas_candidatos*txt'))
 
 df = pd.concat(map(clean_file, infiles))
+
+with open('build/clean/receita.txt', 'w') as f:
+    f.write('Done')

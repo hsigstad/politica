@@ -1,6 +1,7 @@
-external_external-mirror_directory: /home/henrik/external-mirror/ls_data
-external_local_directory: /home/henrik/ls_data
-cache_directory: /home/henrik/caches/cache
+external-mirror_dir: /home/henrik/external-mirror/ls_data
+base_dir: /home/henrik/politica
+local_data_dir: /media/henrik/brazil
+diarios_dir: /home/henrik/diarios
 mysql_host: 127.0.0.1
 mysql_user: root
 mysql_pw: t4r3e2
