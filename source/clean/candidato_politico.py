@@ -14,14 +14,14 @@ def main():
     politico_file = 'build/clean/politico.csv'
     years = [
         '1998', '2000', '2002', '2004', '2006', '2008', '2010', '2012', '2014',
-        '2016', '2018'
+        '2016', '2018', '2020'
     ]  # 1994 and 1996 does not have CPF, and is missing for many states
     states = [
         'AC', 'SP', 'RJ', 'MG', 'BA', 'RS', 'AL', 'AM', 'AP', 'CE', 'DF', 'ES',
         'GO', 'MA', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RN', 'RO', 'RR',
         'RS', 'SC', 'SE', 'TO'
     ]
-    # years = ['2004']
+    # years = ['2020']
     # states = ['AC']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
@@ -85,7 +85,7 @@ def get_election_results(state, year):
     columns_file = os.path.join(path.local_data_dir, 'TSE', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
-    if year == '2018':
+    if year in ['2018', '2020']:
         infile = infile.replace('.txt', '.csv')
         results = pd.read_csv(infile, encoding='latin1', sep=';')
     else:
@@ -102,7 +102,7 @@ def rename_columns(results, year):
 
 
 def get_column_mapping(year):
-    if year == '2018':
+    if year in ['2018', '2020']:
         mapping = {
             'NM_CANDIDATO': 'politico',
             'DS_ELEICAO': 'eleicao',
@@ -249,7 +249,7 @@ def get_candidates(state, year):
     infile = os.path.join(path.local_data_dir, 'TSE', year, 'consulta_cand',
                           'consulta_cand_{0}_{1}.txt'.format(year, state))
     column_mapping = get_candidate_column_mapping(year)
-    if year == '2018':
+    if year in ['2018', '2020']:
         candidates = pd.read_csv(infile.replace('.txt', '.csv'),
                                  encoding='latin1',
                                  sep=';')
@@ -315,6 +315,36 @@ def get_candidate_column_mapping(year):
             'DS_OCUPACAO': 'occupation',
             'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure'
         }
+    elif year == '2020':
+        mapping = {
+            'ANO_ELEICAO': 'year',
+            'SG_UF': 'estado',
+            'SG_UE': 'district',
+            'DS_CARGO': 'office',
+            'SQ_CANDIDATO': 'SQ_CANDIDATO',
+            'NR_CANDIDATO': 'NUMERO_CAND',
+            'NM_CANDIDATO': 'politico',
+            'NR_CPF_CANDIDATO': 'cpf',
+            'DS_DETALHE_SITUACAO_CAND': 'status',
+            'SG_PARTIDO': 'party',
+            'NM_COLIGACAO': 'coalitionname',
+            'DS_COMPOSICAO_COLIGACAO': 'coalition',
+            'DS_NACIONALIDADE': 'nationality',
+            'SG_UF_NASCIMENTO': 'birth_estado',
+            'CD_MUNICIPIO_NASCIMENTO': 'birth_municipio_id',
+            'NM_MUNICIPIO_NASCIMENTO': 'birth_municipio',
+            'DT_NASCIMENTO': 'birthdate',
+            'DS_GENERO': 'gender',
+            'DS_GRAU_INSTRUCAO': 'education',
+            'DS_ESTADO_CIVIL': 'marital_status',
+            'DS_COR_RACA': 'race',
+            'DS_OCUPACAO': 'occupation',
+            'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure'
+        }
+
+
+# "DT_GERACAO";"HH_GERACAO";"ANO_ELEICAO";"CD_TIPO_ELEICAO";"NM_TIPO_ELEICAO";"NR_TURNO";"CD_ELEICAO";"DS_ELEICAO";"DT_ELEICAO";"TP_ABRANGENCIA";"SG_UF";"SG_UE";"NM_UE";"CD_CARGO";"DS_CARGO";"SQ_CANDIDATO";"NR_CANDIDATO";"NM_CANDIDATO";"NM_URNA_CANDIDATO";"NM_SOCIAL_CANDIDATO";"NR_CPF_CANDIDATO";"NM_EMAIL";"CD_SITUACAO_CANDIDATURA";"DS_SITUACAO_CANDIDATURA";"CD_DETALHE_SITUACAO_CAND";"DS_DETALHE_SITUACAO_CAND";"TP_AGREMIACAO";"NR_PARTIDO";"SG_PARTIDO";"NM_PARTIDO";"SQ_COLIGACAO";"NM_COLIGACAO";"DS_COMPOSICAO_COLIGACAO";"CD_NACIONALIDADE";"DS_NACIONALIDADE";"SG_UF_NASCIMENTO";"CD_MUNICIPIO_NASCIMENTO";"NM_MUNICIPIO_NASCIMENTO";"DT_NASCIMENTO";"NR_IDADE_DATA_POSSE";"NR_TITULO_ELEITORAL_CANDIDATO";"CD_GENERO";"DS_GENERO";"CD_GRAU_INSTRUCAO";"DS_GRAU_INSTRUCAO";"CD_ESTADO_CIVIL";"DS_ESTADO_CIVIL";"CD_COR_RACA";"DS_COR_RACA";"CD_OCUPACAO";"DS_OCUPACAO";"VR_DESPESA_MAX_CAMPANHA";"CD_SIT_TOT_TURNO";"DS_SIT_TOT_TURNO";"ST_REELEICAO";"ST_DECLARAR_BENS";"NR_PROTOCOLO_CANDIDATURA";"NR_PROCESSO";"CD_SITUACAO_CANDIDATO_PLEITO";"DS_SITUACAO_CANDIDATO_PLEITO";"CD_SITUACAO_CANDIDATO_URNA";"DS_SITUACAO_CANDIDATO_URNA";"ST_CANDIDATO_INSERIDO_URNA"
+
     else:
         mapping = {
             2: 'year',

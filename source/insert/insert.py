@@ -8,9 +8,38 @@ DBNAME = 'build/insert/politica.db'
 
 db.insert(
     database=DBNAME,
-    table='eleicao',
+    table='eleicoes',
     columns=['id', 'year', 'round', 'electiondate', 'electiontype'],
-    files=['source/raw/eleicao.csv'],
+    files=['source/raw/eleicoes.csv'],
+)
+
+db.insert(
+    database=DBNAME,
+    table='eleicao',
+    columns=[
+        'year',
+        'round',
+        'estado',
+        'office',
+        'ue',
+        'aptos',
+        'secoes',
+        'secoes_agregadas',
+        'aptos_tot',
+        'secoes_tot',
+        'comparecimento',
+        'abstencoes',
+        'votos_nominais',
+        'votos_brancos',
+        'votos_nulos',
+        'votos_legenda',
+        'votos_pendentes',
+        'votos_anulados',
+        'votos_anulados_apu_sep',
+        'suplementar',
+        'municipio_id',
+    ],
+    files=['build/clean/eleicao.csv'],
 )
 
 db.insert(

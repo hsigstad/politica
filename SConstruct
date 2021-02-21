@@ -14,6 +14,11 @@ env.Python(
 )
 
 env.Python(
+    target=['#build/clean/eleicao.csv'],
+    source=['#source/clean/eleicao.py'],
+)
+
+env.Python(
     target=[
         '#build/clean/candidato.csv',
         '#build/clean/politico.csv',
@@ -29,7 +34,7 @@ env.Python(
     ],
     source=[
         '#source/insert/insert.py',
-        '#source/raw/eleicao.csv',
+        '#source/raw/eleicoes.csv',
         '#build/clean/bem.txt',
         '#build/clean/receita.txt',
         '#build/clean/candidato.csv',
