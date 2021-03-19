@@ -13,13 +13,48 @@ def main():
     candidato_file = 'build/clean/candidato.csv'
     politico_file = 'build/clean/politico.csv'
     years = [
-        '1998', '2000', '2002', '2004', '2006', '2008', '2010', '2012', '2014',
-        '2016', '2018', '2020'
+        '1998',
+        '2000',
+        '2002',
+        '2004',
+        '2006',
+        '2008',
+        '2010',
+        '2012',
+        '2014',
+        '2016',
+        '2018',
+        '2020',
     ]  # 1994 and 1996 does not have CPF, and is missing for many states
     states = [
-        'AC', 'SP', 'RJ', 'MG', 'BA', 'RS', 'AL', 'AM', 'AP', 'CE', 'DF', 'ES',
-        'GO', 'MA', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RN', 'RO', 'RR',
-        'RS', 'SC', 'SE', 'TO'
+        'AC',
+        'SP',
+        'RJ',
+        'MG',
+        'BA',
+        'RS',
+        'AL',
+        'AM',
+        'AP',
+        'CE',
+        'DF',
+        'ES',
+        'GO',
+        'MA',
+        'MS',
+        'MT',
+        'PA',
+        'PB',
+        'PE',
+        'PI',
+        'PR',
+        'RN',
+        'RO',
+        'RR',
+        'RS',
+        'SC',
+        'SE',
+        'TO',
     ]
     # years = ['2020']
     # states = ['AC']
@@ -27,17 +62,44 @@ def main():
     results = pd.concat(map(clean_election, states, years), sort=True)
     results = results.query('cpf.notnull()')  #NB!
     cols = {
-        'cpf', 'politico', 'race', 'nationality', 'birthdate', 'gender',
-        'birth_municipio_id', 'birth_municipio', 'birth_estado_id',
-        'birth_estado'
+        'cpf',
+        'politico',
+        'race',
+        'nationality',
+        'birthdate',
+        'gender',
+        'birth_municipio_id',
+        'birth_municipio',
+        'birth_estado_id',
+        'birth_estado',
     }.intersection(results.columns)
     politico = results.drop_duplicates(subset='cpf').loc[:, cols]
     cols = {
-        'eleicao', 'cpf', 'year', 'suplementar', 'estado', 'estado_id',
-        'municipio', 'municipio_id', 'office', 'round', 'status', 'party',
-        'votes', 'elected', 'electeddummy', 'margin', 'rank', 'close',
-        'coalition', 'campaignexpenditure', 'education', 'marital_status',
-        'occupation', 'NUMERO_CAND', 'SQ_CANDIDATO'
+        'eleicao',
+        'cpf',
+        'year',
+        'suplementar',
+        'estado',
+        'estado_id',
+        'municipio',
+        'municipio_id',
+        'office',
+        'round',
+        'status',
+        'party',
+        'votes',
+        'elected',
+        'electeddummy',
+        'margin',
+        'rank',
+        'close',
+        'coalition',
+        'campaignexpenditure',
+        'education',
+        'marital_status',
+        'occupation',
+        'NUMERO_CAND',
+        'SQ_CANDIDATO',
     }.intersection(results.columns)
     candidato = results.loc[:, cols]
     candidato.to_csv(candidato_file, index=False)
@@ -115,7 +177,7 @@ def get_column_mapping(year):
             'QT_VOTOS_NOMINAIS': 'votes',
             'SG_UE': 'SIGLA_UE',
             'SQ_CANDIDATO': 'SQ_CANDIDATO',
-            'NR_CANDIDATO': 'NUMERO_CAND'
+            'NR_CANDIDATO': 'NUMERO_CAND',
         }
     else:
         mapping = {
@@ -130,7 +192,7 @@ def get_column_mapping(year):
             'TOTAL_VOTOS': 'votes',
             'SIGLA_UE': 'SIGLA_UE',
             'SQ_CANDIDATO': 'SQ_CANDIDATO',
-            'NUMERO_CAND': 'NUMERO_CAND'
+            'NUMERO_CAND': 'NUMERO_CAND',
         }
     return mapping
 
@@ -147,8 +209,14 @@ def collapse_by_candidate(results, year):
     else:
         results['district'] = results['estado']
     columns = [
-        'eleicao', 'district', 'office', 'round', 'elected', 'NUMERO_CAND',
-        'SQ_CANDIDATO', 'politico'
+        'eleicao',
+        'district',
+        'office',
+        'round',
+        'elected',
+        'NUMERO_CAND',
+        'SQ_CANDIDATO',
+        'politico',
     ]
     return results.groupby(columns, as_index=False).agg({'votes': np.sum})
 
@@ -181,16 +249,16 @@ def get_elected_mapping():
         'ELEITO POR QP': 'elected',
         'SUPLENTE': 'deputy',
         'NÃO ELEITO': 'not elected',
-        '2º TURNO': 'second round'
+        '2º TURNO': 'second round',
     }
 
 
 def add_office_type(results):
     results.loc[results.office.str.
-                match('vereador|deputado estadual|deputado federal'),
+                match('VEREADOR|DEPUTADO ESTADUAL|DEPUTADO FEDERAL'),
                 'office_type'] = 'pr'
     results.loc[
-        results.office.str.match('prefeito|governador|presidente|senador'),
+        results.office.str.match('PREFEITO|GOVERNADOR|PRESIDENTE|SENADOR'),
         'office_type'] = 'majority'
     return results
 
@@ -220,12 +288,19 @@ def add_win_margin(results):
     results['nseats'] = grouped['electeddummy'].transform('sum')
     results['totalvotes'] = grouped['votes'].transform('sum')
     results['margin'] = results.apply(calculate_win_margin, axis=1)
-    results.drop(columns=[
-        'electedvotes', 'notelectedvotes', 'upperthreshold_pr',
-        'upperthreshold_majority', 'lowerthreshold_pr',
-        'lowerthreshold_majority', 'nseats', 'totalvotes'
-    ],
-                 inplace=True)
+    results.drop(
+        columns=[
+            'electedvotes',
+            'notelectedvotes',
+            'upperthreshold_pr',
+            'upperthreshold_majority',
+            'lowerthreshold_pr',
+            'lowerthreshold_majority',
+            'nseats',
+            'totalvotes',
+        ],
+        inplace=True,
+    )
     return results
 
 
@@ -249,7 +324,7 @@ def get_candidates(state, year):
     infile = os.path.join(path.local_data_dir, 'TSE', year, 'consulta_cand',
                           'consulta_cand_{0}_{1}.txt'.format(year, state))
     column_mapping = get_candidate_column_mapping(year)
-    if year in ['2018', '2020']:
+    if year in ['2016', '2018', '2020']:
         candidates = pd.read_csv(infile.replace('.txt', '.csv'),
                                  encoding='latin1',
                                  sep=';')
@@ -263,7 +338,7 @@ def get_candidates(state, year):
 
 
 def get_candidate_column_mapping(year):
-    if year in ['2014', '2016']:
+    if year in ['2014']:
         mapping = {
             2: 'year',
             5: 'estado',
@@ -287,7 +362,7 @@ def get_candidate_column_mapping(year):
             39: 'birth_estado',
             40: 'birth_municipio_id',
             41: 'birth_municipio',
-            42: 'campaignexpenditure'
+            42: 'campaignexpenditure',
         }
     elif year == '2018':
         mapping = {
@@ -313,9 +388,9 @@ def get_candidate_column_mapping(year):
             'DS_ESTADO_CIVIL': 'marital_status',
             'DS_COR_RACA': 'race',
             'DS_OCUPACAO': 'occupation',
-            'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure'
+            'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
         }
-    elif year == '2020':
+    elif year in ['2016', '2020']:
         mapping = {
             'ANO_ELEICAO': 'year',
             'SG_UF': 'estado',
@@ -339,12 +414,8 @@ def get_candidate_column_mapping(year):
             'DS_ESTADO_CIVIL': 'marital_status',
             'DS_COR_RACA': 'race',
             'DS_OCUPACAO': 'occupation',
-            'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure'
+            'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
         }
-
-
-# "DT_GERACAO";"HH_GERACAO";"ANO_ELEICAO";"CD_TIPO_ELEICAO";"NM_TIPO_ELEICAO";"NR_TURNO";"CD_ELEICAO";"DS_ELEICAO";"DT_ELEICAO";"TP_ABRANGENCIA";"SG_UF";"SG_UE";"NM_UE";"CD_CARGO";"DS_CARGO";"SQ_CANDIDATO";"NR_CANDIDATO";"NM_CANDIDATO";"NM_URNA_CANDIDATO";"NM_SOCIAL_CANDIDATO";"NR_CPF_CANDIDATO";"NM_EMAIL";"CD_SITUACAO_CANDIDATURA";"DS_SITUACAO_CANDIDATURA";"CD_DETALHE_SITUACAO_CAND";"DS_DETALHE_SITUACAO_CAND";"TP_AGREMIACAO";"NR_PARTIDO";"SG_PARTIDO";"NM_PARTIDO";"SQ_COLIGACAO";"NM_COLIGACAO";"DS_COMPOSICAO_COLIGACAO";"CD_NACIONALIDADE";"DS_NACIONALIDADE";"SG_UF_NASCIMENTO";"CD_MUNICIPIO_NASCIMENTO";"NM_MUNICIPIO_NASCIMENTO";"DT_NASCIMENTO";"NR_IDADE_DATA_POSSE";"NR_TITULO_ELEITORAL_CANDIDATO";"CD_GENERO";"DS_GENERO";"CD_GRAU_INSTRUCAO";"DS_GRAU_INSTRUCAO";"CD_ESTADO_CIVIL";"DS_ESTADO_CIVIL";"CD_COR_RACA";"DS_COR_RACA";"CD_OCUPACAO";"DS_OCUPACAO";"VR_DESPESA_MAX_CAMPANHA";"CD_SIT_TOT_TURNO";"DS_SIT_TOT_TURNO";"ST_REELEICAO";"ST_DECLARAR_BENS";"NR_PROTOCOLO_CANDIDATURA";"NR_PROCESSO";"CD_SITUACAO_CANDIDATO_PLEITO";"DS_SITUACAO_CANDIDATO_PLEITO";"CD_SITUACAO_CANDIDATO_URNA";"DS_SITUACAO_CANDIDATO_URNA";"ST_CANDIDATO_INSERIDO_URNA"
-
     else:
         mapping = {
             2: 'year',
@@ -368,14 +439,21 @@ def get_candidate_column_mapping(year):
             37: 'birth_estado',
             38: 'birth_municipio_id',
             39: 'birth_municipio',
-            40: 'campaignexpenditure'
+            40: 'campaignexpenditure',
         }
     return mapping
 
 
 def clean_candidates(candidates, year):
     candidates = clean.clean_text_columns(
-        candidates, exclude=['estado', 'birth_estado', 'party', 'coalition'])
+        candidates,
+        exclude=[
+            'estado',
+            'birth_estado',
+            'party',
+            'coalition',
+        ],
+    )
     candidates['birth_estado_id'] = clean.transform(candidates['birth_estado'],
                                                     'estado', 'estado_id')
     candidates['estado_id'] = clean.transform(candidates['estado'], 'estado',
@@ -430,8 +508,11 @@ def merge_in_candidates(results, candidates, year):
         merge_vars = ['district', 'office', 'NUMERO_CAND', 'SQ_CANDIDATO']
         results.drop(columns=['politico'], inplace=True)
     return pd.merge(
-        results, candidates, on=merge_vars,
-        how='outer')  # .drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
+        results,
+        candidates,
+        on=merge_vars,
+        how='outer',
+    )  # .drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
 
 
 politico, candidato = main()

@@ -1,33 +1,63 @@
-import os
-import sys
-os.chdir('/home/henrik/external-mirror/brazil/politica/source')
-import define_db_schemas as db
-sys.path.append('/home/henrik/external-mirror/brazil/diarios')
-os.chdir('/home/henrik/external-mirror/brazil/politica')
-import diarios
+import path
 import diarios.database
-
-
-engine = diarios.database.get_db_engine('politica')
-db.Base.metadata.drop_all(engine)
-db.Base.metadata.create_all(engine)  
+from sqlalchemy import String
+import pandas as pd
 
 diarios.database.insert(
     database='politica',
-    table=db.Eleicao,
-    files=['source/eleicao.csv']
+    table='eleicoes',
+    columns=['id', 'year', 'round', 'electiondate', 'electiontype'],
+    files=['source/raw/eleicoes.csv'],
+    flavor='mysql',
 )
 
 diarios.database.insert(
     database='politica',
-    table=db.Politico,
-    files=['build/clean/politico.csv']
+    table='politico',
+    dtype_csv={'cpf': str},
+    dtype={'cpf': String(11)},
+    columns=[
+        'cpf',
+        'politico',
+        'race',
+        'nationality',
+        'gender',
+        'birthdate',
+        'birth_municipio_id',
+        'birth_estado',
+    ],
+    files=['build/clean/politico.csv'],
+    flavor='mysql',
 )
 
 diarios.database.insert(
     database='politica',
-    table=db.Candidato,
-    files=['build/clean/candidato.csv']
+    table='candidato',
+    dtype_csv={'cpf': str},
+    dtype={'cpf': String(11)},
+    columns=[
+        'cpf',
+        'estado',
+        'municipio_id',
+        'year',
+        'office',
+        'round',
+        'votes',
+        'elected',
+        'electeddummy',
+        'margin',
+        'party',
+        'coalition',
+        'campaignexpenditure',
+        'occupation',
+        'education',
+        'marital_status',
+        'suplementar',
+        'SQ_CANDIDATO',
+        'NUMERO_CAND',
+    ],
+    files=['build/clean/candidato.csv'],
+    flavor='mysql',
 )
 
 diarios.database.create_index(
@@ -35,26 +65,30 @@ diarios.database.create_index(
     table='politico',
     columns=['politico'],
     name='politico_fulltext',
-    index_type='FULLTEXT'
+    index_type='FULLTEXT',
+    flavor='mysql',
 )
 
 diarios.database.create_index(
     database='politica',
     table='politico',
     columns=['politico'],
-    name='politico'
+    name='politico',
+    flavor='mysql',
 )
 
 diarios.database.create_index(
     database='politica',
     table='candidato',
     columns=['municipio_id'],
-    name='mun_id'
+    name='mun_id',
+    flavor='mysql',
 )
 
 diarios.database.create_index(
     database='politica',
     table='candidato',
     columns=['office'],
-    name='office'
+    name='office',
+    flavor='mysql',
 )
