@@ -2,7 +2,6 @@ import path
 import diarios.database as db
 import os
 from glob import glob
-from sqlalchemy.types import String
 
 DBNAME = 'build/insert/politica.db'
 
@@ -54,9 +53,12 @@ db.insert(
         'valor_bem',
         'descricao_bem',
     ],
+    dtype_csv={'cpf': float},
     files=glob(
-        os.path.join(path.local_data_dir, 'TSE/*/bem_candidato/clean/*csv')),
-    dtype_csv={'cpf': str},
+        os.path.join(
+            path.local_data_dir,
+            'TSE/*/bem_candidato/clean/*csv',
+        )),
 )
 
 db.insert(
@@ -80,10 +82,12 @@ db.insert(
         'especie_recurso',
         'descricao_receita',
     ],
+    dtype_csv={'cpf': float},
     files=glob(
-        os.path.join(path.local_data_dir,
-                     'TSE/*/prestacao_contas_final/clean/*csv')),
-    dtype_csv={'cpf': str},
+        os.path.join(
+            path.local_data_dir,
+            'TSE/*/prestacao_contas_final/clean/*csv',
+        )),
 )
 
 db.insert(
@@ -100,6 +104,7 @@ db.insert(
         'birth_estado',
     ],
     files=['build/clean/politico.csv'],
+    dtype_csv={'cpf': int},
 )
 
 db.insert(
@@ -126,6 +131,7 @@ db.insert(
         'SQ_CANDIDATO',
         'NUMERO_CAND',
     ],
+    dtype_csv={'cpf': int},
     files=['build/clean/candidato.csv'],
 )
 

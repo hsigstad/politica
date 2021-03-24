@@ -25,7 +25,7 @@ def main():
         '2016',
         '2018',
         '2020',
-    ]  # 1994 and 1996 does not have CPF, and is missing for many states
+    ]  # 1994 and 1996 does not have CPF and is missing for many states
     states = [
         'AC',
         'SP',

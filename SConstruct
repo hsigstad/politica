@@ -41,3 +41,17 @@ env.Python(
         '#build/clean/politico.csv',
     ],
 )
+
+env.Python(
+    target=[
+        '#build/insert/insert_mysql.txt',
+    ],
+    source=[
+        '#source/insert/insert_mysql.py',
+        '#source/raw/eleicoes.csv',
+        '#build/clean/bem.txt',
+        '#build/clean/receita.txt',
+        '#build/clean/candidato.csv',
+        '#build/clean/politico.csv',
+    ],
+)

@@ -1,9 +1,9 @@
 import path
-import diarios.database
-from sqlalchemy import String
+import diarios.database as db
+from sqlalchemy import String, BigInteger
 import pandas as pd
 
-diarios.database.insert(
+db.insert(
     database='politica',
     table='eleicoes',
     columns=['id', 'year', 'round', 'electiondate', 'electiontype'],
@@ -11,11 +11,14 @@ diarios.database.insert(
     flavor='mysql',
 )
 
-diarios.database.insert(
+db.insert(
     database='politica',
     table='politico',
-    dtype_csv={'cpf': str},
-    dtype={'cpf': String(11)},
+    dtype_csv={'cpf': int},
+    dtype={
+        'cpf': BigInteger(),
+        'politico': String(255)
+    },
     columns=[
         'cpf',
         'politico',
@@ -30,11 +33,15 @@ diarios.database.insert(
     flavor='mysql',
 )
 
-diarios.database.insert(
+db.insert(
     database='politica',
     table='candidato',
-    dtype_csv={'cpf': str},
-    dtype={'cpf': String(11)},
+    dtype_csv={'cpf': int},
+    dtype={
+        'cpf': BigInteger(),
+        'office': String(75),
+        'estado': String(2),
+    },
     columns=[
         'cpf',
         'estado',
@@ -60,16 +67,7 @@ diarios.database.insert(
     flavor='mysql',
 )
 
-diarios.database.create_index(
-    database='politica',
-    table='politico',
-    columns=['politico'],
-    name='politico_fulltext',
-    index_type='FULLTEXT',
-    flavor='mysql',
-)
-
-diarios.database.create_index(
+db.create_index(
     database='politica',
     table='politico',
     columns=['politico'],
@@ -77,7 +75,7 @@ diarios.database.create_index(
     flavor='mysql',
 )
 
-diarios.database.create_index(
+db.create_index(
     database='politica',
     table='candidato',
     columns=['municipio_id'],
@@ -85,10 +83,54 @@ diarios.database.create_index(
     flavor='mysql',
 )
 
-diarios.database.create_index(
+db.create_index(
     database='politica',
     table='candidato',
     columns=['office'],
     name='office',
     flavor='mysql',
 )
+
+db.create_index(
+    database='politica',
+    table='candidato',
+    columns=['cpf'],
+    name='candidato_cpf',
+    flavor='mysql',
+)
+
+db.create_index(
+    database='politica',
+    table='candidato',
+    columns=['municipio_id'],
+    name='municipio_id',
+    flavor='mysql',
+)
+
+db.create_index(
+    database='politica',
+    table='candidato',
+    columns=['estado'],
+    name='estado',
+    flavor='mysql',
+)
+
+db.create_index(
+    database='politica',
+    table='politico',
+    columns=['cpf'],
+    name='politico_cpf',
+    flavor='mysql',
+)
+
+db.create_index(
+    database='politica',
+    table='politico',
+    columns=['politico'],
+    name='politico_fulltext',
+    fulltext=True,
+    flavor='mysql',
+)
+
+with open('build/insert/insert_mysql.txt', 'w') as f:
+    f.write('Done')
