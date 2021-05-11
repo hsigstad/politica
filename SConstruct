@@ -38,6 +38,7 @@ env.Python(
         '#build/clean/bem.txt',
         '#build/clean/receita.txt',
         '#build/clean/candidato.csv',
+        '#build/clean/eleicao.csv',
         '#build/clean/politico.csv',
     ],
 )

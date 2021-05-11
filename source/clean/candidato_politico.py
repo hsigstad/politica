@@ -56,8 +56,8 @@ def main():
         'SE',
         'TO',
     ]
-    # years = ['2020']
-    # states = ['AC']
+    # years = ['2008']
+    # states = ['MG']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
     results = results.query('cpf.notnull()')  #NB!
@@ -505,8 +505,10 @@ def merge_in_candidates(results, candidates, year):
         merge_vars = ['district', 'office', 'NUMERO_CAND', 'politico']
         results.drop(columns=['SQ_CANDIDATO'], inplace=True)
     else:
-        merge_vars = ['district', 'office', 'NUMERO_CAND', 'SQ_CANDIDATO']
-        results.drop(columns=['politico'], inplace=True)
+        # NUMERO_CAND differ some times across cand and results files
+        # Should be sufficient to merge by SQ_CANDIDATO
+        merge_vars = ['district', 'office', 'SQ_CANDIDATO', 'politico']
+        results.drop(columns=['NUMERO_CAND'], inplace=True)
     return pd.merge(
         results,
         candidates,

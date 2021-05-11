@@ -6,7 +6,7 @@ import pandas as pd
 db.insert(
     database='politica',
     table='eleicoes',
-    columns=['id', 'year', 'round', 'electiondate', 'electiontype'],
+    columns=['year', 'round', 'electiondate', 'electiontype'],
     files=['source/raw/eleicoes.csv'],
     flavor='mysql',
 )

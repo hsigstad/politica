@@ -74,11 +74,15 @@ cand = get_cand()
 
 infiles1 = glob(
     os.path.join(path.local_data_dir,
-                 'TSE/2016/bem_candidato/bem_candidato*csv'))
+                 'TSE/2008/bem_candidato/bem_candidato*txt'))
 infiles2 = glob(
     os.path.join(path.local_data_dir,
                  'TSE/2012/bem_candidato/bem_candidato*txt'))
-infiles = infiles1 + infiles2
+infiles3 = glob(
+    os.path.join(path.local_data_dir,
+                 'TSE/2016/bem_candidato/bem_candidato*csv'))
+
+infiles = infiles1 + infiles2 + infiles3
 df = pd.concat(map(clean_file, infiles))
 
 with open('build/clean/bem.txt', 'w') as f:
