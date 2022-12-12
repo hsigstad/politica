@@ -86,10 +86,10 @@ def clean(df):
 
 
 infiles1 = glob(
-    os.path.join(path.local_data_dir, "TSE/*/detalhe_votacao_munzona/det*csv")
+    os.path.join(path.data_dir, "elections/*/detalhe_votacao_munzona/det*csv")
 )
 infiles2 = glob(
-    os.path.join(path.local_data_dir, "TSE/*/detalhe_votacao_munzona/det*txt")
+    os.path.join(path.data_dir, "elections/*/detalhe_votacao_munzona/det*txt")
 )
 infiles = infiles1 + infiles2
 df = pd.concat(map(read_csv, infiles))

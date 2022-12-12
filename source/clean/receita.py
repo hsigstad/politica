@@ -25,9 +25,8 @@ def clean_file(infile):
     df['valor_receita'] = pd.to_numeric(df.valor_receita, errors='coerce')
     year = re.search('_([0-9]{4})_', infile).group(1)
     df['year'] = year
-    outfile = infile.replace('.txt', '.csv')
-    outfile = outfile.replace('prestacao_contas_final/',
-                              'prestacao_contas_final/clean/')
+    outfile = os.path.basename(infile).replace('.txt', '.csv')
+    outfile = 'build/clean/{}'.format(outfile)
     df.to_csv(outfile, index=False)
     return df
 
@@ -55,8 +54,8 @@ def get_cols():
 
 
 infiles = glob(
-    os.path.join(path.local_data_dir,
-                 'TSE/*/prestacao_contas_final/receitas_candidatos*txt'))
+    os.path.join(path.data_dir,
+                 'elections/*/prestacao_contas_final/receitas_candidatos*txt'))
 
 df = pd.concat(map(clean_file, infiles))
 

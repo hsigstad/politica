@@ -56,8 +56,8 @@ db.insert(
     dtype_csv={'cpf': float},
     files=glob(
         os.path.join(
-            path.local_data_dir,
-            'TSE/*/bem_candidato/clean/*csv',
+            path.data_dir,
+            'elections/*/bem_candidato/clean/*csv',
         )),
 )
 
@@ -85,8 +85,8 @@ db.insert(
     dtype_csv={'cpf': float},
     files=glob(
         os.path.join(
-            path.local_data_dir,
-            'TSE/*/prestacao_contas_final/clean/*csv',
+            path.data_dir,
+            'elections/*/prestacao_contas_final/clean/*csv',
         )),
 )
 

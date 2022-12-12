@@ -142,9 +142,9 @@ def clean_election(state, year):
 
 def get_election_results(state, year):
     infile = os.path.join(
-        path.local_data_dir, 'TSE', year, 'votacao_candidato_munzona',
+        path.data_dir, 'elections', year, 'votacao_candidato_munzona',
         'votacao_candidato_munzona_{0}_{1}.txt'.format(year, state))
-    columns_file = os.path.join(path.local_data_dir, 'TSE', year,
+    columns_file = os.path.join(path.data_dir, 'elections', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
     if year in ['2018', '2020']:
@@ -321,7 +321,7 @@ def calculate_win_margin(row):
 
 
 def get_candidates(state, year):
-    infile = os.path.join(path.local_data_dir, 'TSE', year, 'consulta_cand',
+    infile = os.path.join(path.data_dir, 'elections', year, 'consulta_cand',
                           'consulta_cand_{0}_{1}.txt'.format(year, state))
     column_mapping = get_candidate_column_mapping(year)
     if year in ['2016', '2018', '2020']:

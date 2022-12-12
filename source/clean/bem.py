@@ -39,8 +39,8 @@ def clean_file(infile):
         df['valor_bem'] = pd.to_numeric(df.valor_bem, errors='coerce')
     on = 'SQ_CANDIDATO'
     df = df.merge(cand_year_estado, on=on, how='left', validate='m:1')
-    outfile = infile.replace('.txt', '.csv')
-    outfile = outfile.replace('bem_candidato/', 'bem_candidato/clean/')
+    outfile = os.path.basename(infile).replace('.txt', '.csv')
+    outfile = 'build/clean/{}'.format(outfile)
     df.to_csv(outfile, index=False)
     return df
 
@@ -73,14 +73,14 @@ def get_cand():
 cand = get_cand()
 
 infiles1 = glob(
-    os.path.join(path.local_data_dir,
-                 'TSE/2008/bem_candidato/bem_candidato*txt'))
+    os.path.join(path.data_dir,
+                 'elections/2008/bem_candidato/bem_candidato*txt'))
 infiles2 = glob(
-    os.path.join(path.local_data_dir,
-                 'TSE/2012/bem_candidato/bem_candidato*txt'))
+    os.path.join(path.data_dir,
+                 'elections/2012/bem_candidato/bem_candidato*txt'))
 infiles3 = glob(
-    os.path.join(path.local_data_dir,
-                 'TSE/2016/bem_candidato/bem_candidato*csv'))
+    os.path.join(path.data_dir,
+                 'elections/2016/bem_candidato/bem_candidato*'))
 
 infiles = infiles1 + infiles2 + infiles3
 df = pd.concat(map(clean_file, infiles))

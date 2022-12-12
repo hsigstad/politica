@@ -48,8 +48,8 @@ def get_cols(year):
 
 infiles = glob(
     os.path.join(
-        path.local_data_dir,
-        'TSE',
+        path.data_dir,
+        'elections',
         '*',
         'votacao_candidato_munzona',
         'votacao_candidato_munzona*',
