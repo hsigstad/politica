@@ -55,7 +55,7 @@ def get_cols():
 
 infiles = glob(
     os.path.join(path.data_dir,
-                 'elections/*/prestacao_contas_final/receitas_candidatos*txt'))
+                 'TSE/*/prestacao_contas_final/receitas_candidatos*txt'))
 
 df = pd.concat(map(clean_file, infiles))
 

@@ -74,13 +74,13 @@ cand = get_cand()
 
 infiles1 = glob(
     os.path.join(path.data_dir,
-                 'elections/2008/bem_candidato/bem_candidato*txt'))
+                 'TSE/2008/bem_candidato/bem_candidato*txt'))
 infiles2 = glob(
     os.path.join(path.data_dir,
-                 'elections/2012/bem_candidato/bem_candidato*txt'))
+                 'TSE/2012/bem_candidato/bem_candidato*txt'))
 infiles3 = glob(
     os.path.join(path.data_dir,
-                 'elections/2016/bem_candidato/bem_candidato*'))
+                 'TSE/2016/bem_candidato/bem_candidato*'))
 
 infiles = infiles1 + infiles2 + infiles3
 df = pd.concat(map(clean_file, infiles))
