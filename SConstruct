@@ -31,20 +31,20 @@ env.Python(
     ],
 )
 
-# env.Python(
-#     target=[
-#         '#build/insert/politica.db',
-#     ],
-#     source=[
-#         '#source/insert/insert.py',
-#         '#source/raw/eleicoes.csv',
-#         '#build/clean/bem.txt',
-#         '#build/clean/receita.txt',
-#         '#build/clean/candidato.csv',
-#         '#build/clean/eleicao.csv',
-#         '#build/clean/politico.csv',
-#     ],
-# )
+env.Python(
+    target=[
+        '#build/insert/politica.db',
+    ],
+    source=[
+        '#source/insert/insert.py',
+        '#source/raw/eleicoes.csv',
+        '#build/clean/bem.txt',
+        '#build/clean/receita.txt',
+        '#build/clean/candidato.csv',
+        '#build/clean/eleicao.csv',
+        '#build/clean/politico.csv',
+    ],
+)
 
 # env.Python(
 #     target=[
