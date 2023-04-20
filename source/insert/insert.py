@@ -54,11 +54,12 @@ db.insert(
         'descricao_bem',
     ],
     dtype_csv={'cpf': float},
-    files=glob(
-        os.path.join(
-            path.data_dir,
-            'elections/*/bem_candidato/clean/*csv',
-        )),
+    files=glob('build/clean/bem*')
+#    files=glob(
+#        os.path.join(
+#            path.data_dir,
+#            'TSE/*/bem_candidato/clean/*csv',
+#        )),
 )
 
 db.insert(
@@ -83,11 +84,12 @@ db.insert(
         'descricao_receita',
     ],
     dtype_csv={'cpf': float},
-    files=glob(
-        os.path.join(
-            path.data_dir,
-            'elections/*/prestacao_contas_final/clean/*csv',
-        )),
+    files=glob('build/clean/receita*'),
+    # files=glob(
+    #     os.path.join(
+    #         path.data_dir,
+    #         'TSE/*/prestacao_contas_final/clean/*csv',
+    #     )),
 )
 
 db.insert(
