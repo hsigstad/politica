@@ -57,7 +57,7 @@ def main():
         'TO',
     ]
     # years = ['2008']
-    # states = ['MG']
+    # states = ['AC', 'AL']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
     results = results.query('cpf.notnull()')  #NB!
@@ -147,7 +147,7 @@ def get_election_results(state, year):
     columns_file = os.path.join(path.data_dir, 'TSE', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
-    if year in ['2018', '2020']:
+    if year in ['2016', '2018', '2020']:
         infile = infile.replace('.txt', '.csv')
         results = pd.read_csv(infile, encoding='latin1', sep=';')
     else:
@@ -164,7 +164,7 @@ def rename_columns(results, year):
 
 
 def get_column_mapping(year):
-    if year in ['2018', '2020']:
+    if year in ['2016', '2018', '2020']:
         mapping = {
             'NM_CANDIDATO': 'politico',
             'DS_ELEICAO': 'eleicao',
@@ -450,6 +450,7 @@ def clean_candidates(candidates, year):
         exclude=[
             'estado',
             'birth_estado',
+            'birthdate',
             'party',
             'coalition',
         ],
