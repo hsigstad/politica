@@ -25,6 +25,7 @@ def main():
         '2016',
         '2018',
         '2020',
+        '2022',
     ]  # 1994 and 1996 does not have CPF and is missing for many states
     states = [
         'AC',
@@ -147,7 +148,7 @@ def get_election_results(state, year):
     columns_file = os.path.join(path.data_dir, 'TSE', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
-    if year in ['2016', '2018', '2020']:
+    if year in ['2016', '2018', '2020', '2022']:
         infile = infile.replace('.txt', '.csv')
         results = pd.read_csv(infile, encoding='latin1', sep=';')
     else:
@@ -164,7 +165,7 @@ def rename_columns(results, year):
 
 
 def get_column_mapping(year):
-    if year in ['2016', '2018', '2020']:
+    if year in ['2016', '2018', '2020', '2022']:
         mapping = {
             'NM_CANDIDATO': 'politico',
             'DS_ELEICAO': 'eleicao',
@@ -322,126 +323,55 @@ def calculate_win_margin(row):
 
 def get_candidates(state, year):
     infile = os.path.join(path.data_dir, 'TSE', year, 'consulta_cand',
-                          'consulta_cand_{0}_{1}.txt'.format(year, state))
-    column_mapping = get_candidate_column_mapping(year)
-    if year in ['2016', '2018', '2020']:
-        candidates = pd.read_csv(infile.replace('.txt', '.csv'),
-                                 encoding='latin1',
-                                 sep=';')
-    else:
-        candidates = pd.read_csv(infile,
-                                 encoding='latin1',
-                                 sep=';',
-                                 header=None)
-    return (candidates.loc[:, column_mapping.keys()].rename(
-        columns=column_mapping))
+                          'consulta_cand_{0}_{1}.csv'.format(year, state))
+
+    #if year in ['2016', '2018', '2020']:
+    #    candidates = pd.read_csv(infile.replace('.txt', '.csv'),
+    #                             encoding='latin1',
+    #                             sep=';')
+    #else:
+    #    candidates = pd.read_csv(infile,
+    #                             encoding='latin1',
+    #                             sep=';',
+    #                             header=None)
+    df = pd.read_csv(infile, encoding='latin1', sep=';')
+    cols = get_candidate_column_mapping()    
+    df = df.rename(columns=cols)
+    new_cols = set(df.columns).intersection(cols.values())
+    not_found = set(cols.values()).difference(df.columns)
+    #print('Not found', year, ':', not_found) # for checking
+    df = df.loc[:, new_cols]
+    return df
 
 
-def get_candidate_column_mapping(year):
-    if year in ['2014']:
-        mapping = {
-            2: 'year',
-            5: 'estado',
-            6: 'district',
-            9: 'office',
-            10: 'politico',
-            11: 'SQ_CANDIDATO',
-            12: 'NUMERO_CAND',
-            13: 'cpf',
-            16: 'status',
-            18: 'party',
-            22: 'coalition',
-            23: 'coalitionname',
-            25: 'occupation',
-            26: 'birthdate',
-            30: 'gender',
-            32: 'education',
-            34: 'marital_status',
-            36: 'race',
-            38: 'nationality',
-            39: 'birth_estado',
-            40: 'birth_municipio_id',
-            41: 'birth_municipio',
-            42: 'campaignexpenditure',
-        }
-    elif year == '2018':
-        mapping = {
-            'ANO_ELEICAO': 'year',
-            'SG_UF': 'estado',
-            'SG_UE': 'district',
-            'DS_CARGO': 'office',
-            'SQ_CANDIDATO': 'SQ_CANDIDATO',
-            'NR_CANDIDATO': 'NUMERO_CAND',
-            'NM_CANDIDATO': 'politico',
-            'NR_CPF_CANDIDATO': 'cpf',
-            'DS_DETALHE_SITUACAO_CAND': 'status',
-            'SG_PARTIDO': 'party',
-            'NM_COLIGACAO': 'coalitionname',
-            'DS_COMPOSICAO_COLIGACAO': 'coalition',
-            'DS_NACIONALIDADE': 'nationality',
-            'SG_UF_NASCIMENTO': 'birth_estado',
-            'CD_MUNICIPIO_NASCIMENTO': 'birth_municipio_id',
-            'NM_MUNICIPIO_NASCIMENTO': 'birth_municipio',
-            'DT_NASCIMENTO': 'birthdate',
-            'DS_GENERO': 'gender',
-            'DS_GRAU_INSTRUCAO': 'education',
-            'DS_ESTADO_CIVIL': 'marital_status',
-            'DS_COR_RACA': 'race',
-            'DS_OCUPACAO': 'occupation',
-            'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
-        }
-    elif year in ['2016', '2020']:
-        mapping = {
-            'ANO_ELEICAO': 'year',
-            'SG_UF': 'estado',
-            'SG_UE': 'district',
-            'DS_CARGO': 'office',
-            'SQ_CANDIDATO': 'SQ_CANDIDATO',
-            'NR_CANDIDATO': 'NUMERO_CAND',
-            'NM_CANDIDATO': 'politico',
-            'NR_CPF_CANDIDATO': 'cpf',
-            'DS_DETALHE_SITUACAO_CAND': 'status',
-            'SG_PARTIDO': 'party',
-            'NM_COLIGACAO': 'coalitionname',
-            'DS_COMPOSICAO_COLIGACAO': 'coalition',
-            'DS_NACIONALIDADE': 'nationality',
-            'SG_UF_NASCIMENTO': 'birth_estado',
-            'CD_MUNICIPIO_NASCIMENTO': 'birth_municipio_id',
-            'NM_MUNICIPIO_NASCIMENTO': 'birth_municipio',
-            'DT_NASCIMENTO': 'birthdate',
-            'DS_GENERO': 'gender',
-            'DS_GRAU_INSTRUCAO': 'education',
-            'DS_ESTADO_CIVIL': 'marital_status',
-            'DS_COR_RACA': 'race',
-            'DS_OCUPACAO': 'occupation',
-            'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
-        }
-    else:
-        mapping = {
-            2: 'year',
-            5: 'estado',
-            6: 'district',
-            9: 'office',
-            10: 'politico',
-            11: 'SQ_CANDIDATO',
-            12: 'NUMERO_CAND',
-            13: 'cpf',
-            16: 'status',
-            18: 'party',
-            22: 'coalition',
-            23: 'coalitionname',
-            25: 'occupation',
-            26: 'birthdate',
-            30: 'gender',
-            32: 'education',
-            34: 'marital_status',
-            36: 'nationality',
-            37: 'birth_estado',
-            38: 'birth_municipio_id',
-            39: 'birth_municipio',
-            40: 'campaignexpenditure',
-        }
-    return mapping
+def get_candidate_column_mapping():
+    return {
+        'ANO_ELEICAO': 'year',
+        'SG_UF': 'estado',
+        'SG_UE': 'district',
+        'DS_CARGO': 'office',
+        'SQ_CANDIDATO': 'SQ_CANDIDATO',
+        'NR_CANDIDATO': 'NUMERO_CAND',
+        'NM_CANDIDATO': 'politico',
+        'NR_CPF_CANDIDATO': 'cpf',
+        'DS_DETALHE_SITUACAO_CAND': 'status',
+        'SG_PARTIDO': 'party',
+        'NM_COLIGACAO': 'coalitionname',
+        'DS_COMPOSICAO_COLIGACAO': 'coalition',
+        'DS_NACIONALIDADE': 'nationality',
+        'SG_UF_NASCIMENTO': 'birth_estado',
+        'CD_MUNICIPIO_NASCIMENTO': 'birth_municipio_id',
+        'NM_MUNICIPIO_NASCIMENTO': 'birth_municipio',
+        'DT_NASCIMENTO': 'birthdate',
+        'DS_GENERO': 'gender',
+        'DS_GRAU_INSTRUCAO': 'education',
+        'DS_ESTADO_CIVIL': 'marital_status',
+        'DS_COR_RACA': 'race',
+        'DS_OCUPACAO': 'occupation',
+        'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
+        'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',        
+    }
+
 
 
 def clean_candidates(candidates, year):
