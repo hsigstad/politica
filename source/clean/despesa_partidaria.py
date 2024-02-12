@@ -15,7 +15,7 @@ def read_csv(infile):
     return pd.read_csv(infile, sep=';', encoding='latin1')
 
 def clean_value(value):
-    return pd.to_numeric(value.str.replace(',', '.'))
+    return pd.to_numeric(value.str.replace(',', '.', regex=False))
 
 df = pd.concat(map(read_csv, infiles))
 for c in ['VR_GASTO', 'VR_PAGAMENTO', 'VR_DOCUMENTO']:

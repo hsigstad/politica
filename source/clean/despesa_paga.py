@@ -21,7 +21,7 @@ years = [2020]
 df = pd.concat(map(clean_year, years))
 
 def clean_value(value):
-    return pd.to_numeric(value.str.replace(',', '.'))
+    return pd.to_numeric(value.str.replace(',', '.', regex=False))
 
 df.to_csv('build/clean/despesa_paga.csv', index=False)
 

@@ -35,7 +35,7 @@ def clean_file(infile):
     cols = get_cols()
     df = df.rename(columns=cols).loc[:, set(cols.values())]
     if df.valor_bem.dtype == object:
-        df['valor_bem'] = df.valor_bem.str.replace(',', '.')
+        df['valor_bem'] = df.valor_bem.str.replace(',', '.', regex=True)
         df['valor_bem'] = pd.to_numeric(df.valor_bem, errors='coerce')
     on = 'SQ_CANDIDATO'
     df = df.merge(cand_year_estado, on=on, how='left', validate='m:1')
@@ -65,7 +65,7 @@ def get_cand():
     cand = pd.read_csv('build/clean/candidato.csv',
                        usecols=['year', 'estado', 'SQ_CANDIDATO', 'cpf'],
                        dtype={'SQ_CANDIDATO': str})
-    cand['SQ_CANDIDATO'] = cand.SQ_CANDIDATO.str.replace('\.0', '')
+    cand['SQ_CANDIDATO'] = cand.SQ_CANDIDATO.str.replace('.0', '', regex=False)
     cand['cpf'] = clean_cpf(cand.cpf)
     return cand
 

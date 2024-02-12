@@ -26,7 +26,7 @@ def clean_file(infile):
     df = df.loc[:, new_cols]
     if 'cpf' in df.columns:
         df['cpf'] = clean_cpf(df.cpf)
-    df['valor_receita'] = df.valor_receita.str.replace(',', '.')
+    df['valor_receita'] = df.valor_receita.str.replace(',', '.', regex=False)
     df['valor_receita'] = pd.to_numeric(df.valor_receita, errors='coerce')
     year = re.search('/([0-9]{4})/', infile).group(1)
     df['year'] = year
