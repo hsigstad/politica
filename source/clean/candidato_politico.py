@@ -57,8 +57,8 @@ def main():
         'SE',
         'TO',
     ]
-    # years = ['2008']
-    # states = ['AC', 'AL']
+    #years = ['2000']
+    #states = ['AC', 'AL']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
     results = results.query('cpf.notnull()')  #NB!
@@ -74,7 +74,7 @@ def main():
         'birth_estado_id',
         'birth_estado',
     }.intersection(results.columns)
-    politico = results.drop_duplicates(subset='cpf').loc[:, cols]
+    politico = results.drop_duplicates(subset='cpf').loc[:, list(cols)]
     cols = {
         'eleicao',
         'cpf',
@@ -102,7 +102,7 @@ def main():
         'NUMERO_CAND',
         'SQ_CANDIDATO',
     }.intersection(results.columns)
-    candidato = results.loc[:, cols]
+    candidato = results.loc[:, list(cols)]
     candidato.to_csv(candidato_file, index=False)
     politico.to_csv(politico_file, index=False)
     return politico, candidato
@@ -340,7 +340,7 @@ def get_candidates(state, year):
     new_cols = set(df.columns).intersection(cols.values())
     not_found = set(cols.values()).difference(df.columns)
     #print('Not found', year, ':', not_found) # for checking
-    df = df.loc[:, new_cols]
+    df = df.loc[:, list(new_cols)]
     return df
 
 
@@ -409,18 +409,10 @@ def clean_coalition(row):
 
 
 def clean_birth_date(dates, year):
-    if year in ['1994', '1996', '2010']:
-        dates.replace({'([0-9]{2})$': r'19\1'}, regex=True, inplace=True)
-    if year in ['1998', '2000', '2002', '2004']:
-        if dates.dtype != 'object':
-            dates = dates.apply('{:08.0f}'.format)
-        date_format = '%d%m%Y'
-    elif year in ['1994', '2010']:
-        date_format = '%d-%b-%Y'
-    else:
-        date_format = '%d/%m/%Y'
+    date_format = '%d/%m/%Y'
     dates = pd.to_datetime(dates, format=date_format, errors='coerce')
     dates = dates.apply(string_from_date)
+    print(dates.sample(10))
     return dates
 
 
