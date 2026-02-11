@@ -1,30 +1,11 @@
 __pycache__/
-auto/
 
 build/
 
-source/paper/*.pdf
-source/talk/*.pdf
-
 *~
 *#
-*.bbl
-*.bcf
-*.blg
-*.fls
-*.fdb_latexmk
-*.run.xml
-paper.tex
-tables.tex
 
-.Rhistory
 .python-version
 .sconsign.dblite
 sconstruct.log
 user-config.yaml
-state_of_repo.log
-
-
-match_djmg*
-combine_djmg.py
-
