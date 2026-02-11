@@ -1,11 +1,11 @@
+import os
 import sys
-import yaml
 
-with open('user-config.yaml', 'r') as stream:
-    data = yaml.load(stream, Loader=yaml.FullLoader)
+from dotenv import load_dotenv
 
-sys.path.append('{}/source/clean'.format(data['base_dir']))
-sys.path.append('{}/source/insert'.format(data['base_dir']))
-sys.path.append(data['diarios_dir'])
+load_dotenv()
 
-data_dir = data['data_dir']
+sys.path.append("{}/source/clean".format(os.environ["BASE_DIR"]))
+sys.path.append("{}/source/insert".format(os.environ["BASE_DIR"]))
+
+data_dir = os.environ["DATA_DIR"]

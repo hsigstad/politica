@@ -9,3 +9,4 @@ build/
 .sconsign.dblite
 sconstruct.log
 user-config.yaml
+.env
