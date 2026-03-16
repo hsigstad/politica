@@ -14,7 +14,7 @@ def read_csv(infile):
     new_cols = set(df.columns).intersection(cols.values())
     not_found = set(cols.values()).difference(df.columns)
     #print('Not found', year, ':', not_found) # for checking
-    df = df.loc[:, new_cols]
+    df = df.loc[:, list(new_cols)]
     return df
 
 
@@ -52,7 +52,7 @@ def get_cols():
 
 def clean(df):
     df["suplementar"] = df.tipo_eleicao.str.contains("(?i)suplementar")*1
-    df = df.drop("tipo_eleicao", 1)
+    df = df.drop(columns="tipo_eleicao")
     df["office"] = clean_text(df.office)
     num_vars = set(df.columns) - {
         "office",
@@ -77,7 +77,7 @@ df = pd.concat(map(read_csv, infiles))
 df = clean(df)
 el = (
     df.groupby(["year", "round", "estado", "office", "ue", "suplementar"])
-    .agg(sum)
+    .agg("sum")
     .reset_index()
 )
 el["municipio_id"] = pd.to_numeric(el.ue, errors="coerce")
