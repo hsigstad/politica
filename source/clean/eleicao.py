@@ -81,4 +81,6 @@ el = (
     .reset_index()
 )
 el["municipio_id"] = pd.to_numeric(el.ue, errors="coerce")
+from diarios.clean import transform as _transform
+el["ibge7"] = _transform(el["municipio_id"], "municipio_id", "ibge7")
 el.to_csv("build/clean/eleicao.csv", index=False)

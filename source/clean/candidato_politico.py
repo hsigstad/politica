@@ -103,6 +103,7 @@ def main():
         'SQ_CANDIDATO',
     }.intersection(results.columns)
     candidato = results.loc[:, list(cols)]
+    candidato['ibge7'] = clean.transform(candidato['municipio_id'], 'municipio_id', 'ibge7')
     candidato.to_csv(candidato_file, index=False)
     politico.to_csv(politico_file, index=False)
     return politico, candidato
