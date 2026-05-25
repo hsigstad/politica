@@ -4,8 +4,36 @@ import numpy as np
 import random
 import os
 import itertools
+from glob import glob
 from datetime import datetime
 import diarios.clean as clean
+
+
+def build_titulo_cpf_crosswalk():
+    """Build titulo_eleitoral -> CPF mapping from years that have both."""
+    print('Building titulo->CPF crosswalk from 2016-2022...')
+    rows = []
+    for year in ['2016', '2018', '2020', '2022']:
+        pattern = os.path.join(path.data_dir, 'TSE', year, 'consulta_cand',
+                               f'consulta_cand_{year}_*.csv')
+        for f in glob(pattern):
+            df = pd.read_csv(f, encoding='latin1', sep=';',
+                             usecols=['NR_CPF_CANDIDATO', 'NR_TITULO_ELEITORAL_CANDIDATO'],
+                             dtype=str)
+            rows.append(df)
+    xwalk = pd.concat(rows, ignore_index=True)
+    xwalk = xwalk.rename(columns={
+        'NR_TITULO_ELEITORAL_CANDIDATO': 'titulo',
+        'NR_CPF_CANDIDATO': 'cpf_from_titulo',
+    })
+    xwalk['cpf_from_titulo'] = clean.clean_cpf(xwalk['cpf_from_titulo'])
+    xwalk = xwalk.dropna(subset=['cpf_from_titulo', 'titulo'])
+    xwalk = xwalk.drop_duplicates('titulo')
+    print(f'  Crosswalk: {len(xwalk)} unique titulo->CPF mappings')
+    return xwalk
+
+
+TITULO_CPF_XWALK = None
 
 
 def main():
@@ -324,24 +352,25 @@ def calculate_win_margin(row):
 
 
 def get_candidates(state, year):
+    global TITULO_CPF_XWALK
     infile = os.path.join(path.data_dir, 'TSE', year, 'consulta_cand',
                           'consulta_cand_{0}_{1}.csv'.format(year, state))
 
-    #if year in ['2016', '2018', '2020']:
-    #    candidates = pd.read_csv(infile.replace('.txt', '.csv'),
-    #                             encoding='latin1',
-    #                             sep=';')
-    #else:
-    #    candidates = pd.read_csv(infile,
-    #                             encoding='latin1',
-    #                             sep=';',
-    #                             header=None)
     df = pd.read_csv(infile, encoding='latin1', sep=';')
-    cols = get_candidate_column_mapping()    
+    # TSE redacted CPFs from 2024 onwards; recover via titulo_eleitoral crosswalk
+    cpf_col = df['NR_CPF_CANDIDATO'].astype(str).str.strip('" ') if 'NR_CPF_CANDIDATO' in df.columns else pd.Series()
+    if len(cpf_col) > 0 and cpf_col.isin(['-1', '-4', '-5']).all():
+        if TITULO_CPF_XWALK is None:
+            TITULO_CPF_XWALK = build_titulo_cpf_crosswalk()
+        df['titulo'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str)
+        df = df.merge(TITULO_CPF_XWALK, on='titulo', how='left')
+        matched = df['cpf_from_titulo'].notna().sum()
+        print(f'  CPF recovery via titulo: {matched}/{len(df)} matched')
+        df['NR_CPF_CANDIDATO'] = df['cpf_from_titulo']
+        df = df.drop(columns=['titulo', 'cpf_from_titulo'])
+    cols = get_candidate_column_mapping()
     df = df.rename(columns=cols)
     new_cols = set(df.columns).intersection(cols.values())
-    not_found = set(cols.values()).difference(df.columns)
-    #print('Not found', year, ':', not_found) # for checking
     df = df.loc[:, list(new_cols)]
     return df
 
