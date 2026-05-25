@@ -11,9 +11,9 @@ import diarios.clean as clean
 
 def build_titulo_cpf_crosswalk():
     """Build titulo_eleitoral -> CPF mapping from years that have both."""
-    print('Building titulo->CPF crosswalk from 2016-2022...')
+    print('Building titulo->CPF crosswalk from 1998-2022...')
     rows = []
-    for year in ['2016', '2018', '2020', '2022']:
+    for year in [str(y) for y in range(1998, 2023, 2)]:
         pattern = os.path.join(path.data_dir, 'TSE', year, 'consulta_cand',
                                f'consulta_cand_{year}_*.csv')
         for f in glob(pattern):
@@ -90,9 +90,18 @@ def main():
     #states = ['AC', 'AL']
     years, states = multiply_cartesian(years, states)
     results = pd.concat(map(clean_election, states, years), sort=True)
-    results = results.query('cpf.notnull()')  #NB!
+    # Build politico_id: use CPF when available, fall back to titulo
+    cpf_str = results['cpf'].astype(str).where(results['cpf'].notna())
+    titulo_str = (results.get('titulo', pd.Series(dtype=str))
+                  .astype(str).str.strip().str.replace(r'\D', '', regex=True))
+    titulo_str = titulo_str.where(titulo_str != '')
+    politico_id = cpf_str.fillna('T' + titulo_str)
+    results['politico_id'] = politico_id
+    results = results.query('politico_id.notnull()')
     cols = {
+        'politico_id',
         'cpf',
+        'titulo',
         'politico',
         'race',
         'nationality',
@@ -103,10 +112,12 @@ def main():
         'birth_estado_id',
         'birth_estado',
     }.intersection(results.columns)
-    politico = results.drop_duplicates(subset='cpf').loc[:, list(cols)]
+    politico = results.drop_duplicates(subset='politico_id').loc[:, list(cols)]
     cols = {
         'eleicao',
+        'politico_id',
         'cpf',
+        'titulo',
         'year',
         'suplementar',
         'estado',
@@ -362,12 +373,12 @@ def get_candidates(state, year):
     if len(cpf_col) > 0 and cpf_col.isin(['-1', '-4', '-5']).all():
         if TITULO_CPF_XWALK is None:
             TITULO_CPF_XWALK = build_titulo_cpf_crosswalk()
-        df['titulo'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str)
-        df = df.merge(TITULO_CPF_XWALK, on='titulo', how='left')
+        df['titulo_key'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str)
+        df = df.merge(TITULO_CPF_XWALK, left_on='titulo_key', right_on='titulo', how='left')
         matched = df['cpf_from_titulo'].notna().sum()
         print(f'  CPF recovery via titulo: {matched}/{len(df)} matched')
         df['NR_CPF_CANDIDATO'] = df['cpf_from_titulo']
-        df = df.drop(columns=['titulo', 'cpf_from_titulo'])
+        df = df.drop(columns=['titulo_key', 'titulo', 'cpf_from_titulo'])
     cols = get_candidate_column_mapping()
     df = df.rename(columns=cols)
     new_cols = set(df.columns).intersection(cols.values())
@@ -400,7 +411,8 @@ def get_candidate_column_mapping():
         'DS_COR_RACA': 'race',
         'DS_OCUPACAO': 'occupation',
         'NR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
-        'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',        
+        'VR_DESPESA_MAX_CAMPANHA': 'campaignexpenditure',
+        'NR_TITULO_ELEITORAL_CANDIDATO': 'titulo',
     }
 
 
@@ -414,6 +426,7 @@ def clean_candidates(candidates, year):
             'birthdate',
             'party',
             'coalition',
+            'titulo',
         ],
     )
     candidates['birth_estado_id'] = clean.transform(candidates['birth_estado'],
@@ -426,8 +439,10 @@ def clean_candidates(candidates, year):
     candidates['politico'] = clean.clean_text(candidates['politico'])
     if int(year) % 4 == 0:
         candidates['municipio_id'] = candidates['district']
-    candidates = candidates.drop_duplicates(
-        subset=['district', 'office', 'NUMERO_CAND', 'SQ_CANDIDATO', 'cpf'])
+    dedup_cols = ['district', 'office', 'NUMERO_CAND', 'SQ_CANDIDATO']
+    if candidates['cpf'].notna().any():
+        dedup_cols.append('cpf')
+    candidates = candidates.drop_duplicates(subset=dedup_cols)
     candidates['birthdate'] = clean_birth_date(candidates.birthdate, year)
     return candidates
 
