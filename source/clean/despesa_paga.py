@@ -1,12 +1,20 @@
 import path
 import pandas as pd
+import os
 from glob import glob
+
+
+def get_finance_dir(year):
+    new_dir = f"{path.data_dir}/TSE/{year}/prestacao_de_contas_eleitorais_candidatos"
+    old_dir = f"{path.data_dir}/TSE/{year}/prestacao_contas_final"
+    return new_dir if os.path.isdir(new_dir) else old_dir
 
 
 def clean_year(year):
     print(year)
-    despesa_file = f"{path.data_dir}/TSE/{year}/prestacao_contas_final/despesas_pagas_candidatos_{year}_BRASIL.csv"
-    receita_file = f"{path.data_dir}/TSE/{year}/prestacao_contas_final/receitas_candidatos_{year}_BRASIL.csv"
+    finance_dir = get_finance_dir(year)
+    despesa_file = f"{finance_dir}/despesas_pagas_candidatos_{year}_BRASIL.csv"
+    receita_file = f"{finance_dir}/receitas_candidatos_{year}_BRASIL.csv"
     despesa = pd.read_csv(despesa_file, sep=';', encoding='latin1')
     receita_cols = ['NR_CPF_CANDIDATO', 'SQ_CANDIDATO', 'SQ_PRESTADOR_CONTAS']
     receita = pd.read_csv(
@@ -16,7 +24,7 @@ def clean_year(year):
     despesa = despesa.merge(receita, on='SQ_PRESTADOR_CONTAS', validate='m:1', how='left')
     return despesa
 
-years = [2020]
+years = [2020, 2024]
 
 df = pd.concat(map(clean_year, years))
 

@@ -84,8 +84,11 @@ infiles3 = glob(
 infiles4 = glob(
     os.path.join(path.data_dir,
                  'TSE/2020/bem_candidato/bem_candidato*'))
+infiles5 = glob(
+    os.path.join(path.data_dir,
+                 'TSE/2024/bem_candidato/bem_candidato*'))
 
-infiles = infiles1 + infiles2 + infiles3 + infiles4
+infiles = infiles1 + infiles2 + infiles3 + infiles4 + infiles5
 df = pd.concat(map(clean_file, infiles))
 
 with open('build/clean/bem.txt', 'w') as f:

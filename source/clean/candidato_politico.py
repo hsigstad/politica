@@ -26,6 +26,7 @@ def main():
         '2018',
         '2020',
         '2022',
+        '2024',
     ]  # 1994 and 1996 does not have CPF and is missing for many states
     states = [
         'AC',
@@ -149,7 +150,7 @@ def get_election_results(state, year):
     columns_file = os.path.join(path.data_dir, 'TSE', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
-    if year in ['2016', '2018', '2020', '2022']:
+    if year in ['2016', '2018', '2020', '2022', '2024']:
         infile = infile.replace('.txt', '.csv')
         results = pd.read_csv(infile, encoding='latin1', sep=';')
     else:
@@ -166,7 +167,7 @@ def rename_columns(results, year):
 
 
 def get_column_mapping(year):
-    if year in ['2016', '2018', '2020', '2022']:
+    if year in ['2016', '2018', '2020', '2022', '2024']:
         mapping = {
             'NM_CANDIDATO': 'politico',
             'DS_ELEICAO': 'eleicao',

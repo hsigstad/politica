@@ -125,6 +125,7 @@ if __name__ == '__main__':
         '$DATA_DIR',
         '$DATA_DIR',
         '$DATA_DIR',
+        f'{path.data_dir}/TSE/2024/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2024_BRASIL.csv',
     ]
 
     df = pd.concat(map(clean_file, infiles))
