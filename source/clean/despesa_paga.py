@@ -22,6 +22,9 @@ def clean_year(year):
         usecols=receita_cols
     ).drop_duplicates()
     despesa = despesa.merge(receita, on='SQ_PRESTADOR_CONTAS', validate='m:1', how='left')
+    # Harmonize year column (ANO_ELEICAO in 2020, AA_ELEICAO in 2024)
+    if 'AA_ELEICAO' in despesa.columns and 'ANO_ELEICAO' not in despesa.columns:
+        despesa = despesa.rename(columns={'AA_ELEICAO': 'ANO_ELEICAO'})
     return despesa
 
 years = [2020, 2024]
