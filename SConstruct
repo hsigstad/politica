@@ -22,6 +22,11 @@ env.Python(
 )
 
 env.Python(
+    target=['#build/clean/processo.txt'],
+    source=['#source/clean/processo.py'],
+)
+
+env.Python(
     target=[
         '#build/clean/candidato.csv',
         '#build/clean/politico.csv',
