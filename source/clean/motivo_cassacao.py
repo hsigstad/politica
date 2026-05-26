@@ -18,7 +18,8 @@ def clean_file(infile):
             df = pd.read_csv(infile, encoding='latin1', sep=';',
                              header=None, names=TXT_COLUMNS)
         else:
-            df = pd.read_csv(infile, encoding='latin1', sep=';')
+            df = pd.read_csv(infile, encoding='latin1', sep=';',
+                             dtype={'NR_PROCESSO': str})
     except pd.errors.EmptyDataError:
         return pd.DataFrame()
     cols = {
