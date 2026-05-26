@@ -33,7 +33,7 @@ def clean_file(infile):
                      names=names,
                      dtype={'SQ_CANDIDATO': str})
     cols = get_cols()
-    df = df.rename(columns=cols).loc[:, set(cols.values())]
+    df = df.rename(columns=cols).loc[:, list(set(cols.values()))]
     if df.valor_bem.dtype == object:
         df['valor_bem'] = df.valor_bem.str.replace(',', '.', regex=True)
         df['valor_bem'] = pd.to_numeric(df.valor_bem, errors='coerce')

@@ -120,11 +120,11 @@ if __name__ == '__main__':
     ]
 
     infiles = [
-        '$DATA_DIR',
-        '$DATA_DIR',
-        '$DATA_DIR',
-        '$DATA_DIR',
-        '$DATA_DIR',
+        f'{path.data_dir}/TSE/2004/prestacao_contas_final/Candidato/Receita/ReceitaCandidato.csv',
+        f'{path.data_dir}/TSE/2008/prestacao_contas_final/receitas_candidatos_2008_brasil.csv',
+        f'{path.data_dir}/TSE/2012/prestacao_contas_final/receitas_candidatos_2012_brasil.txt',
+        f'{path.data_dir}/TSE/2016/prestacao_contas_final/receitas_candidatos_prestacao_contas_final_2016_brasil.txt',
+        f'{path.data_dir}/TSE/2020/prestacao_contas_final/receitas_candidatos_2020_BRASIL.csv',
         f'{path.data_dir}/TSE/2024/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2024_BRASIL.csv',
     ]
 
