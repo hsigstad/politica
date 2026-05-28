@@ -1,5 +1,40 @@
 # Decisions
 
+## 2026-05-28 — Poll pipeline (scrape + LLM extract + clean) moved in from REDACTED-PROJECT
+
+**Decision:** The TSE poll acquisition + cleaning chain moves into
+`pipelines/politica/source/{scrape,llm,clean}/` from
+`projects/REDACTED-PROJECT/source/{scrape,llm,clean}/`. The
+project-specific muni-day assembly step stays in REDACTED-PROJECT.
+
+**Why:** A second project (`DOWNSTREAM_PROJECT`) now wants to use the
+cleaned poll table to test REDACTED effects on 2024 SP
+polls. Cleaned polls are project-neutral political data — same shape
+as candidato.csv, processo.csv, etc., already in politica — so they
+belong at workspace-level infrastructure.
+
+**Touched files:**
+
+- `source/scrape/tse_relatorio.py` — new (moved). Reads TSE poll
+  registration CSVs from `path.tse_polls_2024_dir` (currently
+  `build/scrape/tse_polls_2024/`); writes PDFs to
+  `build/scrape/tse_relatorio/{year}/`.
+- `source/llm/poll_extract.py` — new (moved). Reads PDFs from
+  `path.build_scrape_dir`; writes per-protocol JSON + combined
+  parquet to `path.build_llm_dir`.
+- `source/clean/poll_2024.py` — new (moved). Reads LLM extractions +
+  TSE registration CSVs; writes `build/clean/poll_2024.parquet`.
+- `path.py` — added `BUILD_DIR`, `build_scrape_dir`, `build_llm_dir`,
+  `build_clean_dir`, `tse_polls_2024_dir` (so consumers don't have
+  to hard-code paths).
+
+**Open caveat (intentional, time-bounded):** the 2024 poll
+registration CSVs and PDFs are rclone'd into
+`pipelines/politica/build/scrape/` rather than the canonical
+`$DATA_DIR/`. This is a workspace-local staging so
+the sandboxed Claude can read directly. Migrate to `data_dir/` once
+the SP-slice pilot is stable — one-line edit to `path.tse_polls_2024_dir`.
+
 ## 2026-05-27 — Recover 2024 candidate status from `consulta_cand_complementar`
 
 **Decision:** When `DS_DETALHE_SITUACAO_CAND` is missing or all-`#NE` in
