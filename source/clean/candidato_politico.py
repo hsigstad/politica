@@ -27,6 +27,7 @@ def build_titulo_cpf_crosswalk():
         'NR_CPF_CANDIDATO': 'cpf_from_titulo',
     })
     xwalk['cpf_from_titulo'] = clean.clean_cpf(xwalk['cpf_from_titulo'])
+    xwalk['titulo'] = xwalk['titulo'].str.zfill(12)
     xwalk = xwalk.dropna(subset=['cpf_from_titulo', 'titulo'])
     xwalk = xwalk.drop_duplicates('titulo')
     print(f'  Crosswalk: {len(xwalk)} unique titulo->CPF mappings')
@@ -368,17 +369,55 @@ def get_candidates(state, year):
                           'consulta_cand_{0}_{1}.csv'.format(year, state))
 
     df = pd.read_csv(infile, encoding='latin1', sep=';')
-    # TSE redacted CPFs from 2024 onwards; recover via titulo_eleitoral crosswalk
-    cpf_col = df['NR_CPF_CANDIDATO'].astype(str).str.strip('" ') if 'NR_CPF_CANDIDATO' in df.columns else pd.Series()
-    if len(cpf_col) > 0 and cpf_col.isin(['-1', '-4', '-5']).all():
-        if TITULO_CPF_XWALK is None:
-            TITULO_CPF_XWALK = build_titulo_cpf_crosswalk()
-        df['titulo_key'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str)
-        df = df.merge(TITULO_CPF_XWALK, left_on='titulo_key', right_on='titulo', how='left')
-        matched = df['cpf_from_titulo'].notna().sum()
-        print(f'  CPF recovery via titulo: {matched}/{len(df)} matched')
-        df['NR_CPF_CANDIDATO'] = df['cpf_from_titulo']
-        df = df.drop(columns=['titulo_key', 'titulo', 'cpf_from_titulo'])
+    # TSE redacted CPFs from 2024 onwards; recover via titulo_eleitoral crosswalk.
+    # Row-level coalesce: attempt recovery whenever any sentinel/blank CPF is
+    # present in this state file, and only overwrite the sentinel rows. The
+    # prior state-level `.all()` guard skipped recovery entirely whenever even
+    # one row had a non-sentinel value (blank, "0", whitespace), which silently
+    # zeroed out recovery for ~23 of 27 states in 2024.
+    if ('NR_TITULO_ELEITORAL_CANDIDATO' in df.columns
+            and 'NR_CPF_CANDIDATO' in df.columns):
+        cpf_str = df['NR_CPF_CANDIDATO'].astype(str).str.strip('" ')
+        sentinel = cpf_str.isin(['-1', '-4', '-5', '', 'nan', '0'])
+        if sentinel.any():
+            if TITULO_CPF_XWALK is None:
+                TITULO_CPF_XWALK = build_titulo_cpf_crosswalk()
+            df['titulo_key'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str).str.zfill(12)
+            df = df.merge(TITULO_CPF_XWALK, left_on='titulo_key',
+                          right_on='titulo', how='left')
+            recovered = sentinel & df['cpf_from_titulo'].notna()
+            df.loc[recovered, 'NR_CPF_CANDIDATO'] = df.loc[recovered, 'cpf_from_titulo']
+            print(f'  CPF recovery via titulo: {recovered.sum()}/{sentinel.sum()} '
+                  f'sentinels recovered ({len(df)} total rows)')
+            df = df.drop(columns=['titulo_key', 'titulo', 'cpf_from_titulo'])
+    # TSE moved DS_DETALHE_SITUACAO_CAND to the complementar file in 2024,
+    # under the name DS_SITUACAO_JULGAMENTO. If the main file lacks the
+    # column or has only #NE/#NULO values, recover from complementar.
+    status_col = 'DS_DETALHE_SITUACAO_CAND'
+    status_missing = (status_col not in df.columns
+                      or df[status_col].astype(str).str.strip('" ')
+                      .isin(['#NE', '#NE#', '#NULO#', '', 'nan']).all())
+    if status_missing:
+        compl_file = os.path.join(
+            path.data_dir, 'TSE', year, 'consulta_cand_complementar',
+            'consulta_cand_complementar_{0}_{1}.csv'.format(year, state))
+        if os.path.exists(compl_file):
+            compl = pd.read_csv(compl_file, encoding='latin1', sep=';',
+                                usecols=['SQ_CANDIDATO', 'DS_SITUACAO_JULGAMENTO'],
+                                dtype=str)
+            compl = compl.rename(columns={'DS_SITUACAO_JULGAMENTO': status_col})
+            compl = compl.dropna(subset=[status_col])
+            compl = compl[compl[status_col].str.strip('" ') != '#NE']
+            if len(compl) > 0:
+                compl['SQ_CANDIDATO'] = pd.to_numeric(
+                    compl['SQ_CANDIDATO'], errors='coerce').astype(
+                    df['SQ_CANDIDATO'].dtype)
+                compl = compl.drop_duplicates('SQ_CANDIDATO')
+                if status_col in df.columns:
+                    df = df.drop(columns=[status_col])
+                df = df.merge(compl, on='SQ_CANDIDATO', how='left')
+                filled = df[status_col].notna().sum()
+                print(f'  Status recovery from complementar: {filled}/{len(df)} rows')
     cols = get_candidate_column_mapping()
     df = df.rename(columns=cols)
     new_cols = set(df.columns).intersection(cols.values())

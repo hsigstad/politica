@@ -1,5 +1,73 @@
 # Decisions
 
+## 2026-05-27 — Recover 2024 candidate status from `consulta_cand_complementar`
+
+**Decision:** When `DS_DETALHE_SITUACAO_CAND` is missing or all-`#NE` in
+the main `consulta_cand` file (2024 onwards), read `DS_SITUACAO_JULGAMENTO`
+from the companion `consulta_cand_complementar` file and join on
+`SQ_CANDIDATO`. The complementar file only exists for 2024; the guard is
+a no-op for earlier years. Implemented in
+`candidato_politico.py:get_candidates()`, lines 393–419.
+
+**Reason:** TSE split several columns out of the main `consulta_cand`
+file in 2024. `DS_DETALHE_SITUACAO_CAND` (deferido / indeferido / ...)
+was removed entirely, while `DS_SITUACAO_CANDIDATURA` was redacted to
+`#NE`. The replacement column `DS_SITUACAO_JULGAMENTO` lives in
+`consulta_cand_complementar_2024_<state>.csv`, with 100% SQ_CANDIDATO
+join coverage.
+
+**Verified results (2026-05-27):** 2024 status coverage = 100.0% (up from
+0.0%). 2020 status coverage remains 100.0% (no regression). Status
+vocabulary is compatible with 2020 — the top values are DEFERIDO (454,806),
+INDEFERIDO (10,381), RENUNCIA (9,167), consistent with prior years.
+
+**Vocabulary changes in 2024** (noted for downstream consumers):
+- `INDEFERIDO EM PRAZO RECURSAL OU COM RECURSO` (522) replaces 2022's
+  `INDEFERIDO COM RECURSO`. Functionally equivalent — downstream
+  consumers that set-match on `INDEFERIDO COM RECURSO` (e.g.
+  `DOWNSTREAM_PROJECT:INELIGIBLE_STATUSES`)
+  should add the new form.
+- `AGUARDANDO JULGAMENTO` (16) — new, functionally equivalent to
+  `PENDENTE DE JULGAMENTO`. Downstream consumers that match on the
+  latter should add this form.
+- `PEDIDO NAO CONHECIDO EM PRAZO RECURSAL OU COM RECURSO` (7) — new,
+  analogous to `PEDIDO NAO CONHECIDO`.
+- `FALECIMENTO` (162) replaces `FALECIDO`. Neither appears in DOWNSTREAM_PROJECT's
+  eligibility sets (dead candidates do not re-run).
+
+## 2026-05-26 — Row-level CPF recovery for 2024 (Bug 1 in `candidato_politico.py`)
+
+**Decision:** Replace the state-level `.all()` guard on the 2024 titulo→CPF
+recovery in `get_candidates()` with a row-level coalesce: attempt recovery
+on any state file containing at least one sentinel CPF, and only overwrite
+the rows whose CPF is in `{-1, -4, -5, '', 'nan', '0'}`. Idempotent for
+pre-2024 years (sentinel mask is empty).
+
+**Reason:** Audit of the built `candidato.csv` showed 2024 CPF coverage
+of only 11.8% (vs ~100% in 2008-2020). Per-state breakdown revealed
+recovery fired only for SP/MG/RJ/BA (where the raw `NR_CPF_CANDIDATO`
+column was uniformly sentinel) and silently skipped the other 23 states
+because at least one non-sentinel value in their raw column caused the
+prior `cpf_col.isin(['-1','-4','-5']).all()` guard to return False.
+Titulo crosswalk match potential in those skipped states was 20-50%.
+
+A second bug (Bug 1b) was discovered during verification: `get_candidates()`
+reads the raw CSV without `dtype=str`, so pandas casts
+`NR_TITULO_ELEITORAL_CANDIDATO` to `int64`, stripping leading zeros. The
+crosswalk was built with `dtype=str`, preserving them. The titulo join
+silently failed for any titulo starting with zero — which is most titulos
+outside SP/MG/RJ/BA. Fix: `.str.zfill(12)` applied to both the crosswalk
+build (line 30) and the titulo key in `get_candidates()` (line 384).
+
+**Verified results (2026-05-26):** 2024 CPF coverage = 49.6% (up from 11.8%
+pre-fix). 2020-elected → 2024 match = 79.0% (up from 17.8%). 2020 CPF
+coverage remains 100.0% (no regression). Both metrics exceed the original
+targets (37% / 62%).
+
+**Outstanding issues** (logged in todo.md):
+- 2024 `status` column is 100% empty — TSE either renamed or also
+  redacted `DS_DETALHE_SITUACAO_CAND`.
+
 ## 2026-05-26 — Defer migration of LEGACY_TRE_DIARIOS `tse_processos.py` to politica
 
 **Decision:** Keep `LEGACY_TRE_DIARIOS` alive
