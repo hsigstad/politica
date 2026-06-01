@@ -144,8 +144,16 @@ def assemble_long_table(
                     "source": source,
                 })
 
-    # 1. New-format llmkit entries
+    # 1. New-format llmkit entries. iter_entries() returns BOTH new-format
+    # (envelope has _cache_meta) AND politica-legacy files (top-level
+    # {status, model, ..., extraction:{...}}) — for the latter llmkit
+    # treats the whole file as the extraction, which won't validate
+    # against PollRelatorio. Filter to entries that actually carry
+    # _cache_meta (signaled by a non-empty entry.meta); the legacy
+    # loop below unwraps the rest correctly.
     for entry in CACHE.iter_entries():
+        if not entry.meta:
+            continue
         protocol = entry.meta.get("doc_id") or entry.key
         if protocol in seen_protocols:
             continue
