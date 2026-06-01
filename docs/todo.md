@@ -31,6 +31,30 @@
     (already laptop-DONE for sponsor side) joins downstream.
   - created: 2026-06-01
 
+- [ ] **Surface `NM_URNA_CANDIDATO` (ballot name) in `candidato.csv`**
+  *(load-bearing for the 2024 poll → candidate matcher)*. The TSE raw
+  `consulta_cand_{year}_{state}.csv` files carry both:
+  - `NM_CANDIDATO` (legal name, e.g. "FRANKLIN DUARTE DE LIMA")
+  - `NM_URNA_CANDIDATO` (ballot name as voters see it, e.g. "FRANKLIN")
+
+  Today `source/clean/candidato_politico.py:get_candidate_column_mapping()`
+  keeps only `NM_CANDIDATO`. The new poll-candidate matcher
+  (`source/clean/poll_2024__candmatch.py`) matches poll-reported
+  nicknames to TSE registry via fuzzy token match against the legal
+  name — works ~64% of the time but fails on aliases that share no
+  tokens with the legal name (e.g., "Largatixa", "Fabinho
+  Investigador", "Vitinho do Deraldo"). Adding `NM_URNA_CANDIDATO` to
+  the cleaned schema and matching on it directly would lift match
+  rate close to 100%.
+
+  **Scope**: add `'NM_URNA_CANDIDATO': 'nome_urna'` to the column
+  mapping in `candidato_politico.py:get_candidate_column_mapping()`.
+  Add `'nome_urna'` to the `candidato` output cols in `main()`.
+  Update `source/clean/poll_2024__candmatch.py` to also try matching
+  on `nome_urna` (with score 4 — higher than substring on legal
+  name).
+  - created: 2026-05-28
+
 - [ ] **Poll-extraction quality audit — flag zero-only and over-100% sub-scenarios**
   - context: surfaced by the migration smoke test against the
     102-protocol pilot. 9% of espontaneo/estimulado sub-scenarios
