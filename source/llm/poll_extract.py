@@ -1,224 +1,277 @@
 """Extract per-candidate vote intentions from TSE relatório PDFs.
 
+Pipeline-level driver: walks the PDF set, calls the llmkit-backed
+extraction wrapper in `poll_relatorio.py`, and assembles the cached
+results into a long-format parquet.
+
 Moved into pipelines/politica 2026-05-28 from
-projects/REDACTED-PROJECT/source/llm/ so the LLM-extracted poll table
-can be workspace-wide infrastructure rather than legacy-pilot-private.
+projects/REDACTED-PROJECT/source/llm/. Migrated to llmkit 2026-06-01
+(cache + Pydantic validation + audit metadata are now standardized).
+The pre-llmkit in-house cache format (`{PROTOCOL}.json` with a
+top-level `status` and a nested `extraction`) is read transparently
+by the wrapper's legacy fallback — including the 111-protocol pilot
+that lives at projects/REDACTED-PROJECT/build/llm/poll_relatorio/.
 
-Reads PDFs from build/scrape/tse_relatorio/{year}/{PROTOCOLO}.pdf, runs each
-through pdftotext + an LLM with structured JSON output, validates against a
-Pydantic schema, and caches one JSON per protocol at
-build/llm/poll_relatorio/{PROTOCOLO}.json. After processing, writes a combined
-build/llm/poll_relatorio.parquet long-format (one row per candidate-scenario).
+Reads PDFs from build/scrape/tse_relatorio/{year}/{PROTOCOLO}.pdf,
+caches one JSON per protocol at build/llm/poll_relatorio/, writes the
+combined build/llm/poll_relatorio_{year}.parquet at the end.
 
-Schema is intentionally narrow: we only ask the LLM for what's NEW in the PDF
-(per-candidate vote intentions per scenario), since institute, dates, sample
-size, municipality, methodology are all already in pesquisa_eleitoral_{year}.csv
-and join by protocol.
+Schema is intentionally narrow: we only ask the LLM for what's NEW in
+the PDF (per-candidate vote intentions per scenario), since institute,
+dates, sample size, municipality, methodology are already in the TSE
+registration CSV and join by NR_PROTOCOLO_REGISTRO.
 
-Image-only PDFs (where pdftotext returns near-zero chars) are skipped with a
-"text_unreadable" cache entry. An OCR fallback is left for a future pass.
+Image-only PDFs (where pdftotext returns near-zero chars) are skipped.
+An OCR fallback is left for a future pass.
 
 Usage:
-    python source/llm/poll_extract.py --year 2024
-    python source/llm/poll_extract.py --year 2024 --limit 50 --model gpt-4o-mini
+    # Live run, all UFs except SP (SP was already done on a separate host):
+    python source/llm/poll_extract.py --year 2024 --exclude-states SP
+
+    # Smoke test (PDF-free) — re-validate the 111-protocol legacy-pilot pilot
+    # against the current schema and assemble a parquet without
+    # touching PDFs or the OpenAI API:
+    python source/llm/poll_extract.py --year 2024 --validate-cached
+
+    # Small batch on one UF (e.g. for spot-checks):
+    python source/llm/poll_extract.py --year 2024 --states AC --limit 10
 """
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
+import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
+from dotenv import load_dotenv
 from openai import OpenAI
-from pydantic import BaseModel, Field
 
-import path
+from poll_relatorio import (
+    CACHE,
+    CANONICAL_CACHE_DIR,
+    LEGACY_CACHE_DIRS,
+    MODEL,
+    extract_poll_relatorio,
+    validate_cached_only,
+)
 
-MIN_TEXT_CHARS = 200  # below this we treat the PDF as image-only
-
-
-# ---------- Schema (simplified per the pilot finding) ----------
-
-class CandidateResult(BaseModel):
-    candidate_name: str = Field(description="Candidate display name. For aggregate rows like 'Branco/Nulo' or 'Não sabe', use a descriptive label.")
-    party: Optional[str] = Field(default=None, description="Party abbreviation if shown next to the name (e.g., 'PL', 'PT'). null if absent or aggregate row.")
-    percent: float = Field(description="Vote intention percentage in this scenario, 0-100.")
-
-
-class Scenario(BaseModel):
-    scenario_type: str = Field(description="One of: 'espontaneo', 'estimulado', 'votos_validos', 'rejeicao', 'avaliacao_governo', 'segundo_turno_simulacao', 'outro'.")
-    scenario_label: str = Field(description="The exact label used in the PDF.")
-    candidates: list[CandidateResult]
-
-
-class PollRelatorio(BaseModel):
-    tse_protocol: str = Field(description="TSE registration number, format 'XX-NNNNN/YYYY'. Echo from the PDF for join-back validation.")
-    scenarios: list[Scenario] = Field(description="All voting-intention scenarios for THIS poll (do not include historical comparison values from previous waves).")
-    extraction_notes: str = Field(default="", description="Brief note about any ambiguity or judgment call.")
+load_dotenv()
+BASE_DIR = Path(os.environ["BASE_DIR"])
+BUILD_DIR = BASE_DIR / "build"
+PDFS_BASE = BUILD_DIR / "scrape" / "tse_relatorio"
+# Pre-migration PDF stash from when the scraper still lived in legacy-pilot. The
+# move into politica (2026-05-28) didn't relocate the PDFs themselves
+# (~11k files, ~2 GB) — they're still discoverable here. Used as a
+# fallback only when PDFS_BASE/<year> is empty.
+EJ_PDF_FALLBACK = (
+    BASE_DIR.parent.parent / "projects" / "REDACTED-PROJECT"
+    / "build" / "scrape" / "tse_relatorio"
+)
 
 
-SYSTEM_PROMPT = """You extract per-candidate vote intentions from Brazilian TSE relatório PDFs (text extracted by pdftotext).
+# ── PDF discovery and state filtering ────────────────────────────────
 
-Each PDF reports ONE registered poll. The PDF may reference earlier waves — extract ONLY the current/latest poll's results, not the historical comparison values.
-
-Conventions:
-- "Estimulado" = stimulated (names read). "Espontâneo" = spontaneous (open-ended).
-- "Votos válidos" = valid votes (excludes Brancos/Nulos/Indecisos).
-- Some institutes report rejection ("rejeição"), government evaluation ("avaliação"), and second-round simulations alongside vote intention — include them as separate scenarios.
-- For aggregate rows like "Branco/Nulo", "Não sabe", emit a CandidateResult with party=null and a descriptive candidate_name.
-- TSE registration number is on every PDF, format "XX-NNNNN/YYYY".
-- We DO NOT need methodology, dates, sample size, institute, contracting party — those join from a separate CSV. Focus on the vote intention numbers.
-
-If the text is too garbled to extract anything, return an empty scenarios list and explain in extraction_notes.
-"""
+def discover_pdfs(year: int) -> list[Path]:
+    for root in (PDFS_BASE, EJ_PDF_FALLBACK):
+        d = root / str(year)
+        if d.exists():
+            pdfs = sorted(d.glob("*.pdf"))
+            if pdfs:
+                return pdfs
+    return []
 
 
-def pdf_to_text(pdf_path: Path) -> str:
-    out = subprocess.run(
-        ["pdftotext", "-layout", str(pdf_path), "-"],
-        capture_output=True, text=True, check=True,
-    )
-    return out.stdout
-
-
-def cli_to_display(protocol: str) -> str:
-    """AC094012020 → AC-09401/2020."""
-    return f"{protocol[:2]}-{protocol[2:7]}/{protocol[7:]}"
-
-
-def extract_one(client: OpenAI, pdf_path: Path, model: str) -> dict:
-    """Run pdftotext + LLM extraction. Returns dict with status + extraction or error."""
-    text = pdf_to_text(pdf_path)
-    if len(text) < MIN_TEXT_CHARS:
-        return {
-            "status": "text_unreadable",
-            "pdf_chars": len(text),
-            "model": model,
-        }
-    text_sent = text[:120_000]  # safety cap (~30k tokens)
-    protocol = pdf_path.stem
-    user_prompt = (
-        f"TSE protocol: {cli_to_display(protocol)}\n\n"
-        f"PDF text (pdftotext -layout):\n---\n{text_sent}\n---\n\n"
-        "Extract vote intentions for the CURRENT poll only."
-    )
-    t0 = time.monotonic()
-    resp = client.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
-        response_format=PollRelatorio,
-        temperature=0,
-    )
-    parsed = resp.choices[0].message.parsed
-    if parsed is None:
-        return {
-            "status": "model_refused",
-            "model": model,
-            "raw": resp.choices[0].message.content,
-        }
-    return {
-        "status": "ok",
-        "model": model,
-        "pdf_chars": len(text),
-        "pdf_chars_sent": len(text_sent),
-        "extract_seconds": round(time.monotonic() - t0, 2),
-        "usage": {
-            "prompt_tokens": resp.usage.prompt_tokens,
-            "completion_tokens": resp.usage.completion_tokens,
-        },
-        "extraction": parsed.model_dump(),
-    }
-
-
-def assemble_parquet(cache_dir: Path, out_path: Path) -> None:
-    """Combine all cached JSONs into a long-format parquet (one row per candidate-scenario)."""
-    rows = []
-    for j in sorted(cache_dir.glob("*.json")):
-        d = json.loads(j.read_text(encoding="utf-8"))
-        if d.get("status") != "ok":
+def filter_states(
+    pdfs: list[Path],
+    include: list[str] | None,
+    exclude: list[str] | None,
+) -> list[Path]:
+    """TSE protocol filenames start with the 2-letter UF (e.g.
+    AC094012020.pdf → state AC). Filter the list accordingly."""
+    if not include and not exclude:
+        return pdfs
+    inc = {s.upper() for s in (include or [])}
+    exc = {s.upper() for s in (exclude or [])}
+    def state(p: Path) -> str:
+        return p.stem[:2].upper()
+    out = []
+    for p in pdfs:
+        st = state(p)
+        if inc and st not in inc:
             continue
-        protocol = j.stem
-        for s in d["extraction"]["scenarios"]:
-            for c in s["candidates"]:
+        if exc and st in exc:
+            continue
+        out.append(p)
+    return out
+
+
+# ── Assemble ─────────────────────────────────────────────────────────
+
+def assemble_long_table(
+    year: int,
+    include_legacy_pilot: bool = True,
+) -> pd.DataFrame:
+    """Collect every successfully-extracted entry (new-format cache +
+    legacy pilot files) into a long-format DataFrame: one row per
+    (protocol, scenario, candidate). Records that fail validation
+    against PollRelatorio are dropped with a warning printed."""
+    rows: list[dict] = []
+    seen_protocols: set[str] = set()
+    bad = 0
+
+    def consume(protocol: str, extraction: dict, source: str):
+        nonlocal bad
+        from llmkit.extract import _validate
+        from schemas import PollRelatorio
+        parsed, valid, errors = _validate(extraction, PollRelatorio)
+        if not valid:
+            bad += 1
+            return
+        for s in parsed.scenarios:
+            for c in s.candidates:
                 rows.append({
                     "protocol": protocol,
-                    "tse_protocol_display": d["extraction"]["tse_protocol"],
-                    "scenario_type": s["scenario_type"],
-                    "scenario_label": s["scenario_label"],
-                    "candidate_name": c["candidate_name"],
-                    "party": c.get("party"),
-                    "percent": c["percent"],
-                    "extraction_notes": d["extraction"].get("extraction_notes", ""),
+                    "tse_protocol_display": parsed.tse_protocol,
+                    "scenario_type": s.scenario_type,
+                    "scenario_label": s.scenario_label,
+                    "candidate_name": c.candidate_name,
+                    "party": c.party,
+                    "percent": c.percent,
+                    "extraction_notes": parsed.extraction_notes,
+                    "source": source,
                 })
-    if not rows:
-        print("No successful extractions to assemble.")
-        return
-    df = pd.DataFrame(rows)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(out_path, index=False)
-    print(f"\nAssembled {len(df):,} candidate-scenario rows from {df['protocol'].nunique()} polls → {out_path}")
+
+    # 1. New-format llmkit entries
+    for entry in CACHE.iter_entries():
+        protocol = entry.meta.get("doc_id") or entry.key
+        if protocol in seen_protocols:
+            continue
+        seen_protocols.add(protocol)
+        consume(protocol, entry.extraction, source="llmkit")
+
+    # 2. Legacy {PROTOCOL}.json entries (pilot + any pre-migration files)
+    if include_legacy_pilot:
+        import json
+        for legacy_dir in LEGACY_CACHE_DIRS:
+            if not legacy_dir.exists():
+                continue
+            for jp in sorted(legacy_dir.glob("*.json")):
+                protocol = jp.stem
+                if protocol in seen_protocols:
+                    continue
+                try:
+                    data = json.loads(jp.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                if "_cache_meta" in data:
+                    continue  # would have been picked up via CACHE.iter_entries
+                if data.get("status") != "ok":
+                    continue
+                extraction = data.get("extraction")
+                if not isinstance(extraction, dict):
+                    continue
+                seen_protocols.add(protocol)
+                consume(protocol, extraction, source="legacy_pilot")
+
+    if bad:
+        print(f"WARN: {bad} cached entries failed schema validation "
+              f"(dropped from parquet).")
+    return pd.DataFrame(rows)
+
+
+# ── Main ─────────────────────────────────────────────────────────────
+
+def run_live(args) -> tuple[dict, int, int]:
+    pdfs = discover_pdfs(args.year)
+    pdfs = filter_states(pdfs, args.states, args.exclude_states)
+    if args.limit:
+        pdfs = pdfs[:args.limit]
+    if not pdfs:
+        sys.exit(
+            f"No PDFs to process under {PDFS_BASE/str(args.year)} after "
+            f"state filter (include={args.states}, exclude={args.exclude_states}). "
+            "Run source/scrape/tse_relatorio.py first to populate PDFs."
+        )
+    print(f"PDFs to process: {len(pdfs)}  cache: {CANONICAL_CACHE_DIR}  "
+          f"model: {args.model}  workers: {args.workers}")
+
+    client = OpenAI()
+    counts = {"ok": 0, "cached": 0, "image_only": 0, "error": 0}
+    tok_in = tok_out = 0
+    t0 = time.monotonic()
+
+    def one(pdf: Path):
+        protocol = pdf.stem
+        try:
+            r = extract_poll_relatorio(
+                protocol=protocol, pdf_path=pdf, client=client,
+                model=args.model, reextract=args.reextract,
+            )
+        except Exception as exc:
+            return protocol, "error", repr(exc), {}
+        if r is None:
+            return protocol, "image_only", None, {}
+        status = "cached" if r.cached else "ok"
+        return protocol, status, None, (r.usage or {})
+
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = {ex.submit(one, pdf): pdf for pdf in pdfs}
+        for i, fut in enumerate(as_completed(futs), 1):
+            protocol, status, err, usage = fut.result()
+            counts[status] = counts.get(status, 0) + 1
+            tok_in += usage.get("prompt_tokens", 0)
+            tok_out += usage.get("completion_tokens", 0)
+            if status == "error":
+                print(f"  ERR {protocol}: {err}")
+            if i % 100 == 0 or i == len(pdfs):
+                cost = tok_in / 1e6 * 0.15 + tok_out / 1e6 * 0.60
+                dt = time.monotonic() - t0
+                print(f"  [{i}/{len(pdfs)}] {counts} "
+                      f"tokens={tok_in:,}/{tok_out:,} ~${cost:.3f} "
+                      f"({dt:.0f}s)")
+
+    print(f"\nLive-run counts: {counts}")
+    return counts, tok_in, tok_out
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, choices=[2020, 2024], required=True)
-    ap.add_argument("--model", default="gpt-4o-mini")
-    ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--reextract", action="store_true", help="ignore cache and re-extract")
+    ap.add_argument("--model", default=MODEL)
+    ap.add_argument("--limit", type=int, default=None,
+                    help="cap the number of PDFs (for spot-checks).")
+    ap.add_argument("--states", nargs="+", default=None,
+                    help="Include only these UFs (2-letter codes).")
+    ap.add_argument("--exclude-states", nargs="+", default=None,
+                    help="Skip these UFs (2-letter codes). E.g. SP if "
+                         "already extracted on another host.")
+    ap.add_argument("--reextract", action="store_true",
+                    help="ignore cache and re-extract.")
+    ap.add_argument("--workers", type=int, default=8,
+                    help="parallel API workers.")
+    ap.add_argument("--validate-cached", action="store_true",
+                    help="PDF-free: re-validate every cached entry (incl. "
+                         "legacy pilot) against the current schema and "
+                         "write the assembled parquet. No LLM calls.")
     args = ap.parse_args()
 
-    pdfs_dir = path.build_scrape_dir / "tse_relatorio" / str(args.year)
-    cache_dir = path.build_llm_dir / "poll_relatorio"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    out_parquet = path.build_llm_dir / f"poll_relatorio_{args.year}.parquet"
+    if not args.validate_cached:
+        run_live(args)
 
-    pdfs = sorted(pdfs_dir.glob("*.pdf"))
-    if args.limit:
-        pdfs = pdfs[: args.limit]
-    print(f"PDFs to process: {len(pdfs)}  cache: {cache_dir}  model: {args.model}")
-    if not pdfs:
-        sys.exit("No PDFs to process. Run source/scrape/tse_relatorio.py first.")
-
-    client = OpenAI()
-    counts = {"ok": 0, "cached": 0, "text_unreadable": 0, "error": 0}
-    total_in = total_out = 0
-
-    for i, pdf in enumerate(pdfs, 1):
-        protocol = pdf.stem
-        cache_path = cache_dir / f"{protocol}.json"
-        if cache_path.exists() and not args.reextract:
-            counts["cached"] += 1
-            continue
-        try:
-            result = extract_one(client, pdf, args.model)
-        except Exception as e:
-            result = {"status": "error", "error": repr(e), "model": args.model}
-        cache_path.write_text(json.dumps(result, indent=2, ensure_ascii=False))
-        if result["status"] == "ok":
-            counts["ok"] += 1
-            total_in += result["usage"]["prompt_tokens"]
-            total_out += result["usage"]["completion_tokens"]
-        elif result["status"] == "text_unreadable":
-            counts["text_unreadable"] += 1
-        else:
-            counts["error"] += 1
-        if i % 25 == 0 or i == len(pdfs):
-            cost = total_in / 1e6 * 0.15 + total_out / 1e6 * 0.60  # gpt-4o-mini pricing
-            print(f"  [{i}/{len(pdfs)}] totals: {counts}  tokens: in={total_in:,} out={total_out:,}  cost≈${cost:.3f}")
-
-    print(f"\nDONE. Counts: {counts}")
-    cost = total_in / 1e6 * 0.15 + total_out / 1e6 * 0.60
-    print(f"Total tokens (this run): in={total_in:,} out={total_out:,}  cost≈${cost:.3f}")
-
-    # Assemble parquet
-    assemble_parquet(cache_dir, out_parquet)
+    out_parquet = BUILD_DIR / "llm" / f"poll_relatorio_{args.year}.parquet"
+    df = assemble_long_table(args.year, include_legacy_pilot=True)
+    if df.empty:
+        print("No successful extractions to assemble.")
+        return
+    out_parquet.parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(out_parquet, index=False)
+    print(f"\nAssembled {len(df):,} candidate-scenario rows from "
+          f"{df['protocol'].nunique()} polls → {out_parquet}")
+    print(f"source distribution: "
+          f"{df['source'].value_counts().to_dict()}")
 
 
 if __name__ == "__main__":

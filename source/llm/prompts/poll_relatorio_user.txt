@@ -1,0 +1,8 @@
+TSE protocol: {tse_protocol_display}
+
+PDF text (pdftotext -layout):
+---
+{pdf_text}
+---
+
+Extract vote intentions for the CURRENT poll only.
