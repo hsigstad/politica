@@ -31,22 +31,12 @@
     (already laptop-DONE for sponsor side) joins downstream.
   - created: 2026-06-01
 
-- [ ] **Rebuild `candidato.csv` to populate `nome_urna`** *(load-bearing
-  for the 2024 poll → candidate matcher)*. Code is patched
-  (2026-06-01) — `candidato_politico.py:get_candidate_column_mapping()`
-  now maps `NM_URNA_CANDIDATO → nome_urna` and `main()` includes it in
-  the candidato output cols; `poll_2024__candmatch.py:best_match()`
-  scores `nome_urna` matches at 4 (above substring on legal name) and
-  degrades gracefully when the column is missing. Remaining step is
-  to re-run `candidato_politico.py` end-to-end. **Cannot run from the
-  a separate host sandbox** — DATA_DIR (`$DATA_DIR`) raw
-  TSE `consulta_cand_*.csv` files aren't reachable here. Run on the
-  machine where DATA_DIR resolves, then rerun
-  `source/clean/poll_2024__candmatch.py` to lift the polled-candidate
-  identifier rate (currently 62% on politico_id; expected ~90% once
-  `nome_urna` carries the aliases like "Fabinho Investigador",
-  "Largatixa", "Vitinho do Deraldo").
-  - created: 2026-05-28; code patched: 2026-06-01
+- [x] **Rebuild `candidato.csv` to populate `nome_urna`** *(load-bearing
+  for the 2024 poll → candidate matcher)*. DONE 2026-06-01: candidato
+  rebuilt with `nome_urna`, candidate matching folded into
+  `poll_2024.py` (poll_2024__candmatch.py removed). National match
+  rate: 61% of non-aggregate rows (82K via nome_urna alone).
+  - created: 2026-05-28; done: 2026-06-02
 
 - [ ] **Poll-extraction quality audit — flag zero-only and over-100% sub-scenarios**
   - context: surfaced by the migration smoke test against the
@@ -82,28 +72,14 @@
     `$DATA_DIR/consulta_cand_2024/` (per-UF zips).
   - created: 2026-06-01
 
-- [ ] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
-  - context: `poll_sponsor_2024_join.py` implements Route A (sponsor CPF
-    → candidato.cpf, ~14 candidate matches) and Route B (committee-CNPJ
-    name parse, ~1,372 PREFEITO matches). Route C — sponsor CNPJ that
-    belongs to a *party* directorate → that party's PREFEITO candidate
-    in this muni (1:1 by the electoral-law constraint we lean on for
-    identification) — is the missing third route. The
-    `DOWNSTREAM_PROJECT/a separate host_next_steps.md` playbook estimated
-    ~728 protocols would match via this route, which would meaningfully
-    grow the headline within-candidate overlap (currently 350).
-  - scope: TSE dadosabertos distributes `vw_orgao_partidario_*.csv`
-    or similar party-directorate tables alongside the candidate
-    registry, keyed by (party, muni, year) with the CNPJ of the local
-    diretório. Pull, normalize, write
-    `build/clean/partidos_directorio_cnpj_2024.parquet` keyed by
-    `(cnpj, year, uf, muni_id, party)`. Then extend
-    `source/clean/poll_sponsor_2024_join.py` to add Route C: left-join
-    sponsor CNPJ → directorate → party → match to candidato 2024
-    PREFEITO row in same muni with that party.
-  - blocker: the partidos-directorate raw needs to be staged
-    (laptop sandbox has no access; EXTERNAL_MIRROR or a separate host network).
-  - created: 2026-06-01
+- [x] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
+  DONE 2026-06-01: Used `despesa_partidaria.csv` (2024 municipal-level
+  rows, 42,829 directorate CNPJs across 5,548 munis) as CNPJ→party×muni
+  lookup. Route C added to `poll_sponsor_2024_join.py` (141 rows, 58
+  protocols). Also added Route D (party name parsing from sponsor name,
+  343 rows, 149 protocols). Combined within-candidate overlap: 449 (up
+  from 350 with A+B only).
+  - created: 2026-06-01; done: 2026-06-02
 
 - [ ] **Retire LEGACY_TRE_DIARIOS `tse_processos.py` once paper is post-acceptance**
   - notes: politica's `processo.py` now covers the same TSE bulk processo
