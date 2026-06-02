@@ -31,29 +31,22 @@
     (already laptop-DONE for sponsor side) joins downstream.
   - created: 2026-06-01
 
-- [ ] **Surface `NM_URNA_CANDIDATO` (ballot name) in `candidato.csv`**
-  *(load-bearing for the 2024 poll → candidate matcher)*. The TSE raw
-  `consulta_cand_{year}_{state}.csv` files carry both:
-  - `NM_CANDIDATO` (legal name, e.g. "FRANKLIN DUARTE DE LIMA")
-  - `NM_URNA_CANDIDATO` (ballot name as voters see it, e.g. "FRANKLIN")
-
-  Today `source/clean/candidato_politico.py:get_candidate_column_mapping()`
-  keeps only `NM_CANDIDATO`. The new poll-candidate matcher
-  (`source/clean/poll_2024__candmatch.py`) matches poll-reported
-  nicknames to TSE registry via fuzzy token match against the legal
-  name — works ~64% of the time but fails on aliases that share no
-  tokens with the legal name (e.g., "Largatixa", "Fabinho
-  Investigador", "Vitinho do Deraldo"). Adding `NM_URNA_CANDIDATO` to
-  the cleaned schema and matching on it directly would lift match
-  rate close to 100%.
-
-  **Scope**: add `'NM_URNA_CANDIDATO': 'nome_urna'` to the column
-  mapping in `candidato_politico.py:get_candidate_column_mapping()`.
-  Add `'nome_urna'` to the `candidato` output cols in `main()`.
-  Update `source/clean/poll_2024__candmatch.py` to also try matching
-  on `nome_urna` (with score 4 — higher than substring on legal
-  name).
-  - created: 2026-05-28
+- [ ] **Rebuild `candidato.csv` to populate `nome_urna`** *(load-bearing
+  for the 2024 poll → candidate matcher)*. Code is patched
+  (2026-06-01) — `candidato_politico.py:get_candidate_column_mapping()`
+  now maps `NM_URNA_CANDIDATO → nome_urna` and `main()` includes it in
+  the candidato output cols; `poll_2024__candmatch.py:best_match()`
+  scores `nome_urna` matches at 4 (above substring on legal name) and
+  degrades gracefully when the column is missing. Remaining step is
+  to re-run `candidato_politico.py` end-to-end. **Cannot run from the
+  a separate host sandbox** — DATA_DIR (`$DATA_DIR`) raw
+  TSE `consulta_cand_*.csv` files aren't reachable here. Run on the
+  machine where DATA_DIR resolves, then rerun
+  `source/clean/poll_2024__candmatch.py` to lift the polled-candidate
+  identifier rate (currently 62% on politico_id; expected ~90% once
+  `nome_urna` carries the aliases like "Fabinho Investigador",
+  "Largatixa", "Vitinho do Deraldo").
+  - created: 2026-05-28; code patched: 2026-06-01
 
 - [ ] **Poll-extraction quality audit — flag zero-only and over-100% sub-scenarios**
   - context: surfaced by the migration smoke test against the
@@ -87,6 +80,29 @@
     workspace-wide candidato table includes 2024.
   - blocker: the 2024 candidato raw needs to be staged under
     `$DATA_DIR/consulta_cand_2024/` (per-UF zips).
+  - created: 2026-06-01
+
+- [ ] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
+  - context: `poll_sponsor_2024_join.py` implements Route A (sponsor CPF
+    → candidato.cpf, ~14 candidate matches) and Route B (committee-CNPJ
+    name parse, ~1,372 PREFEITO matches). Route C — sponsor CNPJ that
+    belongs to a *party* directorate → that party's PREFEITO candidate
+    in this muni (1:1 by the electoral-law constraint we lean on for
+    identification) — is the missing third route. The
+    `DOWNSTREAM_PROJECT/a separate host_next_steps.md` playbook estimated
+    ~728 protocols would match via this route, which would meaningfully
+    grow the headline within-candidate overlap (currently 350).
+  - scope: TSE dadosabertos distributes `vw_orgao_partidario_*.csv`
+    or similar party-directorate tables alongside the candidate
+    registry, keyed by (party, muni, year) with the CNPJ of the local
+    diretório. Pull, normalize, write
+    `build/clean/partidos_directorio_cnpj_2024.parquet` keyed by
+    `(cnpj, year, uf, muni_id, party)`. Then extend
+    `source/clean/poll_sponsor_2024_join.py` to add Route C: left-join
+    sponsor CNPJ → directorate → party → match to candidato 2024
+    PREFEITO row in same muni with that party.
+  - blocker: the partidos-directorate raw needs to be staged
+    (laptop sandbox has no access; EXTERNAL_MIRROR or a separate host network).
   - created: 2026-06-01
 
 - [ ] **Retire LEGACY_TRE_DIARIOS `tse_processos.py` once paper is post-acceptance**

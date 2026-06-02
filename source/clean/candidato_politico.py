@@ -140,6 +140,7 @@ def main():
         'education',
         'marital_status',
         'occupation',
+        'nome_urna',
         'NUMERO_CAND',
         'SQ_CANDIDATO',
     }.intersection(results.columns)
@@ -434,6 +435,7 @@ def get_candidate_column_mapping():
         'SQ_CANDIDATO': 'SQ_CANDIDATO',
         'NR_CANDIDATO': 'NUMERO_CAND',
         'NM_CANDIDATO': 'politico',
+        'NM_URNA_CANDIDATO': 'nome_urna',
         'NR_CPF_CANDIDATO': 'cpf',
         'DS_DETALHE_SITUACAO_CAND': 'status',
         'SG_PARTIDO': 'party',

@@ -82,13 +82,24 @@ def _norm(s) -> str:
 
 
 def load_registry() -> pd.DataFrame:
-    """2024 PREFEITO candidates, joined with politico for full names."""
+    """2024 PREFEITO candidates, joined with politico for full names.
+
+    Loads ``nome_urna`` (ballot name as voters see it) when present in
+    candidato.csv — added by candidato_politico.py 2026-06-01.
+    Gracefully degrades to legal-name matching only if the column is
+    missing (e.g., older builds before nome_urna was surfaced).
+    """
+    cand_path = path.build_clean_dir / "candidato.csv"
+    header_cols = pd.read_csv(cand_path, nrows=0).columns.tolist()
+    base_cols = [
+        "cpf", "politico_id", "party", "year", "municipio_id",
+        "office", "estado", "votes", "round", "electeddummy",
+    ]
+    has_urna = "nome_urna" in header_cols
+    use_cols = base_cols + (["nome_urna"] if has_urna else [])
     cand = pd.read_csv(
-        path.build_clean_dir / "candidato.csv",
-        usecols=[
-            "cpf", "politico_id", "party", "year", "municipio_id",
-            "office", "estado", "votes", "round", "electeddummy",
-        ],
+        cand_path,
+        usecols=use_cols,
         dtype={"party": "string", "office": "string", "estado": "string"},
         low_memory=False,
     )
@@ -106,6 +117,10 @@ def load_registry() -> pd.DataFrame:
     )
     cand = cand.merge(pol, on="politico_id", how="left")
     cand["politico_norm"] = cand["politico"].fillna("").map(_norm)
+    if has_urna:
+        cand["nome_urna_norm"] = cand["nome_urna"].fillna("").map(_norm)
+    else:
+        cand["nome_urna_norm"] = ""
     return cand
 
 
@@ -139,6 +154,14 @@ def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
     for the best registry match of poll_name within pool, or None.
 
     pool is candidato rows for ONE muni.
+
+    Scoring ladder (high → low):
+      4  nome_urna match — poll_name equals or is a substring overlap
+         of the ballot name. Highest confidence: ballot name is what
+         voters see and how polls report candidates.
+      3  poll_name is a substring of the full legal name.
+      2  ≥2 poll tokens shared with full legal name.
+      1  single poll token shared with full legal name.
     """
     if not isinstance(poll_name, str) or AGGREGATE_RE.search(poll_name):
         return None
@@ -151,18 +174,22 @@ def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
     n_matches = 0
     for _, r in pool.iterrows():
         full = r["politico_norm"]
-        if not full:
-            continue
-        full_tokens = set(full.split())
+        urna = r.get("nome_urna_norm", "")
         score = 0
         method = None
-        if name_n in full:
-            score = 3
-            method = "substring"
-        elif poll_tokens & full_tokens:
-            shared = poll_tokens & full_tokens
-            score = 2 if len(shared) >= 2 else 1
-            method = f"tokens={','.join(sorted(shared))}"
+        # Ballot-name match: highest confidence.
+        if urna and (name_n == urna or name_n in urna or urna in name_n):
+            score = 4
+            method = "nome_urna"
+        elif full:
+            full_tokens = set(full.split())
+            if name_n in full:
+                score = 3
+                method = "substring"
+            elif poll_tokens & full_tokens:
+                shared = poll_tokens & full_tokens
+                score = 2 if len(shared) >= 2 else 1
+                method = f"tokens={','.join(sorted(shared))}"
         if score == 0:
             continue
         n_matches += 1
