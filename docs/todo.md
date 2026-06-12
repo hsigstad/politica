@@ -1,43 +1,5 @@
 # TODOs
 
-- [ ] **Bulk poll-relatório LLM extraction (all UFs except SP)**
-  - context: SP already extracted on a separate host; remaining ~25 UFs are
-    queued (9,737 PDFs). Migration to llmkit done (see `done.md`).
-    Smoke test on 5 RR PDFs: $0.005 / 17s / 0 validation failures →
-    extrapolated **~$9.74, ~60 min at 8 workers** for non-SP.
-  - PDFs are accessible both on a separate host and on the laptop sandbox
-    (the runner discovers them at
-    `projects/REDACTED-PROJECT/build/scrape/tse_relatorio/2024/`
-    as a fallback for the canonical politica location).
-  - command (run inside `pipelines/politica/`; sources the OPENAI key
-    from one of the project .env files):
-    ```bash
-    source ../../DOWNSTREAM_PROJECT && export OPENAI_API_KEY
-    BASE_DIR=$PWD DATA_DIR=$PWD \
-      PYTHONPATH=$PWD/source/llm \
-      python source/llm/poll_extract.py \
-        --year 2024 --exclude-states SP \
-        --workers 8
-    ```
-  - output:
-    - cache: `build/llm/poll_relatorio/{KEY}.json` (new-format llmkit
-      entries with `_cache_meta`)
-    - parquet: `build/llm/poll_relatorio_2024.parquet` (long, one row
-      per candidate-scenario; assembled from cache after the live
-      pass, merges in the SP a separate host cache + the 102-protocol legacy-pilot
-      pilot via legacy fallback automatically).
-  - after the run: run `source/clean/poll_2024.py` to join LLM
-    extractions with TSE registry, then `source/clean/poll_sponsor_2024.py`
-    (already laptop-DONE for sponsor side) joins downstream.
-  - created: 2026-06-01
-
-- [x] **Rebuild `candidato.csv` to populate `nome_urna`** *(load-bearing
-  for the 2024 poll → candidate matcher)*. DONE 2026-06-01: candidato
-  rebuilt with `nome_urna`, candidate matching folded into
-  `poll_2024.py` (poll_2024__candmatch.py removed). National match
-  rate: 61% of non-aggregate rows (82K via nome_urna alone).
-  - created: 2026-05-28; done: 2026-06-02
-
 - [ ] **Poll-extraction quality audit — flag zero-only and over-100% sub-scenarios**
   - context: surfaced by the migration smoke test against the
     102-protocol pilot. 9% of espontaneo/estimulado sub-scenarios
@@ -48,15 +10,16 @@
     PDFs with low text extraction quality or unusual table layouts.
     The rest are 105-115% sums consistent with rounding artifacts in
     the source poll reports.
-  - todo: after the bulk run, write a small audit pass over
-    `poll_relatorio_2024.parquet`: flag protocols whose primary
-    estimulado sub-scenario sums to <50% or >120%; sample 20 of these
-    against their PDFs (via a separate host); if a systematic prompt fix
-    surfaces, revise `prompts/poll_relatorio_system.txt` and re-extract
-    *only* the flagged protocols via `--reextract` against a protocol
-    list, not the full corpus.
-  - non-blocking for the bulk run — flagged entries are a small
-    fraction and can be re-extracted incrementally.
+  - todo (now that the bulk run is done — see `done.md` 2026-06-01):
+    write a small audit pass over `poll_relatorio_2024.parquet`:
+    flag protocols whose primary estimulado sub-scenario sums to <50%
+    or >120%; sample 20 of these against their PDFs (via a separate host);
+    if a systematic prompt fix surfaces, revise
+    `prompts/poll_relatorio_system.txt` and re-extract *only* the
+    flagged protocols via `--reextract` against a protocol list, not
+    the full corpus.
+  - non-blocking — flagged entries are a small fraction and can be
+    re-extracted incrementally.
   - created: 2026-06-01
 
 - [ ] **Extend `candidato.csv` clean step to cover 2024**
@@ -71,15 +34,6 @@
   - blocker: the 2024 candidato raw needs to be staged under
     `$DATA_DIR/consulta_cand_2024/` (per-UF zips).
   - created: 2026-06-01
-
-- [x] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
-  DONE 2026-06-01: Used `despesa_partidaria.csv` (2024 municipal-level
-  rows, 42,829 directorate CNPJs across 5,548 munis) as CNPJ→party×muni
-  lookup. Route C added to `poll_sponsor_2024_join.py` (141 rows, 58
-  protocols). Also added Route D (party name parsing from sponsor name,
-  343 rows, 149 protocols). Combined within-candidate overlap: 449 (up
-  from 350 with A+B only).
-  - created: 2026-06-01; done: 2026-06-02
 
 - [ ] **Retire LEGACY_TRE_DIARIOS `tse_processos.py` once paper is post-acceptance**
   - notes: politica's `processo.py` now covers the same TSE bulk processo

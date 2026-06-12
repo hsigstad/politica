@@ -46,3 +46,48 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
   values in 2024 vocabulary — see `docs/decisions.md` 2026-05-27 entry.
   - created: 2026-05-26
   - resolved: 2026-05-27
+
+- [x] **Rebuild `candidato.csv` to populate `nome_urna`** *(load-bearing
+  for the 2024 poll → candidate matcher)*. Candidato rebuilt with
+  `nome_urna`, candidate matching folded into `poll_2024.py`
+  (`poll_2024__candmatch.py` removed). National match rate: 61% of
+  non-aggregate rows (82K via nome_urna alone).
+  - created: 2026-05-28
+  - resolved: 2026-06-02
+
+- [x] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
+  Used `despesa_partidaria.csv` (2024 municipal-level rows, 42,829
+  directorate CNPJs across 5,548 munis) as CNPJ→party×muni lookup.
+  Route C added to `poll_sponsor_2024_join.py` (141 rows, 58 protocols).
+  Also added Route D (party name parsing from sponsor name, 343 rows,
+  149 protocols). Combined within-candidate overlap: 449 (up from 350
+  with A+B only).
+  - created: 2026-06-01
+  - resolved: 2026-06-02
+
+- [x] **Bulk poll-relatório LLM extraction (all UFs except SP)**
+  Ran 2026-06-01 (10:20–15:12 UTC, `gpt-4o-mini`, 8 workers) over the
+  legacy-pilot-fallback PDF dir at `projects/REDACTED-PROJECT/build/scrape/`
+  `tse_relatorio/2024/`. New-format llmkit cache at
+  `build/llm/poll_relatorio/`: **9,325 entries** (1 schema-invalid).
+  Combined with 110 legacy-pilot legacy-pilot entries (48 AC + 62 AL + 1 stray
+  at `projects/REDACTED-PROJECT/build/llm/poll_relatorio/`, picked up
+  automatically by the wrapper's legacy fallback), all 25 non-SP UFs
+  are covered. Parquet at `build/llm/poll_relatorio_2024.parquet`:
+  149,934 candidate-scenario rows from 8,169 distinct polls. The
+  ~1,500-protocol gap vs. the on-disk PDF count is dominated by
+  image-only PDFs (TO 157, SE 39, ES 15, RS 15, ...) skipped at the
+  `pdftotext`/`MIN_TEXT_CHARS=200` gate, plus a small per-UF
+  schema-validation drop at parquet assembly. SP (1,635 PDFs) lives
+  in the a separate host cache only and is 0 rows in the laptop parquet.
+  Diagnosis note: an initial coverage check looking only at
+  `_cache_meta.doc_id` distribution in the new cache wrongly suggested
+  AC was completely missed (0 entries); the 48 AC files are in the legacy-pilot
+  legacy pilot cache and are correctly merged in by
+  `assemble_long_table()`. Verified by re-running `--states AC AL` →
+  `cached: 190 / image_only: 6 / ok: 0`. See `data.md` "Coverage and
+  known gaps" for the authoritative status, including the upstream
+  scrape gap (3,415 protocols TSE never published + 89 transient
+  errors retryable).
+  - created: 2026-06-01
+  - resolved: 2026-06-01 (coverage verified 2026-06-12)
