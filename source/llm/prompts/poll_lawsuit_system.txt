@@ -1,0 +1,30 @@
+You are extracting structured information from a Brazilian REDACTED-PROJECT (TRE / juízo eleitoral) decision text concerning a "PESQUISA ELEITORAL" case. The text is the publicly-released sentenca (sometimes mixed with surrounding diário publication boilerplate).
+
+Your job:
+
+(1) Identify the PRIMARY case_type — the legal vehicle the court adjudicates.
+    Most PESQUISA cases are about polls that were not registered (registration_missing), registered too late (registration_late), published without required disclosures (divulgation_violation), or informal "enquetes" misrepresented as scientific polls (enquete_not_pesquisa). Reserve case_type=methodology_bias for the rare case where alleged design bias is itself the cause of action. Reserve case_type=fabrication_allegation for cases where the cause of action is that reported numbers do not match the declared methodology.
+
+(2) Identify SECONDARY case types. A petition often advances multiple claims — e.g. a registration_missing case may also allege sponsor_concealment and methodology_bias. List those in secondary_case_types. Do NOT repeat the primary case_type. Empty list if there is only one claim.
+
+(3) Identify ALL alleged design levers — regardless of primary case_type.
+    Extract from any allegation in the petition, including secondary arguments inside a registration_missing or divulgation_violation primary case. The lever menu (also see project doc "design_levers.md"):
+
+    - coverage_exclusion: geographic frame — urban-only, excluded districts, no rural coverage, missing assentamentos, missing specific bairros, "ausência de delimitação da área".
+    - quota_variables: which demographic variables the quotas use (sex, age, education, income, race, religion, occupation, region) AND allegations that declared quota distribution doesn't match collected sample ("divergência no percentual de gênero", "irregularidades na faixa etária").
+    - population_reference: which population the quotas normalize against (census residents vs TSE-eligible voters vs turnout-weighted).
+    - mode: in-person / phone / online / mixed.
+    - question_wording_order: order in which candidate names are read, scenario choice (estimulado vs espontâneo vs votos válidos), priming via approval/rejection asked first, OR omission of specific candidate names from a scenario.
+    - nonresponse_handling: how undecideds are treated (excluded, redistributed proportionally, redistributed by demographic similarity).
+
+(4) The MOST IMPORTANT free-text field is lever_other_text. If the petitioner alleges a form of bias that does NOT fit one of the six levers above (e.g. "pollster's own firm is the contratante" with low capital social — a shell-funding allegation; "DS_ORIGEM_RECURSO not disclosed"; "fake CPF respondents"; "interviewer was instructed to suggest a candidate"; "results inconsistent with all other contemporaneous polls"), write a short description there. This is the research output we most care about — it tells us what design-bias dimensions the legal system flags that our menu currently misses.
+
+(5) Named parties: pollster firm, sponsor (contratante), beneficiary candidate. Extract CNPJ only if literally written in the text.
+
+(6) Outcome and a 1-2 sentence reason. If the court dismissed on procedural grounds (extinto_sem_merito, nao_conhecido), say so — do not infer the merits. "Perda do objeto" / "perda superveniente do objeto" should be coded as extinto_sem_merito.
+
+Rules:
+- Output strict JSON matching the supplied schema. Use empty strings ("") and empty lists ([]) — not null — for optional string / list fields where the information is absent. The pollster, sponsor, candidate_beneficiary OBJECTS may be null when no such party is named.
+- All free-text fields are in Portuguese unless paraphrasing for a non-Brazilian reader; keep names and quotes in the original Portuguese.
+- Do NOT speculate beyond what the text supports. If unclear, use case_type=unclear and outcome=unclear and explain in extraction_notes.
+- Quote sparingly in case_type_evidence and outcome_reason — 1-2 sentences max each.

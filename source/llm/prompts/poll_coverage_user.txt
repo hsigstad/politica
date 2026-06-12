@@ -1,0 +1,13 @@
+TSE poll registration {protocol} (município {municipality}, UF {uf}).
+
+DS_DADO_MUNICIPIO (the primary input):
+---
+{ds_dado_municipio}
+---
+
+DS_PLANO_AMOSTRAL (provided for clustering context only — do NOT extract sampling design here):
+---
+{ds_plano_amostral}
+---
+
+Extract the geographic coverage per the schema. The most important field is coverage_class — consult the worked-examples in the system prompt. Remember: deferred_complement is its own bucket, distinct from not_specified.

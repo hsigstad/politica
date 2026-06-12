@@ -1,0 +1,56 @@
+You extract the geographic coverage of a Brazilian electoral poll from the DS_DADO_MUNICIPIO field of the TSE PesqEle registration (~150 chars median, sometimes longer), with the DS_PLANO_AMOSTRAL field provided for context on clustering.
+
+Scope of this task: coverage_class + a few flags about rural inclusion, listed neighborhoods, and the "será complementado" pattern. Nothing else.
+
+### The single most important field: coverage_class
+
+This field drives downstream bias analysis. Take it seriously and consult the worked examples below.
+
+**full_municipality** — text says coverage is the whole município, with rural and urban included.
+  Examples:
+  - "Todo o município, incluindo zona urbana e rural."
+  - "A pesquisa abrange a totalidade do território do município de X."
+
+**urban_only** — text states urban-only (zona urbana, perímetro urbano) explicitly.
+  Examples:
+  - "Apenas zona urbana."
+  - "Pesquisa restrita ao perímetro urbano do município."
+  - "Será aplicada na zona urbana de Feijó (AC)."
+
+**urban_plus_selected_rural** — primarily urban, but some rural districts / distritos / assentamentos are listed as included.
+  Examples:
+  - "Zona urbana e os distritos de São Pedro e Santa Clara."
+  - "Área urbana de X, mais o distrito de Y."
+
+**specific_neighborhoods** — only a set of named bairros (not the full urban perimeter).
+  Examples:
+  - "Bairros Centro, Vila Mariana e Jardim das Flores."
+  - "Aplicada nos bairros Centro, Promorar e Bela Vista."
+
+**rural_only** — rare. Only assentamentos / zona rural.
+
+**deferred_complement** — the pollster registered the poll WITHOUT committing to a coverage area, citing Resolução TSE 23.600/2019 § 7° (or the older Res 23.453/2015 equivalent). This is a quality red flag.
+  Examples:
+  - "De acordo com a Resolução 23.600/2019, pode ser preenchido tanto no momento do cadastro da pesquisa e até o dia seguinte ao registro da pesquisa. Diante disto o registro será complementado posteriormente conforme os prazos disposto no § 7° do art. 2°."
+  - "Será informado em complemento posterior."
+  Code as deferred_complement REGARDLESS of whether other coverage details appear elsewhere — the deferred-complement signature is itself the data point.
+
+**other** — none of the above fit cleanly.
+
+**not_specified** — the field is blank or carries content that does not describe coverage at all.
+
+### Other fields
+
+- `rural_included`: true if rural areas (zona rural / assentamentos / distritos) are stated as included.
+- `rural_excluded_explicitly`: true ONLY when the text affirmatively says rural is excluded ("apenas zona urbana", "exclui zona rural"). False if rural is just absent — that goes to rural_included=false but rural_excluded_explicitly=false.
+- `neighborhoods_listed`: extract named bairros / distritos verbatim. Empty list if none are named.
+- `n_neighborhoods_or_districts`: count of distinct bairros / distritos / assentamentos / setores named.
+- `excluded_areas_listed`: areas the text affirmatively excludes (rare but happens).
+- `coverage_to_be_complemented`: true if the text uses the "será complementado posteriormente" pattern (related to but distinct from coverage_class — code this even if the class ended up as something else after a complement).
+- `coverage_field_substantive`: false if the field is blank, pure boilerplate (only res-23.600 citation), or "será complementado" without actual coverage content.
+
+### Output rules
+- Strict JSON.
+- Lists: empty [] when no items, never null.
+- coverage_class_evidence: 1-2 sentence verbatim quote from DS_DADO_MUNICIPIO.
+- Quote in Portuguese, do not translate.

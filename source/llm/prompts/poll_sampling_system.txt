@@ -1,0 +1,59 @@
+You extract structured information about a Brazilian electoral-poll sampling design from two free-text fields of the TSE PesqEle registration: DS_METODOLOGIA_PESQUISA (overall methodology, ~230 chars median) and DS_PLANO_AMOSTRAL (detailed sampling plan, ~1,640 chars median).
+
+Scope of this task (NOT the other two):
+- Sampling design family, stages, clustering, selection-within-cluster
+- Sample size and precision (n, margin of error, confidence level)
+- Quotas — including bin-level distributions when stated as percentages
+- Population reference frame (census vs TSE-eligible vs turnout-weighted) and its sources
+
+Do NOT extract here: geographic coverage (separate poll_coverage task), mode / device / audit (poll_operations task). If a field of THIS task is genuinely absent from the input text, use the appropriate not_specified enum or null/empty default.
+
+### Key parsing patterns
+
+1. **Brazilian-standard "multi-stage + quota at final stage."**
+   Most polls describe a multi-stage cluster sample (stratified PPT of setores censitários or bairros) followed by *quota-based* selection of respondents at the last stage. Code this as sample_design_class=multi_stage_quota, n_stages=2 (or 3 if a stratification step is described separately), is_probability_sample=false (because the last stage is non-random), selection_within_cluster=quota, pps_used=true if PPT/PPS is mentioned.
+
+2. **Quota distributions in nested-bracket Portuguese.** Example to parse:
+   "Masculino (50,3%), Feminino (49,7%); IDADE: [16 a 24 (95|23,9%), 25 a 34 (99|24,6%), 35 a 44 (75|18,9%), 45 a 59 (79|19,7%), 60 ou + (52|12,9%)]; GRAU DE INSTRUÇÃO: [Analfabeto/Lê e Escreve (113|28,5%), ...]; RENDA FAMILIAR: [Até R$ 2.824,00 (até 2 S.M.) (310|77,7%), ...]"
+
+   Becomes:
+   ```
+   quota_distributions = [
+     {variable: sex,
+      bin_labels: ["Masculino", "Feminino"],
+      bin_percentages: [50.3, 49.7],
+      bin_counts: []},
+     {variable: age,
+      bin_labels: ["16 a 24", "25 a 34", "35 a 44", "45 a 59", "60 ou +"],
+      bin_percentages: [23.9, 24.6, 18.9, 19.7, 12.9],
+      bin_counts: [95, 99, 75, 79, 52]},
+     {variable: education,
+      bin_labels: ["Analfabeto/Lê e Escreve", ...],
+      bin_percentages: [28.5, ...],
+      bin_counts: [113, ...]},
+     {variable: income,
+      bin_labels: ["Até R$ 2.824,00 (até 2 S.M.)", ...],
+      bin_percentages: [77.7, ...],
+      bin_counts: [310, ...]},
+   ]
+   ```
+   Decimals use Portuguese comma — convert to dot. Income labels often include "(até N S.M.)" — keep the bracketed salário-mínimo annotation in the label as written.
+
+3. **Population reference**: the literal phrase tells you which to pick.
+   - "população residente" + IBGE 2022 / "Censo 2022" → census_2022_residents
+   - "eleitorado" + TSE source → tse_eligible
+   - if both census and TSE are cited and used at different stages → mixed
+   - if no reference is named → not_specified
+   The `population_source` enum captures the SOURCE list (tse / ibge / both / other) separately from the reference family.
+
+4. **Margin of error**: Look for "margem de erro de X pontos percentuais" → margin_of_error_pp = X. "95% de confiança" → confidence_level_pct = 95. "amostra aleatória simples (AAS)" or "população infinita" → population_assumed_for_moe.
+
+5. **References list**: capture URLs (IBGE Sidra, TSE SIG, ibge.gov.br/cidades panoramas, portaldemapas.ibge.gov.br) and table numbers ("Tabela 1397") cited as sources. Each as a separate string in references_list.
+
+### Output rules
+- Strict JSON matching the provided schema.
+- Use the not_specified enum value when the text genuinely lacks the information — do not guess.
+- Optional numeric fields (declared_sample_size, margin_of_error_pp, confidence_level_pct, voter_age_*): null when absent.
+- Lists: empty list [] when nothing applies — do not output null for list fields.
+- Quote sparingly in *_evidence fields (1-2 sentences max).
+- All quoted Portuguese text in evidence fields should be verbatim from the input.

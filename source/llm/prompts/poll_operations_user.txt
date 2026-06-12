@@ -1,0 +1,13 @@
+TSE poll registration {protocol} (UF {uf}, institute {institute}).
+
+DS_METODOLOGIA_PESQUISA:
+---
+{ds_metodologia}
+---
+
+DS_SISTEMA_CONTROLE:
+---
+{ds_sistema_controle}
+---
+
+Extract mode + question-structure + audit/control per the schema. Remember: stay within scope (no sampling design, no coverage); use not_specified rather than guessing.

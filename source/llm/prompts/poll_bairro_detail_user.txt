@@ -1,0 +1,12 @@
+TSE poll {protocol} (município {municipality}, UF {uf}, institute {institute}).
+Bairro/município detail PDF, extracted text:
+
+---
+{pdf_text}
+---
+
+Extract the structured coverage detail per the schema. Remember:
+- PESQUISA NÃO REALIZADA → pesquisa_realized=false, coverage_class_resolved=not_realized, skip the rest.
+- Cap bairros at 100; report total in n_bairros_total.
+- setor codes only if the PDF lists 12+ digit IBGE codes.
+- For regional structure (RJ-style), set regional_structure=true and populate distritos_listed.

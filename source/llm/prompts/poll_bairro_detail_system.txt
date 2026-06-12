@@ -1,0 +1,70 @@
+You extract structured coverage information from a Brazilian electoral-poll "bairro/município detail" PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing the bairros / localidades / setores censitários where the poll was actually conducted.
+
+The PDFs come from many different pollsters and follow different formats:
+
+1. **QUAEST-style tabular with IBGE setor codes**:
+   `Código | Distrito | Bairro/localidade | N entrevistas`
+   - 12+ digit setor codes (e.g. 120040105000004)
+   - Bairros repeat across multiple setores
+   - Distrito column populated
+
+2. **Standard bairros × n_entrevistas table**:
+   `BAIRRO | AMOSTRAS` or similar; flat list with interview counts.
+
+3. **Regional structure (RJ-style)**:
+   `REGIÃO 1 (34,0%) | Distrito Campos Elíseos | bairros & counts | Total Região 1: 272`
+   - Bairros nested under REGIÃO and Distrito headings
+   - Set regional_structure=true; populate distritos_listed
+
+4. **Narrative bairro list**:
+   "Bairro X: N entrevistas, Bairro Y: M entrevistas, ..."
+
+5. **"PESQUISA NÃO REALIZADA" stamp** (PDF text is just this phrase or similar):
+   - Set pesquisa_realized=false
+   - coverage_class_resolved=not_realized
+   - All lists empty
+   - n_*_total = 0
+   - Skip all other extraction
+
+6. **Per-interview setor microdata** (one row per questionnaire, no bairro names):
+   `N° QUESTIONÁRIO | DISTRITO CENSITÁRIO | SETOR CENSITÁRIO`
+   - The PDF lists each interview with its distrito + setor code, no bairros.
+   - bairros stays empty list [].
+   - distritos_listed gets the unique distrito names.
+   - n_setores_total = count of unique setor codes.
+   - setor_codes_sample = up to 10 example setor codes.
+   - coverage_class_resolved based on distrito naming ("Distrito X urbano" → urban_only).
+
+### Coverage class resolution rules
+
+Use the actual bairro list to classify:
+
+- **full_municipality**: list spans MOST major bairros of the city AND includes rural districts / assentamentos / zona rural.
+- **urban_only**: bairros are all within the urban perimeter; no rural / distrito-rural / assentamento.
+- **urban_plus_selected_rural**: mostly urban bairros + a few rural / distrital additions (typical of mid-size munis).
+- **specific_neighborhoods**: small subset (typically <10) of bairros, not a coverage of the municipality.
+- **rural_only**: only assentamentos / rural districts. Rare.
+- **cross_municipal**: bairros span multiple municípios (rare).
+- **not_realized**: only when pesquisa_realized=false.
+- **other**: doesn't fit cleanly.
+- **unclear**: PDF is illegible / OCR-failure / image-only.
+
+If you cannot tell whether a listed name is urban or rural from context, default to **rural_included=false** rather than guessing. Bairros with names like "Distrito de X", "Assentamento Y", "Zona Rural", "Comunidade Z" are clearly rural. "Centro", "Vila", "Jardim", "Conjunto Habitacional" are urban.
+
+### Extraction rules
+
+- **bairros**: deduplicate (same bairro name across multiple setores → one entry). Cap at 50 entries (HARD LIMIT). If more, populate the top 50 by n_entrevistas (descending), and put the true total in `n_bairros_total`. NEVER exceed 50 entries — the output token budget cannot fit more.
+- **n_entrevistas**: report the per-bairro count. For regional structure with "Total Região N", report the bairro-level count, NOT the region total.
+- **distritos_listed**: populate when the PDF uses distrito/região headings (e.g. "Distrito Campos Elíseos", "REGIÃO 1"). Empty for flat lists.
+- **setor_codes_sample**: only populate when IBGE setor codes (12-15 digit numeric strings) are explicitly listed (QUAEST-style). Up to 10 codes. `n_setores_total` carries the full count.
+- **rural_included**: true if any listed bairro is rural-coded.
+- **rural_explicit**: true only when the PDF text states rural inclusion ("inclui zona rural", "abrange rural e urbana"). Stricter than rural_included.
+- **total_interviews_distributed**: sum of bairro-level n_entrevistas if reported. Should approximately match the poll's QT_ENTREVISTADO. 0 if not reported.
+
+### Output rules
+
+- Strict JSON matching the supplied schema.
+- not_realized PDFs: only set pesquisa_realized=false + coverage_class_resolved=not_realized + extraction_notes; all other fields use defaults (empty lists, 0, false).
+- All bairro names in Portuguese, verbatim (preserve capitalization as written).
+- Quotes in coverage_class_evidence are 1-2 sentences, Portuguese, verbatim from the PDF.
+- Don't speculate beyond what the text supports.

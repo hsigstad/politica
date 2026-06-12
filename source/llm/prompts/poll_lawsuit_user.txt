@@ -1,0 +1,10 @@
+Decision text for case {proc_number} (tribunal {tribunal}, filing year {filingyear}):
+
+---
+{decision_text}
+---
+
+Extract the structured fields. Remember:
+- case_type defaults to registration / divulgation buckets unless the petitioner explicitly alleges design-driven bias or fabrication.
+- alleged_levers is empty unless case_type ∈ {{methodology_bias, fabrication_allegation}}.
+- lever_other_text is the most valuable free-text field — use it for any alleged bias dimension that does not fit the six-lever enum.

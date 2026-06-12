@@ -1,0 +1,17 @@
+TSE poll registration {protocol} (UF {uf}, institute {institute}).
+
+DS_METODOLOGIA_PESQUISA:
+---
+{ds_metodologia}
+---
+
+DS_PLANO_AMOSTRAL:
+---
+{ds_plano_amostral}
+---
+
+Extract the sampling design fields per the schema. Remember:
+- multi_stage_quota is the Brazilian-standard family (cluster sample + quota at final stage); use it rather than plain multi_stage or pure quota whenever both elements are present.
+- Decimals: Portuguese "23,9" → 23.9.
+- not_specified beats guessing.
+- references_list: every URL or table citation, one string each.

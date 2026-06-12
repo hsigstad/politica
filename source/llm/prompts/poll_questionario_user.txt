@@ -1,0 +1,14 @@
+TSE poll {protocol} (município {municipality}, UF {uf}, institute {institute}).
+Questionnaire PDF (`questionario_pesquisa`), extracted text:
+
+---
+{pdf_text}
+---
+
+Extract the structured questionnaire features per the schema. Remember:
+- PESQUISA NÃO REALIZADA → pesquisa_realized=false, scenarios empty, all counts 0; skip the rest.
+- HARD CAP 12 scenarios; HARD CAP 15 candidates per scenario.
+- Every vote-intention scenario counts toward n_vote_intention_scenarios regardless of the cap.
+- `name_rotation_documented` only when the PDF prints an instruction to rotate; printed fixed order is NOT rotation.
+- `nonresponse_instruction_present` only when there is a printed handling rule; absence is the default.
+- headline_scenario_label = label of the FIRST estimulada, verbatim. headline_candidate_order replicates that scenario's candidate_order.
