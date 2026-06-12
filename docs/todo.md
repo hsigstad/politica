@@ -1,5 +1,29 @@
 # TODOs
 
+- [ ] **Upload 2024 poll relatório README to external-mirror** *(non-sandbox Claude /
+  manual)*
+  - source: `pipelines/politica/docs/poll_relatorio_2024_README.md`
+  - destination: `EXTERNAL_MIRROR`
+    (rename to plain `README.md` at the destination — it sits alongside
+    `poll_relatorio_2024.parquet` and `poll_relatorio_cache.tar.zst`).
+  - command (when a Claude session with rclone external-mirror write rights is
+    available):
+    ```bash
+    rclone copyto \
+      pipelines/politica/docs/poll_relatorio_2024_README.md \
+      EXTERNAL_MIRROR
+    ```
+  - sandbox Claude does not have external-mirror write rights, so this has to
+    happen from a host session (the laptop Claude with `rclone`
+    configured) or be done manually.
+  - while there: verify that `poll_relatorio_2024.parquet` and
+    `poll_relatorio_cache.tar.zst` at the same destination are
+    up-to-date against `pipelines/politica/build/llm/`. If they are
+    stale, refresh them too (parquet copy is direct, cache needs the
+    `tar --use-compress-program='zstd -19 -T0' -cf … poll_relatorio/`
+    pack first).
+  - created: 2026-06-12
+
 - [ ] **Poll-extraction quality audit — flag zero-only and over-100% sub-scenarios**
   - context: surfaced by the migration smoke test against the
     102-protocol pilot. 9% of espontaneo/estimulado sub-scenarios
