@@ -68,27 +68,17 @@
     `projects/REDACTED-PROJECT/source/query/proc__tse.py`.
   - created: 2026-05-26
 
-- [ ] **Further matcher work — token-level stopword filter + image-PDF
-      poll re-extraction**
-  - context: the 2026-06-14 three-fix pass on `poll_2024.py` (now
-    folded into the single-script cleaner; see `done.md` 2026-06-14)
-    lifted the `matched_share == 1.0` row count in
-    `projects/DOWNSTREAM_PROJECT/build/assemble/cand_poll.parquet`
-    from 21,030 → 22,665 (+7.8%). The remaining gap to the ~85%
-    target the original todo named is concentrated in two pockets:
-    1. **Stopword-only score-1 matches.** Post-fix the top
-       `match_method` rows are `tokens_full=DE` (338), `=DA` (179),
-       `tokens_urna=DR` (119), `=DE` (79), `=DO` (69). These are
-       Portuguese articles / a residual honorific that survived the
-       registry side (we only strip from the poll side). They get
-       score 1 → downstream-filtered, but they bloat
-       `n_match_candidates` and could be excluded outright by adding
-       a small stopword set (`{DE, DA, DO, DOS, DAS, E, DR, DRA}`)
-       to the token-overlap computation.
-    2. **Image-PDF / non-standard relatórios.** The
-       state/pollster heatmap from the 2026-06-14 diagnostic
-       (SE 40%, MS 24%, GO 22%; SMS-Direct 36%, Seculus 30%,
-       Ranking Brasil 26%, Naipe's 21%) is mostly poll-extraction
-       quality, not matcher quality — handle in the
-       prompt/re-extraction todo above.
+- [ ] **Token stopword filter on the candmatch ladder** *(small
+      follow-up to the 2026-06-14 matcher pass; see done.md)*
+  - context: after the three-fix matcher pass, the top score-1
+    `match_method` rows in `poll_2024.parquet` are
+    `tokens_full=DE` (338), `tokens_full=DA` (179),
+    `tokens_urna=DR` (119), `=DE` (79), `=DO` (69) — Portuguese
+    articles, plus `DR` (an honorific that survives on the registry
+    side because we only strip from the poll side). They're already
+    downstream-filtered (`match_score >= 2`), but they bloat
+    `n_match_candidates` and the score-1 layer of the parquet. Add
+    a small stopword set (`{DE, DA, DO, DOS, DAS, E, DR, DRA,
+    PROF, PROFA}`) to `_score_name`'s token-overlap computation so
+    these tokens don't contribute to `shared`. Non-blocking.
   - created: 2026-06-14
