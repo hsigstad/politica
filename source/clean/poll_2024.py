@@ -73,6 +73,17 @@ JOINT_SEP_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Tokens excluded from the score 2/1 shared-token set: Portuguese
+# articles + the most common honorifics that survive on the registry
+# side (we strip only from the poll side, so registry forms like
+# "DR JOSE" still contribute a DR token). Filtering these from
+# `shared` prevents score-1 false positives where the only overlap
+# is "DE", "DA", "DR", etc.
+TOKEN_STOPWORDS = frozenset({
+    "DE", "DA", "DO", "DOS", "DAS", "E",
+    "DR", "DRA", "PROF", "PROFA",
+})
+
 # Leading honorifics / titles that aren't part of a candidate's real
 # identity. Stripped from the poll-side normalized name before token
 # scoring so "PROFESSOR JESUS" / "MAJOR BRILHANTE" / "DR JOAO" don't
@@ -302,6 +313,12 @@ def _score_name(name_n: str, pool: pd.DataFrame) -> tuple | None:
                 method = sub_hit
             else:
                 # Token overlap against either form (score 2/1), max count.
+                # Drop matches whose *only* shared tokens are stopwords
+                # (Portuguese articles + registry-side honorifics that
+                # the poll-side honorific strip doesn't cover, e.g. DR
+                # on the registry). The score itself counts raw shared
+                # tokens — preserves prior score-2 matches like
+                # {JOAO, DA} where one is a stopword and one is real.
                 full_tokens = set(full.split()) if full else set()
                 urna_tokens = set(urna.split()) if urna else set()
                 shared_full = poll_tokens & full_tokens
@@ -310,7 +327,7 @@ def _score_name(name_n: str, pool: pd.DataFrame) -> tuple | None:
                     shared, src = shared_urna, "urna"
                 else:
                     shared, src = shared_full, "full"
-                if shared:
+                if shared and (shared - TOKEN_STOPWORDS):
                     score = 2 if len(shared) >= 2 else 1
                     method = f"tokens_{src}={','.join(sorted(shared))}"
         if score == 0:

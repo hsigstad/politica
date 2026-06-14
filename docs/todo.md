@@ -68,17 +68,3 @@
     `projects/REDACTED-PROJECT/source/query/proc__tse.py`.
   - created: 2026-05-26
 
-- [ ] **Token stopword filter on the candmatch ladder** *(small
-      follow-up to the 2026-06-14 matcher pass; see done.md)*
-  - context: after the three-fix matcher pass, the top score-1
-    `match_method` rows in `poll_2024.parquet` are
-    `tokens_full=DE` (338), `tokens_full=DA` (179),
-    `tokens_urna=DR` (119), `=DE` (79), `=DO` (69) — Portuguese
-    articles, plus `DR` (an honorific that survives on the registry
-    side because we only strip from the poll side). They're already
-    downstream-filtered (`match_score >= 2`), but they bloat
-    `n_match_candidates` and the score-1 layer of the parquet. Add
-    a small stopword set (`{DE, DA, DO, DOS, DAS, E, DR, DRA,
-    PROF, PROFA}`) to `_score_name`'s token-overlap computation so
-    these tokens don't contribute to `shared`. Non-blocking.
-  - created: 2026-06-14

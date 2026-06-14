@@ -2,6 +2,27 @@
 
 Completed TODOs (moved out of `todo.md` so the active list stays scoped to current work).
 
+- [x] **Token stopword filter on the candmatch ladder**
+  - source: `source/clean/poll_2024.py` (`TOKEN_STOPWORDS` constant,
+    `_score_name` token-overlap branch).
+  - change: a match is dropped when the shared-token set against
+    either `politico_norm` or `nome_urna_norm` consists entirely of
+    stopwords (`DE, DA, DO, DOS, DAS, E, DR, DRA, PROF, PROFA`).
+    Mixed sets (e.g. `{JOAO, DA}`) still score by raw shared count,
+    so prior score-2 matches with one stopword + one real token are
+    preserved.
+  - matcher-side impact: score 1 rows 4,157 → 3,267 (-890 stopword-
+    only matches dropped); score ≥ 2 layer unchanged at 85,419 rows;
+    top score-1 `match_method` no longer features `tokens_full=DE`
+    etc. (now `tokens_full=JOAO`, `=JUNIOR`, `=HELIO,LOPES`, …).
+  - downstream impact: `matched_share == 1.0` row count in
+    `projects/DOWNSTREAM_PROJECT/build/assemble/cand_poll.parquet`
+    unchanged (the dropped rows were below the `match_score >= 2`
+    threshold). Improvement is purely on parquet-quality / signal
+    cleanliness, not regression sample size.
+  - created: 2026-06-14
+  - resolved: 2026-06-14
+
 - [x] **Improve poll candidate-name matcher (three concrete fixes)**
   - source: `source/clean/poll_2024.py` (`best_match` +
     new `_score_name`, `_strip_honorifics`, `_split_joint_ticket`
