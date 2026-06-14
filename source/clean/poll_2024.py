@@ -63,6 +63,39 @@ AGGREGATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Joint-ticket separators surfaced in 2026-06-14 unmatched diagnostic
+# ("LUSO QUEIROZ/LYA", "PROF. FLÁVIO COM PROF. ARILDO", "PAMELA / ALESSANDRO").
+# Split on the *raw* poll_name (before _norm) so em-dashes and accented
+# "E" survive. The matcher tries each half as a fallback when whole-string
+# scoring is weak.
+JOINT_SEP_RE = re.compile(
+    r"\s*/\s*|\s*&\s*|\s*[–—]\s*|\s+-\s+|\s+E\s+|\s+COM\s+|\s+E/OU\s+",
+    re.IGNORECASE,
+)
+
+# Leading honorifics / titles that aren't part of a candidate's real
+# identity. Stripped from the poll-side normalized name before token
+# scoring so "PROFESSOR JESUS" / "MAJOR BRILHANTE" / "DR JOAO" don't
+# burn their distinguishing token in shared-honorific noise.
+HONORIFICS = frozenset({
+    "DR", "DRA", "DOUTOR", "DOUTORA",
+    "PROF", "PROFA", "PROFESSOR", "PROFESSORA",
+    "PE", "PADRE", "PR", "PASTOR", "PASTORA",
+    "BISPO", "BISPA", "REV", "REVERENDO", "REVERENDA",
+    "FREI", "IRMAO", "IRMA", "MISSIONARIO", "MISSIONARIA",
+    "MAJOR", "CEL", "CORONEL", "CAP", "CAPITAO", "CAPITA", "CAPT",
+    "SGT", "SGTO", "SARGENTO", "SARGENTA",
+    "CABO", "SD", "SOLDADO", "TEN", "TENENTE", "TENENTA",
+    "COMANDANTE", "COMANDANTA",
+    "DELEGADO", "DELEGADA", "INSPETOR", "INSPETORA",
+    "DETETIVE", "INVESTIGADOR", "INVESTIGADORA",
+    "POLICIAL", "AGENTE",
+    "VEREADOR", "VEREADORA", "DEPUTADO", "DEPUTADA",
+    "SENADOR", "SENADORA", "PREFEITO", "PREFEITA",
+    "ENFERMEIRO", "ENFERMEIRA", "MEDICO", "MEDICA",
+    "ADVOGADO", "ADVOGADA",
+})
+
 
 def _norm(s) -> str:
     """Uppercase, ASCII-fold, drop punctuation, collapse whitespace."""
@@ -72,6 +105,32 @@ def _norm(s) -> str:
     s = re.sub(r"[^A-Za-z0-9 ]", " ", s).upper().strip()
     s = re.sub(r"\s+", " ", s)
     return s
+
+
+def _strip_honorifics(s: str) -> str:
+    """Drop leading honorific tokens from a normalized name. Caps the
+    strip at three leading honorifics (stacked titles are rare).
+    Returns the original string if stripping would empty it."""
+    if not s:
+        return s
+    tokens = s.split()
+    i = 0
+    while i < len(tokens) and i < 3 and tokens[i] in HONORIFICS:
+        i += 1
+    if i == 0 or i >= len(tokens):
+        return s
+    return " ".join(tokens[i:])
+
+
+def _split_joint_ticket(raw: str) -> list[str]:
+    """Split a raw poll_name on joint-ticket separators. Returns the
+    list of parts when *both* sides are non-trivial (≥3 chars after
+    _norm). Returns [] if the string isn't a joint ticket."""
+    if not isinstance(raw, str):
+        return []
+    parts = [_norm(p) for p in JOINT_SEP_RE.split(raw)]
+    parts = [p for p in parts if len(p) >= 3]
+    return parts if len(parts) >= 2 else []
 
 
 # ── Stage 1: LLM extractions + TSE metadata ─────────────────────────
@@ -200,19 +259,22 @@ def load_protocol_to_muni() -> dict:
     return dict(zip(polls["NR_PROTOCOLO_REGISTRO"], polls["muni_code"]))
 
 
-def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
-    """Return (cpf, politico, politico_id, party, votes, score, method)
-    for the best registry match of poll_name within pool, or None.
+def _score_name(name_n: str, pool: pd.DataFrame) -> tuple | None:
+    """Inner scorer: best registry match for a single normalized name
+    against the muni pool. Returns (score, row, method, n_matches) or
+    None. Scoring ladder (high → low):
 
-    Scoring ladder (high → low):
-      4  nome_urna match — poll_name equals or overlaps the ballot name.
-      3  poll_name is a substring of the full legal name.
-      2  ≥2 poll tokens shared with full legal name.
-      1  single poll token shared with full legal name.
+      4  nome_urna match — equals or overlaps the ballot name.
+      3  substring of the full legal name OR substring of nome_urna
+         (when nome_urna failed the score-4 overlap check, e.g. because
+         the poll name shares only part of a multi-word urna).
+      2  ≥2 tokens shared with the full legal name OR nome_urna.
+      1  single token shared with the full legal name OR nome_urna.
+
+    Score 2/1 uses the *max* shared-token count across (politico, urna)
+    — matching the user's directive to "take the max score across the
+    two" rather than only scoring the legal name.
     """
-    if not isinstance(poll_name, str) or AGGREGATE_RE.search(poll_name):
-        return None
-    name_n = _norm(poll_name)
     if not name_n or pool.empty:
         return None
     poll_tokens = set(name_n.split())
@@ -224,18 +286,33 @@ def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
         urna = r.get("nome_urna_norm", "")
         score = 0
         method = None
+
         if urna and (name_n == urna or name_n in urna or urna in name_n):
             score = 4
             method = "nome_urna"
-        elif full:
-            full_tokens = set(full.split())
-            if name_n in full:
+        else:
+            # Substring against either form (score 3).
+            sub_hit = None
+            if full and name_n in full:
+                sub_hit = "substring"
+            elif urna and name_n in urna:
+                sub_hit = "substring_urna"
+            if sub_hit:
                 score = 3
-                method = "substring"
-            elif poll_tokens & full_tokens:
-                shared = poll_tokens & full_tokens
-                score = 2 if len(shared) >= 2 else 1
-                method = f"tokens={','.join(sorted(shared))}"
+                method = sub_hit
+            else:
+                # Token overlap against either form (score 2/1), max count.
+                full_tokens = set(full.split()) if full else set()
+                urna_tokens = set(urna.split()) if urna else set()
+                shared_full = poll_tokens & full_tokens
+                shared_urna = poll_tokens & urna_tokens
+                if len(shared_urna) > len(shared_full):
+                    shared, src = shared_urna, "urna"
+                else:
+                    shared, src = shared_full, "full"
+                if shared:
+                    score = 2 if len(shared) >= 2 else 1
+                    method = f"tokens_{src}={','.join(sorted(shared))}"
         if score == 0:
             continue
         n_matches += 1
@@ -244,6 +321,53 @@ def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
     if best is None:
         return None
     score, r, method = best
+    return (score, r, method, n_matches)
+
+
+def best_match(poll_name: str, pool: pd.DataFrame) -> tuple | None:
+    """Return (cpf, politico, politico_id, party, votes, score, method,
+    n_matches) for the best registry match of poll_name within pool, or
+    None.
+
+    Pipeline:
+      1. Drop aggregate-style names (Branco/Nulo/NS/NR/...).
+      2. Score the *whole* poll name against the pool, both as-is and
+         with leading honorifics stripped — take the better score.
+      3. If the whole-name score is still < 3, treat poll_name as a
+         possible joint ticket and try each half. The split sub-match
+         only wins if it scores strictly higher than the whole-name
+         result (avoids splitting real names that happen to contain
+         " E " or " - ").
+    """
+    if not isinstance(poll_name, str) or AGGREGATE_RE.search(poll_name):
+        return None
+    name_n = _norm(poll_name)
+    if not name_n or pool.empty:
+        return None
+
+    # Whole-name pass (try with honorifics stripped too).
+    best = _score_name(name_n, pool)
+    name_h = _strip_honorifics(name_n)
+    if name_h != name_n:
+        alt = _score_name(name_h, pool)
+        if alt is not None and (best is None or alt[0] > best[0]):
+            best = (alt[0], alt[1], f"{alt[2]}+honorific", alt[3])
+
+    # Joint-ticket fallback only when the whole-name score is < 3.
+    if best is None or best[0] < 3:
+        parts = _split_joint_ticket(poll_name)
+        for p in parts:
+            p_alt = _strip_honorifics(p)
+            for candidate_form in {p, p_alt}:
+                sub = _score_name(candidate_form, pool)
+                if sub is None:
+                    continue
+                if best is None or sub[0] > best[0]:
+                    best = (sub[0], sub[1], f"{sub[2]}+ticket", sub[3])
+
+    if best is None:
+        return None
+    score, r, method, n_matches = best
     return (
         r["cpf"], r["politico"], r["politico_id"],
         r["party"], r["votes"],

@@ -2,6 +2,45 @@
 
 Completed TODOs (moved out of `todo.md` so the active list stays scoped to current work).
 
+- [x] **Improve poll candidate-name matcher (three concrete fixes)**
+  - source: `source/clean/poll_2024.py` (`best_match` +
+    new `_score_name`, `_strip_honorifics`, `_split_joint_ticket`
+    helpers, `HONORIFICS`/`JOINT_SEP_RE` constants).
+  - changes:
+    1. `nome_urna_norm` is now a parallel target alongside
+       `politico_norm` at scores 3/2/1 (not just score 4). Token
+       overlap takes the max shared-token count across the two forms;
+       substring at score 3 hits either form. Method label records
+       which form won (`substring_urna`, `tokens_urna=…`).
+    2. Leading honorifics are stripped from the poll-side normalized
+       name before scoring; a second pass with the stripped form
+       runs only when the original differs. `HONORIFICS` covers
+       masculine + feminine variants (DR/DRA, PROF/PROFA, PE/PADRE,
+       PR/PASTOR, BISPO/BISPA, MAJOR/CEL/CORONEL, CAP/CAPITAO,
+       SGT/SARGENTO, CABO/SD/SOLDADO, TEN, COMANDANTE,
+       DELEGADO/DELEGADA, VEREADOR/VEREADORA, PREFEITO/PREFEITA,
+       MEDICO/MEDICA, ADVOGADO/ADVOGADA, …) plus a few less-common
+       prefixes (FREI, IRMAO/IRMA, REVERENDO/REVERENDA, MISSIONARIO).
+    3. Joint-ticket fallback: when the whole-name score is < 3, the
+       poll string is split on ticket separators (`/`, `&`,
+       en/em-dash, ` E `, ` COM `, ` - `) and each half is rescored
+       (with and without honorifics). The split sub-match only wins
+       if it scores strictly higher than the whole-name result, so
+       a real name containing " E " or " - " isn't wrongly split.
+  - matcher-side impact (174,747-row poll parquet, 2024 prefeito):
+    - score ≥ 2 matched: 83,917 → 85,419 (+1,502, +1.8%)
+    - score 4: 82,278 → 83,257 (+979)
+    - score 3: 535 → 630 (+95)
+    - score 2: 1,104 → 1,532 (+428)
+    - score 1: 4,541 → 4,157 (−384; many promoted to 2+)
+  - downstream impact in `projects/DOWNSTREAM_PROJECT`:
+    `build/assemble/cand_poll.parquet` `matched_share == 1.0` rows
+    21,030 → 22,665 (+1,635, +7.8%). Still below the original 85%
+    aspirational target — see todo.md follow-up on stopword
+    filtering + image-PDF re-extraction.
+  - created: 2026-06-14
+  - resolved: 2026-06-14
+
 - [x] **Migrate `source/llm/poll_extract.py` to llmkit**
   - notes: split into `source/llm/schemas.py` (PollRelatorio inherits
     `ExtractionSchema`, schema_name="poll_relatorio" v1), prompt files
