@@ -12,9 +12,9 @@ politico_id, cpf, party, votes, and match quality columns.
 Reads:
   - build/llm/poll_relatorio_2024.parquet     LLM extractions (long format,
                                               one row per candidate-scenario)
-  - path.tse_polls_2024_dir/pesquisa_eleitoral_2024_*.csv
-                                              TSE registration metadata
-                                              (one row per registered poll).
+  - build/clean/poll_2024.parquet             TSE registration metadata,
+                                              one row per protocol (built
+                                              upstream by source/clean/poll.py).
   - build/clean/candidato.csv  (year=2024, office=PREFEITO universe)
   - build/clean/politico.csv   (politico_id → name lookup)
 
@@ -155,55 +155,20 @@ def load_extractions(year: int) -> pd.DataFrame:
     return df
 
 
-def load_tse_metadata(year: int) -> pd.DataFrame:
-    """Concatenate per-UF TSE registration CSVs and filter to mayoral polls."""
-    if year == 2024:
-        src_dir = path.tse_polls_2024_dir
-    else:
-        src_dir = path.data_dir / f"tse_polls_{year}"
-    csvs = sorted(src_dir.glob(f"pesquisa_eleitoral_{year}_*.csv"))
-    csvs = [c for c in csvs if c.stem not in {f"pesquisa_eleitoral_{year}_BRASIL",
-                                              f"pesquisa_eleitoral_{year}_BR"}]
-    if not csvs:
-        sys.exit(f"No TSE poll CSVs in {src_dir}.")
-    dfs = []
-    for c in csvs:
-        dfs.append(pd.read_csv(c, sep=";", encoding="latin-1", low_memory=False))
-    meta = pd.concat(dfs, ignore_index=True)
-    meta = meta[meta["DS_CARGO"].str.contains("Prefeito", na=False, case=False)].copy()
-    return meta
+def load_poll_metadata(year: int) -> pd.DataFrame:
+    """Read mayoral-poll metadata from build/clean/poll_{year}.parquet.
 
-
-def normalize_metadata(meta: pd.DataFrame) -> pd.DataFrame:
-    """Rename + type-coerce TSE registration fields into our schema."""
-    keep = {
-        "NR_PROTOCOLO_REGISTRO": "protocol",
-        "NM_EMPRESA":            "institute",
-        "NM_EMPRESA_FANTASIA":   "institute_fantasy",
-        "DT_INICIO_PESQUISA":    "date_start",
-        "DT_FIM_PESQUISA":       "date_end",
-        "QT_ENTREVISTADO":       "sample_size",
-        "SG_UF":                 "uf",
-        "NM_UE":                 "municipality",
-        "SG_UE":                 "muni_code_tse",
-        "DT_REGISTRO":           "date_registered",
-        "VR_PESQUISA":           "value_brl",
-        "CD_ELEICAO":            "election_code",
-    }
-    if "DT_DIVULGACAO" in meta.columns:
-        keep["DT_DIVULGACAO"] = "date_disclosed"
-    out = meta[list(keep.keys())].rename(columns=keep).copy()
-    for c in ["date_start", "date_end", "date_registered"] + (
-        ["date_disclosed"] if "date_disclosed" in out.columns else []
-    ):
-        out[c] = pd.to_datetime(out[c], errors="coerce")
-    out["sample_size"] = pd.to_numeric(out["sample_size"], errors="coerce").astype("Int64")
-    out["value_brl"] = (
-        out["value_brl"].astype(str).str.replace(",", ".", regex=False)
-    )
-    out["value_brl"] = pd.to_numeric(out["value_brl"], errors="coerce")
-    out = out.drop_duplicates("protocol")
-    return out
+    Built upstream by source/clean/poll.py from the per-UF TSE registry
+    CSVs. One row per protocol with the registration fields we join
+    against the LLM extractions.
+    """
+    poll_path = path.build_clean_dir / f"poll_{year}.parquet"
+    if not poll_path.exists():
+        sys.exit(
+            f"Missing {poll_path}. Run source/clean/poll.py first to "
+            f"build the {year} mayoral poll registry."
+        )
+    return pd.read_parquet(poll_path)
 
 
 # ── Stage 2: candidate matching ──────────────────────────────────────
@@ -399,7 +364,7 @@ def main():
     # Stage 1: LLM extractions + TSE metadata
     ext = load_extractions(YEAR)
     print(f"LLM extractions: {len(ext):,} rows from {ext['protocol'].nunique()} protocols")
-    meta = normalize_metadata(load_tse_metadata(YEAR))
+    meta = load_poll_metadata(YEAR)
     print(f"TSE mayoral registrations: {len(meta):,}")
 
     merged = ext.merge(meta, on="protocol", how="left", validate="many_to_one")

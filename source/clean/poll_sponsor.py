@@ -24,9 +24,10 @@ ASSUMES (per year):
 - DATA_DIR/tse/pesquisa_contratante_{year}.zip and
   pesquisa_pagante_{year}.zip are present (TSE dadosabertos PesqEle
   companion zips).
-- A registry of mayoral polls for the year is staged at
-  build/scrape/tse_polls_{year}/ (canonical) or
-  $DATA_DIR (laptop sandbox fallback).
+- build/clean/poll_{year}.parquet exists — built by
+  source/clean/poll.py from the per-UF TSE registry CSVs. Provides the
+  mayoral-poll universe (one row per protocol with uf, muni_code_tse,
+  municipality, institute, pollster_cnpj).
 - build/clean/candidato.csv exists with the year's PREFEITO rows; CPFs
   zero-padded to 11 to undo legacy float-cast loss; columns: cpf, year,
   office, municipio_id, votes, party, politico_id (TSE long-schema names
@@ -81,38 +82,8 @@ YEARS = [int(y) for y in os.environ.get("YEARS", "2020,2024").split(",")]
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Path helpers (per-year)
-# ═══════════════════════════════════════════════════════════════════════
-
-
-def canonical_registry_dir(year: int) -> Path:
-    return BUILD_DIR / "scrape" / f"tse_polls_{year}"
-
-
-def sandbox_registry_fallback(year: int) -> Path:
-    return Path(f"$DATA_DIR")
-
-
-def find_registry_dir(year: int) -> Path:
-    """Locate the per-year TSE poll registry directory.
-
-    Canonical location is build/scrape/tse_polls_{year}; laptop sandbox
-    stages it under $DATA_DIR Use whichever is populated.
-    """
-    canonical = canonical_registry_dir(year)
-    fallback = sandbox_registry_fallback(year)
-    if canonical.exists() and any(canonical.glob("pesquisa_eleitoral_*.csv")):
-        return canonical
-    if fallback.exists() and any(fallback.glob("pesquisa_eleitoral_*.csv")):
-        return fallback
-    sys.exit(
-        f"No registry CSVs in {canonical} or {fallback}. "
-        f"Stage the {year} poll registry CSVs before running."
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# Raw loaders (TSE PesqEle companion zips + per-UF registry CSVs)
+# Raw loaders (TSE PesqEle companion zips; mayoral universe from
+# build/clean/poll_{year}.parquet)
 # ═══════════════════════════════════════════════════════════════════════
 
 
@@ -148,47 +119,23 @@ def load_sponsor_zip(zip_path: Path, role: str) -> pd.DataFrame:
     return out
 
 
-def load_mayoral_registry(registry_dir: Path) -> pd.DataFrame:
-    """Concat per-UF poll-registration CSVs, filter to mayoral subset.
+def load_mayoral_registry(year: int) -> pd.DataFrame:
+    """Read build/clean/poll_{year}.parquet (built by source/clean/poll.py).
 
-    Keeps only the columns we need to (a) flag mayoral polls in the
-    sponsor join and (b) detect institutional sponsoring (sponsor CNPJ
-    == pollster CNPJ). One row per mayoral protocol.
+    Returns one row per mayoral protocol with the columns needed by
+    the sponsor join: protocol, uf, muni_code_tse, municipality,
+    institute, pollster_cnpj.
     """
-    csvs = sorted(registry_dir.glob("pesquisa_eleitoral_*.csv"))
-    csvs = [c for c in csvs if "_BRASIL" not in c.stem and "_BR" != c.stem[-3:]]
-    if not csvs:
-        sys.exit(f"No per-UF registry CSVs in {registry_dir}.")
-    keep = [
-        "NR_PROTOCOLO_REGISTRO",
-        "DS_CARGO",
-        "SG_UF",
-        "SG_UE",
-        "NM_UE",
-        "NR_CNPJ_EMPRESA",
-        "NM_EMPRESA",
-    ]
-    dfs = [
-        pd.read_csv(c, sep=";", encoding="latin-1",
-                    low_memory=False, usecols=keep,
-                    dtype={"NR_CNPJ_EMPRESA": str})
-        for c in csvs
-    ]
-    reg = pd.concat(dfs, ignore_index=True)
-    reg = reg[reg["DS_CARGO"].str.contains("Prefeito", na=False, case=False)].copy()
-    reg = reg.drop_duplicates("NR_PROTOCOLO_REGISTRO")
-    reg["pollster_cnpj"] = (
-        reg["NR_CNPJ_EMPRESA"].astype(str).str.replace(r"\D", "", regex=True)
-    )
-    reg = reg.rename(columns={
-        "NR_PROTOCOLO_REGISTRO": "protocol",
-        "SG_UF":                 "uf",
-        "SG_UE":                 "muni_code_tse",
-        "NM_UE":                 "municipality",
-        "NM_EMPRESA":            "institute",
-    })[["protocol", "uf", "muni_code_tse", "municipality",
-        "institute", "pollster_cnpj"]]
-    return reg
+    poll_path = BUILD_CLEAN_DIR / f"poll_{year}.parquet"
+    if not poll_path.exists():
+        sys.exit(
+            f"Missing {poll_path}. Run source/clean/poll.py first to "
+            f"build the {year} mayoral poll registry."
+        )
+    return pd.read_parquet(poll_path)[[
+        "protocol", "uf", "muni_code_tse", "municipality",
+        "institute", "pollster_cnpj",
+    ]]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -560,11 +507,9 @@ def clean_year(year: int) -> None:
     contr_zip = DATA_DIR / "tse" / f"pesquisa_contratante_{year}.zip"
     pag_zip   = DATA_DIR / "tse" / f"pesquisa_pagante_{year}.zip"
 
-    registry_dir = find_registry_dir(year)
     print(f"\n{'=' * 72}")
     print(f"YEAR {year}")
     print(f"{'=' * 72}")
-    print(f"Registry dir:     {registry_dir}")
     print(f"Contratantes zip: {contr_zip}")
     print(f"Pagantes zip:     {pag_zip}\n")
 
@@ -572,8 +517,9 @@ def clean_year(year: int) -> None:
     pag   = load_sponsor_zip(pag_zip,   role="pagante")
     print(f"Loaded {len(contr):,} contratante rows, {len(pag):,} pagante rows.")
 
-    reg = load_mayoral_registry(registry_dir)
-    print(f"Loaded {len(reg):,} mayoral registry protocols.")
+    reg = load_mayoral_registry(year)
+    print(f"Loaded {len(reg):,} mayoral registry protocols from "
+          f"build/clean/poll_{year}.parquet.")
 
     sponsor = build_sponsor_long(contr, pag, reg)
     print(f"Sponsor long-table: {len(sponsor):,} rows / "
