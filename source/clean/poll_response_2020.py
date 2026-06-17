@@ -1,7 +1,7 @@
 """Clean the 2020 mayoral poll long-format export from pollingdata.com.br.
 
-INTENT: produce a long-format 2020 poll table parallel in shape to
-`build/clean/poll_2024.parquet`, with aggregate rows ("Nao Validos",
+INTENT: produce a long-format 2020 poll-response table parallel in shape
+to `build/clean/poll_response_2024.parquet`, with aggregate rows ("Nao Validos",
 "Outros") preserved and a per-poll `percent_on_real` recomputed on
 the real-candidate denominator. Downstream consumers (legacy-pilot's
 `source/merge/cand_poll_2020_real_cands.py`) use `percent_on_real`
@@ -54,7 +54,7 @@ exported from pollingdata.com.br. Staged on 2026-06-16 from
 EXTERNAL_MIRROR
 
 Writes:
-  build/clean/poll_2020.parquet — long format, one row per
+  build/clean/poll_response_2020.parquet — long format, one row per
     (data_poll, instituto_poll, ibge7_code, round, candidate).
     Columns: data_poll, instituto_poll, ibge7_code, muni_name,
     uf, round, candidate, value, row_type, sum_real_pct,
@@ -68,7 +68,7 @@ import path
 
 YEAR = 2020
 SRC = path.pollingdata_dir / "polls_prefeito.csv"
-OUT = path.build_clean_dir / "poll_2020.parquet"
+OUT = path.build_clean_dir / "poll_response_2020.parquet"
 
 AGGREGATE_LABELS = {"NAO VALIDOS", "OUTROS"}
 

@@ -22,8 +22,10 @@ belong at workspace-level infrastructure.
 - `source/llm/poll_extract.py` — new (moved). Reads PDFs from
   `path.build_scrape_dir`; writes per-protocol JSON + combined
   parquet to `path.build_llm_dir`.
-- `source/clean/poll_2024.py` — new (moved). Reads LLM extractions +
-  TSE registration CSVs; writes `build/clean/poll_2024.parquet`.
+- `source/clean/poll_response_2024.py` — new (moved; renamed from
+  `poll_2024.py` 2026-06-17 to reflect candidate-scenario grain).
+  Reads LLM extractions + TSE registration CSVs; writes
+  `build/clean/poll_response_2024.parquet`.
 - `path.py` — added `BUILD_DIR`, `build_scrape_dir`, `build_llm_dir`,
   `build_clean_dir`, `tse_polls_2024_dir` (so consumers don't have
   to hard-code paths).

@@ -19,7 +19,7 @@ Reads:
   - build/clean/politico.csv   (politico_id → name lookup)
 
 Writes:
-  - build/clean/poll_2024.parquet             Long-format poll table:
+  - build/clean/poll_response_2024.parquet    Long-format poll-response table:
                                               one row per (protocol, scenario_type,
                                               candidate_name) with metadata and
                                               candidate-registry match columns.
@@ -463,7 +463,7 @@ def main():
     # Write
     out_dir = path.build_clean_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "poll_2024.parquet"
+    out_path = out_dir / "poll_response_2024.parquet"
     out.to_parquet(out_path, index=False)
 
     n_aggregate = out["candidate_name"].fillna("").str.match(AGGREGATE_RE).sum()
