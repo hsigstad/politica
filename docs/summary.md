@@ -69,7 +69,7 @@ schemas and external-mirror mirror locations.
 
 ### Downstream consumers
 
-- `research/DOWNSTREAM_PROJECT` — within-candidate FE analysis
+- `projects/DOWNSTREAM_PROJECT/` — within-candidate FE analysis
   of sponsor-driven poll bias
 - `DOWNSTREAM_PROJECT` — polling effects of REDACTED filings ([an])
 - `projects/REDACTED-PROJECT/` — 2024 poll assembly (wide format)
