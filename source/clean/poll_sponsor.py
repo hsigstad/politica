@@ -21,9 +21,9 @@ accommodation when the 2024 registry was unavailable on the laptop —
 that split is retired.
 
 ASSUMES (per year):
-- DATA_DIR/tse/pesquisa_contratante_{year}.zip and
-  pesquisa_pagante_{year}.zip are present (TSE dadosabertos PesqEle
-  companion zips).
+- DATA_DIR/TSE/{year}/pesquisa_contratante/ and
+  DATA_DIR/TSE/{year}/pesquisa_pagante/ contain per-UF CSVs extracted
+  from the TSE dadosabertos PesqEle companion zips.
 - build/clean/poll_{year}.parquet exists — built by
   source/clean/poll.py from the per-UF TSE registry CSVs. Provides the
   mayoral-poll universe (one row per protocol with uf, muni_code_tse,
@@ -58,12 +58,10 @@ at the end of each year.
 """
 from __future__ import annotations
 
-import io
 import os
 import re
 import sys
 import unicodedata
-import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -82,13 +80,14 @@ YEARS = [int(y) for y in os.environ.get("YEARS", "2020,2024").split(",")]
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Raw loaders (TSE PesqEle companion zips; mayoral universe from
-# build/clean/poll_{year}.parquet)
+# Raw loaders (per-UF CSVs from DATA_DIR/TSE/{year}/; mayoral universe
+# from build/clean/poll_{year}.parquet)
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def load_sponsor_zip(zip_path: Path, role: str) -> pd.DataFrame:
-    """Concat per-UF sponsor CSVs from a TSE zip; drop the _BRASIL aggregate.
+def load_sponsor_csvs(csv_dir: Path, role: str, year: int) -> pd.DataFrame:
+    """Concat per-UF sponsor CSVs from an extracted TSE directory;
+    drop the _BRASIL / _BR aggregates.
 
     Returns long table keyed by NR_PROTOCOLO_REGISTRO. role ∈ {"contratante",
     "pagante"}. Reads with sep=';' and encoding='latin-1' per TSE
@@ -96,24 +95,22 @@ def load_sponsor_zip(zip_path: Path, role: str) -> pd.DataFrame:
     zeros survive (a numeric dtype silently drops the leading 0 on ~22%
     of CNPJs).
     """
-    if not zip_path.exists():
-        sys.exit(f"Missing {zip_path}.")
+    if not csv_dir.exists():
+        sys.exit(f"Missing {csv_dir}.")
+    prefix = f"pesquisa_{role}_{year}"
+    csvs = sorted(csv_dir.glob(f"{prefix}_*.csv"))
+    csvs = [c for c in csvs if c.stem not in {f"{prefix}_BRASIL", f"{prefix}_BR"}]
+    if not csvs:
+        sys.exit(f"No per-UF CSVs matching {prefix}_*.csv in {csv_dir}.")
     id_str_cols = ["NR_CPF_CNPJ_CONTRATANTE", "NR_CPF_CNPJ_PAGANTE"]
     dfs: list[pd.DataFrame] = []
-    with zipfile.ZipFile(zip_path) as zf:
-        members = [
-            n for n in zf.namelist()
-            if n.endswith(".csv") and "_BRASIL" not in n and "_BR.csv" not in n
-        ]
-        for name in sorted(members):
-            with zf.open(name) as fh:
-                df = pd.read_csv(
-                    io.TextIOWrapper(fh, encoding="latin-1"),
-                    sep=";",
-                    dtype={c: str for c in id_str_cols},
-                    low_memory=False,
-                )
-            dfs.append(df)
+    for csv_path in csvs:
+        df = pd.read_csv(
+            csv_path, sep=";", encoding="latin-1",
+            dtype={c: str for c in id_str_cols},
+            low_memory=False,
+        )
+        dfs.append(df)
     out = pd.concat(dfs, ignore_index=True)
     out["role"] = role
     return out
@@ -504,17 +501,17 @@ def route_d_party_name(
 
 
 def clean_year(year: int) -> None:
-    contr_zip = DATA_DIR / "tse" / f"pesquisa_contratante_{year}.zip"
-    pag_zip   = DATA_DIR / "tse" / f"pesquisa_pagante_{year}.zip"
+    contr_dir = DATA_DIR / "TSE" / str(year) / "pesquisa_contratante"
+    pag_dir   = DATA_DIR / "TSE" / str(year) / "pesquisa_pagante"
 
     print(f"\n{'=' * 72}")
     print(f"YEAR {year}")
     print(f"{'=' * 72}")
-    print(f"Contratantes zip: {contr_zip}")
-    print(f"Pagantes zip:     {pag_zip}\n")
+    print(f"Contratantes dir: {contr_dir}")
+    print(f"Pagantes dir:     {pag_dir}\n")
 
-    contr = load_sponsor_zip(contr_zip, role="contratante")
-    pag   = load_sponsor_zip(pag_zip,   role="pagante")
+    contr = load_sponsor_csvs(contr_dir, role="contratante", year=year)
+    pag   = load_sponsor_csvs(pag_dir,   role="pagante", year=year)
     print(f"Loaded {len(contr):,} contratante rows, {len(pag):,} pagante rows.")
 
     reg = load_mayoral_registry(year)

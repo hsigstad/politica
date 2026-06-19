@@ -16,7 +16,8 @@ size, registry/divulgação dates, price, election code, plus the
 optional "own poll" flag `ST_PESQUISA_PROPRIA` where present.
 
 ASSUMES (per year): a registry of mayoral polls is staged at
-build/scrape/tse_polls_{year}/ (canonical) or
+DATA_DIR/TSE/{year}/pesquisa_eleitoral/ (canonical) or
+build/scrape/tse_polls_{year}/ (legacy) or
 $DATA_DIR (laptop sandbox fallback) as a
 set of per-UF `pesquisa_eleitoral_{year}_<UF>.csv` files (the `_BRASIL`
 / `_BR` aggregates are skipped).
@@ -44,6 +45,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(os.environ["BASE_DIR"])
+DATA_DIR = Path(os.environ["DATA_DIR"])
 BUILD_DIR = BASE_DIR / "build"
 BUILD_CLEAN_DIR = BUILD_DIR / "clean"
 
@@ -77,29 +79,25 @@ INT_COLS     = ["sample_size"]
 FLOAT_COLS   = ["value_brl"]
 
 
-def canonical_registry_dir(year: int) -> Path:
-    return BUILD_DIR / "scrape" / f"tse_polls_{year}"
-
-
-def sandbox_registry_fallback(year: int) -> Path:
-    return Path(f"$DATA_DIR")
-
-
 def find_registry_dir(year: int) -> Path:
     """Locate the per-year TSE poll registry directory.
 
-    Canonical: build/scrape/tse_polls_{year}; laptop sandbox falls back
-    to $DATA_DIR Use whichever is populated.
+    Search order:
+      1. DATA_DIR/TSE/{year}/pesquisa_eleitoral/ (canonical server layout)
+      2. build/scrape/tse_polls_{year}/ (legacy / symlink)
+      3. $DATA_DIR (laptop sandbox fallback)
     """
-    canonical = canonical_registry_dir(year)
-    fallback = sandbox_registry_fallback(year)
-    if canonical.exists() and any(canonical.glob("pesquisa_eleitoral_*.csv")):
-        return canonical
-    if fallback.exists() and any(fallback.glob("pesquisa_eleitoral_*.csv")):
-        return fallback
+    candidates = [
+        DATA_DIR / "TSE" / str(year) / "pesquisa_eleitoral",
+        BUILD_DIR / "scrape" / f"tse_polls_{year}",
+        Path(f"$DATA_DIR"),
+    ]
+    for d in candidates:
+        if d.exists() and any(d.glob("pesquisa_eleitoral_*.csv")):
+            return d
     sys.exit(
-        f"No registry CSVs in {canonical} or {fallback}. "
-        f"Stage the {year} poll registry CSVs before running."
+        f"No registry CSVs found for {year}. Searched:\n"
+        + "\n".join(f"  {d}" for d in candidates)
     )
 
 

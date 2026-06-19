@@ -1133,3 +1133,106 @@ class PollQuestionario(ExtractionSchema):
             "Empty when the extraction is clean."
         ),
     )
+
+
+# ── poll_weighting: post-fielding ponderação / correction ─────────────
+
+class WeightingApplication(str, Enum):
+    always_applied = "always_applied"
+    conditional = "conditional"               # only if sample deviates from quotas
+    described_unclear_application = "described_unclear_application"
+    not_described = "not_described"
+
+
+class WeightingTarget(str, Enum):
+    tse_eleitorado = "tse_eleitorado"
+    ibge_census_2022 = "ibge_census_2022"
+    ibge_census_2010 = "ibge_census_2010"
+    muni_population_unspecified = "muni_population_unspecified"
+    historical_turnout = "historical_turnout"
+    mixed = "mixed"
+    other = "other"
+    not_specified = "not_specified"
+
+
+class PollWeighting(ExtractionSchema):
+    """Post-fielding weighting / ponderação description.
+
+    Reads: DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE.
+
+    Complements PollSampling (which captures the quota DESIGN). This task
+    captures the *post-fielding correction* that may or may not normalize
+    sample shares back to population shares. The distinction matters for
+    Channel A: quotas without weighting → directly biased; quotas with
+    weighting back to population → not biased.
+    """
+    schema_name: ClassVar[str] = "poll_weighting"
+    schema_version: ClassVar[str] = "v1"
+
+    described: bool = Field(
+        description=(
+            "True if any post-fielding weighting / ponderação / correção "
+            "is described anywhere in the input text. False if the text "
+            "only describes the sampling plan with no correction stage."
+        )
+    )
+    application: WeightingApplication = Field(
+        description=(
+            "How the weighting is applied. always_applied: text says weights "
+            "are always applied. conditional: text says weights are applied "
+            "ONLY if sample deviates from quotas by some threshold (very common "
+            "Brazilian pattern: 'caso ocorram diferenças superiores à margem "
+            "de erro'). described_unclear_application: weighting mentioned but "
+            "application conditions ambiguous. not_described: no weighting "
+            "described at all."
+        )
+    )
+    variables_weighted: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Variables that get re-weighted. Use lowercase short tokens: "
+            "sex, age, education, income, region, race. Empty list if not described."
+        )
+    )
+    target: WeightingTarget = Field(
+        description=(
+            "Population reference the weights claim to normalize toward. "
+            "tse_eleitorado: TSE eligible-voter file (SIG eleitorado). "
+            "ibge_census_2022 / ibge_census_2010: explicitly named IBGE censo. "
+            "muni_population_unspecified: 'a população do município' without "
+            "naming source. historical_turnout: weighted by past-turnout share. "
+            "not_specified: no target stated."
+        )
+    )
+    target_evidence: str = Field(
+        default="",
+        description="Short verbatim quote describing the weighting target. Empty if not described."
+    )
+    post_stratification_explicit: bool = Field(
+        description=(
+            "True if the text EXPLICITLY states the weights normalize sample "
+            "shares back to population/target shares (e.g., 'ponderação para "
+            "corrigir desvios entre amostra obtida e amostra planejada', "
+            "'pesos calibrados pela distribuição populacional'). False if "
+            "weighting is mentioned but the corrective intent is not explicit."
+        )
+    )
+    conditional_threshold_pp: Optional[float] = Field(
+        default=None,
+        description=(
+            "If application is 'conditional' and a numeric threshold is stated "
+            "(e.g., 'caso difira mais de 5 pp da amostra planejada'), the "
+            "threshold in percentage points. Null otherwise."
+        )
+    )
+    correction_method: str = Field(
+        default="",
+        description=(
+            "Short label for the correction method if named: 'raking', "
+            "'post-stratification', 'IPW', 'calibração', 'ponderação simples', "
+            "etc. Empty if not named."
+        )
+    )
+
+    text_truncated: bool = Field(default=False)
+    extraction_notes: str = Field(default="")

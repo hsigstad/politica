@@ -1,0 +1,14 @@
+Protocolo: {protocol}
+UF: {uf}
+Instituto: {institute}
+
+[DS_METODOLOGIA_PESQUISA]
+{ds_metodologia}
+
+[DS_PLANO_AMOSTRAL]
+{ds_plano_amostral}
+
+[DS_SISTEMA_CONTROLE]
+{ds_sistema_controle}
+
+Extraia a descrição da ponderação (correção pós-fielding) conforme o schema PollWeighting.
