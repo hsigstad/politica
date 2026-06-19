@@ -43,7 +43,8 @@ def get_cols():
         "QT_VOTOS_BRANCOS": "votos_brancos",
         "QT_VOTOS_NULOS": "votos_nulos",
         "QT_VOTOS_LEGENDA": "votos_legenda",
-        "QT_VOTOS_LEGENDA_VALIDOS": "votos_legenda", # to verify       
+        "QT_VOTOS_LEGENDA_VALIDOS": "votos_legenda", # to verify
+        "QT_VOTOS_LEG_VALIDOS": "votos_legenda", # 2024 column name
         "QT_VOTOS_PENDENTES": "votos_pendentes",
         "QT_VOTOS_ANULADOS": "votos_anulados",
         "QT_VOTOS_NOMINAIS_ANULADOS": "votos_anulados", # to verify
