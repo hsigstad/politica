@@ -18,6 +18,47 @@
 - `build/clean/receita.txt` — campaign revenue data (completion flag)
 - `build/clean/eleicao.csv` — election results
 
+### `politico_id` — cross-cycle person identifier
+
+`politico_id` is the unified person key used across `candidato.csv` and
+`politico.csv`. It is a **hybrid identifier** built in
+`source/clean/candidato_politico.py`:
+
+```
+politico_id = CPF            when CPF is available
+            = 'T' + titulo   otherwise (titulo eleitoral, digits only)
+```
+
+The "T" prefix marks titulo-based fallback IDs. A `politico_id` without "T"
+is a CPF; one with "T" is a titulo eleitoral.
+
+**Coverage by period:**
+
+| Period    | CPF available? | `politico_id` basis | Notes |
+|-----------|---------------|---------------------|-------|
+| 1998–2000 | No            | T + titulo          | TSE files lack CPF entirely |
+| 2002–2022 | Yes (~100%)   | CPF                 | Gold-standard person key |
+| 2024      | Redacted      | CPF (~50%), T + titulo (~50%) | CPF recovered via titulo→CPF crosswalk built from 1998–2022 data; remaining candidates fall back to titulo |
+
+**Reliability as a unique person identifier:**
+
+- **CPF-based IDs** (no "T" prefix): reliable across cycles. CPF is unique
+  per person in Brazil; same person in different elections gets the same
+  `politico_id`.
+- **Titulo-based IDs** ("T" prefix): best-effort. Titulo eleitoral is
+  generally stable per person, but can change on re-registration or
+  interstate transfer. The same person could in principle get two different
+  T-prefixed IDs across cycles. Cross-cycle linkage for T-prefixed records
+  is not guaranteed.
+
+**Deduplication:** `politico.csv` is deduplicated on `politico_id` (one row
+per person, keeping first occurrence across all election years).
+`candidato.csv` retains all candidate-year appearances.
+
+**Known limitation:** No fuzzy matching (name, birthdate, municipality) is
+applied. Politicians whose CPF is unavailable in one cycle and whose titulo
+changed between cycles will appear as separate persons.
+
 ## Output: SQLite database
 
 ### Location
