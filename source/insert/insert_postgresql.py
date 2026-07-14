@@ -7,7 +7,7 @@ from time import time
 if __name__ == '__main__':
     t0 = time()
 
-    DBNAME = "politica"
+    DBNAME = os.environ.get("POSTGRESQL_DB", "politica")
 
     db.insert(
         database=DBNAME,

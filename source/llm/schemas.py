@@ -3,9 +3,9 @@
 Tasks:
   - poll_relatorio: per-candidate vote intentions from TSE-registered poll
     relatório PDFs.
-  - poll_lawsuit: alleged-bias dimensions + outcome from REDACTED-PROJECT
+  - poll_lawsuit: alleged-bias dimensions + outcome from electoral-justice
     decisions tagged PESQUISA ELEITORAL (poll-lawsuit sentencas in the
-    LEGACY_TRE_DIARIOS mov.text join).
+    TRE-diários mov.text join).
   - poll_sampling / poll_coverage / poll_operations: the three-task split
     of poll-methodology extraction from the four DS_* free-text fields of
     the TSE PesqEle registry. See docs/design_levers.md for what each
@@ -80,8 +80,7 @@ class PollRelatorio(ExtractionSchema):
 #
 # Extracts alleged bias dimensions + judicial outcome from electoral-
 # justice decision text on PESQUISA ELEITORAL cases. The design-lever
-# enum mirrors the six-lever menu in
-# projects/DOWNSTREAM_PROJECT/docs/design_levers.md; `lever_other_text`
+# enum mirrors a six-lever menu of poll-design choices; `lever_other_text`
 # captures alleged bias dimensions NOT in that menu (this is the
 # primary research output — it tells us where the menu is incomplete).
 
@@ -140,7 +139,7 @@ class PartyMention(BaseModel):
 
 
 class PollLawsuit(ExtractionSchema):
-    """Alleged bias dimensions + outcome for ONE REDACTED-PROJECT
+    """Alleged bias dimensions + outcome for ONE electoral-justice
     PESQUISA case.
 
     v2 (2026-06-02): the 50-case pilot showed that most decisions classify

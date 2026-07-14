@@ -11,7 +11,7 @@ after fieldwork.
 The distinction is load-bearing for Channel A: a sponsored poll with
 unusual quotas that then re-weights back to population shares produces no
 bias. The same poll without weighting back is directly biased. This
-extractor closes the schema gap that [an] surfaced.
+extractor closes that schema gap.
 
 Reads: DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE
 (weighting language appears in all three, especially the control-system

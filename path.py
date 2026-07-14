@@ -7,7 +7,7 @@ Environment
 -----------
 BASE_DIR        Absolute path to the politica project root.
 DATA_DIR        Absolute path to the shared TSE data root
-                (e.g. $DATA_DIR).
+                (e.g. /path/to/data).
 """
 
 import os
@@ -47,8 +47,7 @@ data_dir_str = os.environ["DATA_DIR"]
 # migration is a one-line edit here.
 tse_polls_2024_dir = build_scrape_dir / "tse_polls_2024"
 
-# pollingdata.com.br aggregator export staged from
-# EXTERNAL_MIRROR Currently just
+# pollingdata.com.br aggregator export. Currently just
 # `polls_prefeito.csv` (long-format 2012-2020 mayoral polls, used
 # by source/clean/poll_2020.py). Migrate to `data_dir / "pollingdata"`
 # once stable; single attribute keeps the migration one-line.

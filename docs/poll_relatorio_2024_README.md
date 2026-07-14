@@ -2,18 +2,17 @@
 
 Per-candidate vote intentions extracted from the 2024 TSE-registered
 electoral poll relatórios (mayoral races). This README accompanies the
-shareable artifacts at
-`EXTERNAL_MIRROR`.
+shareable artifacts on the external data mirror.
 
 Produced by the politica pipeline
 (<https://github.com/hsigstad/politica>) — runner
 `source/llm/poll_extract.py`, wrapper `source/llm/poll_relatorio.py`,
 schema `source/llm/schemas.py` (`PollRelatorio`, `schema_version="v1"`).
 
-## What's in the external-mirror bundle
+## What's in the bundle
 
 ```
-EXTERNAL_MIRROR
+pesquisa_eleitoral/
   relatorios/
     <UF>.tar.zst                       per-UF tarball of source PDFs
                                        (compact protocol filenames)
@@ -47,7 +46,7 @@ tar --use-compress-program='zstd -d' -xf poll_relatorio_cache.tar.zst
 | `party`                 | str?   | Party abbreviation when shown next to the name, else null.                                   |
 | `percent`               | float  | Vote-intention percentage in that scenario, 0–100.                                           |
 | `extraction_notes`      | str?   | Per-poll note on any ambiguity or judgment call.                                             |
-| `source`                | str    | Extraction provenance tag: `llmkit` (2026-06-01 bulk run) or `legacy_pilot` (legacy-pilot pilot).       |
+| `source`                | str    | Extraction provenance tag: `llmkit` (2026-06-01 bulk run) or `legacy_pilot`.                  |
 
 Load:
 ```python
@@ -68,7 +67,7 @@ df = pd.read_parquet("poll_relatorio_2024.parquet")
 2. **Extract.** `source/llm/poll_extract.py` runs each PDF through
    `gpt-4o-mini` via `llmkit`. The wrapper checks the cache first
    (composite key of protocol + text-hash + model), falls back to an
-   in-house legacy cache (the legacy-pilot pilot, see below), and only calls the
+   in-house legacy cache (the legacy pilot, see below), and only calls the
    LLM on a true miss. Image-only PDFs (`pdftotext` output below
    `MIN_TEXT_CHARS = 200`) are skipped — OCR is future work.
 3. **Assemble.** `assemble_long_table()` walks the new-format cache,
@@ -119,17 +118,17 @@ that would need OCR to recover. The small remaining shortfall per UF
 assembly — those entries are in the cache but did not validate against
 `PollRelatorio.v1`.
 
-### SP is *not* in the parquet from this external-mirror bundle
+### SP is *not* in the parquet from this bundle
 
-The laptop-assembled parquet has 0 SP rows. SP (1,635 PDFs) was
-extracted earlier on a separate host; that JSON cache lives on a separate host only.
-If you need SP, the a separate host-assembled parquet has it merged in.
+This parquet has 0 SP rows. SP (1,635 PDFs) was extracted earlier on a
+separate host; that JSON cache lives on that host only. If you need SP,
+the parquet assembled on that host has it merged in.
 
-### The legacy "legacy-pilot pilot" cache
+### The legacy pilot cache
 
 The first 111 protocols (48 AC + 62 AL + 1 stray) were extracted with
-the pre-llmkit script while the extractor still lived in the
-REDACTED-PROJECT project. Those JSON files (`{PROTOCOL}.json`, in the
+the pre-llmkit script, before the extractor was migrated to llmkit.
+Those JSON files (`{PROTOCOL}.json`, in the
 old in-house format) are bundled into `poll_relatorio_cache.tar.zst`
 under a separate subdirectory. The assembler reads both formats; the
 `source` column tags rows accordingly (`legacy_pilot` vs. `llmkit`).
@@ -159,8 +158,8 @@ recipe, given the per-UF registration CSVs already staged under
 python source/scrape/tse_relatorio.py --year 2024 --rate-seconds 1.5
 
 # 2. extract (~5 hours wall, ~$10, 8 workers)
-source ../../DOWNSTREAM_PROJECT && export OPENAI_API_KEY
-BASE_DIR=$PWD DATA_DIR=$PWD \
+export OPENAI_API_KEY=sk-...
+BASE_DIR=$PWD DATA_DIR="$DATA_DIR" \
   PYTHONPATH=/path/to/llmkit:$PWD/source/llm \
   python source/llm/poll_extract.py --year 2024 \
     --exclude-states SP --workers 8

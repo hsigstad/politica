@@ -17,8 +17,7 @@ optional "own poll" flag `ST_PESQUISA_PROPRIA` where present.
 
 ASSUMES (per year): a registry of mayoral polls is staged at
 DATA_DIR/TSE/{year}/pesquisa_eleitoral/ (canonical) or
-build/scrape/tse_polls_{year}/ (legacy) or
-$DATA_DIR (laptop sandbox fallback) as a
+build/scrape/tse_polls_{year}/ (legacy) as a
 set of per-UF `pesquisa_eleitoral_{year}_<UF>.csv` files (the `_BRASIL`
 / `_BR` aggregates are skipped).
 
@@ -85,12 +84,10 @@ def find_registry_dir(year: int) -> Path:
     Search order:
       1. DATA_DIR/TSE/{year}/pesquisa_eleitoral/ (canonical server layout)
       2. build/scrape/tse_polls_{year}/ (legacy / symlink)
-      3. $DATA_DIR (laptop sandbox fallback)
     """
     candidates = [
         DATA_DIR / "TSE" / str(year) / "pesquisa_eleitoral",
         BUILD_DIR / "scrape" / f"tse_polls_{year}",
-        Path(f"$DATA_DIR"),
     ]
     for d in candidates:
         if d.exists() and any(d.glob("pesquisa_eleitoral_*.csv")):

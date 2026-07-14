@@ -6,9 +6,9 @@ Public API:
                          model=MODEL, cache=CACHE, reextract=False)
         → ExtractionResult
 
-Input is the full decision text obtained by joining
-REDACTED-PROJECT/build/merge/proc.csv.mov_id_sentenca to
-LEGACY_TRE_DIARIOS{UF}_mov.csv.text.
+Input is the full decision text of an electoral-justice (TRE / juízo
+eleitoral) ruling, obtained by joining the case's sentença movement id
+to the parsed diário movement text.
 """
 from __future__ import annotations
 

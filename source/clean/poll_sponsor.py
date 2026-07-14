@@ -4,8 +4,8 @@ a candidate / party / other actor.
 INTENT: produce one long sponsor table per year, keyed by
 (NR_PROTOCOLO_REGISTRO, role, sponsor_idx), with the four sponsor-route
 classifications (A: cpf, B: committee, C: party CNPJ, D: party name)
-merged in. This is the data input for the DOWNSTREAM_PROJECT project
-(`projects/DOWNSTREAM_PROJECT/`).
+merged in. This is the data input for a downstream poll-sponsor
+analysis.
 
 REASONING: TSE PesqEle allows up to 6 contratantes per protocol and a
 separate set of pagantes per protocol, so the canonical output must be

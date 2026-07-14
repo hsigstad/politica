@@ -7,7 +7,7 @@ column.
 The file is canonical TSE bulk processo data — one row per process per
 instance. It carries filing date, court, classe, primary assunto, relator,
 etc., but does NOT carry parties (plaintiff/defendant); those come from the
-diários parse in `LEGACY_TRE_DIARIOS`.
+diários parse in a separate TRE-diários pipeline.
 
 Discovers bundles under two locations to accommodate both the politica
 convention and ad-hoc unpacking:

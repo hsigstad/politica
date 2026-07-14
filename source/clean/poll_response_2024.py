@@ -1,9 +1,8 @@
 """Clean & enrich 2024 poll extractions: LLM-extracted vote intentions
 joined with TSE registration metadata and matched to TSE candidate registry.
 
-Moved into pipelines/politica 2026-05-28 from
-projects/REDACTED-PROJECT/source/clean/ so the cleaned poll table can
-be workspace-wide infrastructure rather than legacy-pilot-private.
+The cleaned poll table is shared infrastructure, consumed by
+downstream analysis projects.
 
 Candidate matching (formerly a separate poll_2024__candmatch.py step)
 was folded in on 2026-06-02 so that the single output parquet carries

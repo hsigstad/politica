@@ -16,7 +16,7 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
     top score-1 `match_method` no longer features `tokens_full=DE`
     etc. (now `tokens_full=JOAO`, `=JUNIOR`, `=HELIO,LOPES`, …).
   - downstream impact: `matched_share == 1.0` row count in
-    `projects/DOWNSTREAM_PROJECT/build/assemble/cand_poll.parquet`
+    the downstream `cand_poll.parquet` assemble output
     unchanged (the dropped rows were below the `match_score >= 2`
     threshold). Improvement is purely on parquet-quality / signal
     cleanliness, not regression sample size.
@@ -54,8 +54,8 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
     - score 3: 535 → 630 (+95)
     - score 2: 1,104 → 1,532 (+428)
     - score 1: 4,541 → 4,157 (−384; many promoted to 2+)
-  - downstream impact in `projects/DOWNSTREAM_PROJECT`:
-    `build/assemble/cand_poll.parquet` `matched_share == 1.0` rows
+  - downstream impact in the poll-sponsor analysis:
+    `cand_poll.parquet` `matched_share == 1.0` rows
     21,030 → 22,665 (+1,635, +7.8%). Still below the original 85%
     aspirational target — see todo.md follow-up on stopword
     filtering + image-PDF re-extraction.
@@ -68,12 +68,12 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
     under `source/llm/prompts/poll_relatorio_{system,user}.txt`, and a
     wrapper `source/llm/poll_relatorio.py` (`extract_poll_relatorio` —
     PDF-driven; cache lookup order: new llmkit composite key →
-    legacy `{PROTOCOL}.json` in canonical and legacy-pilot-pilot dirs → fresh
+    legacy `{PROTOCOL}.json` in canonical and legacy-pilot dirs → fresh
     LLM call). The runner `source/llm/poll_extract.py` now calls the
     wrapper, adds `--states / --exclude-states` for UF filtering and a
     `--validate-cached` PDF-free mode that re-validates every cached
     entry against the current schema and assembles the parquet.
-    Smoke test: `--validate-cached` against the 111-protocol legacy-pilot pilot
+    Smoke test: `--validate-cached` against the 111-protocol legacy pilot
     produced 1,461 candidate-scenario rows from 102 polls (all
     validated against new schema, 0 schema failures). See
     `done.md` 2026-06-01 entry below for extraction-quality findings
@@ -115,7 +115,7 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
   - created: 2026-05-28
   - resolved: 2026-06-02
 
-- [x] **Stage a TSE partidos-CNPJ table for DOWNSTREAM_PROJECT Route C**
+- [x] **Stage a TSE partidos-CNPJ table for sponsor-linking Route C**
   Used `despesa_partidaria.csv` (2024 municipal-level rows, 42,829
   directorate CNPJs across 5,548 munis) as CNPJ→party×muni lookup.
   Route C added to `poll_sponsor_2024_join.py` (141 rows, 58 protocols).
@@ -127,22 +127,21 @@ Completed TODOs (moved out of `todo.md` so the active list stays scoped to curre
 
 - [x] **Bulk poll-relatório LLM extraction (all UFs except SP)**
   Ran 2026-06-01 (10:20–15:12 UTC, `gpt-4o-mini`, 8 workers) over the
-  legacy-pilot-fallback PDF dir at `projects/REDACTED-PROJECT/build/scrape/`
-  `tse_relatorio/2024/`. New-format llmkit cache at
-  `build/llm/poll_relatorio/`: **9,325 entries** (1 schema-invalid).
-  Combined with 110 legacy-pilot legacy-pilot entries (48 AC + 62 AL + 1 stray
-  at `projects/REDACTED-PROJECT/build/llm/poll_relatorio/`, picked up
-  automatically by the wrapper's legacy fallback), all 25 non-SP UFs
+  fallback PDF dir at `build/scrape/tse_relatorio/2024/`. New-format
+  llmkit cache at `build/llm/poll_relatorio/`: **9,325 entries**
+  (1 schema-invalid). Combined with 110 legacy-pilot entries
+  (48 AC + 62 AL + 1 stray, picked up automatically by the wrapper's
+  legacy fallback), all 25 non-SP UFs
   are covered. Parquet at `build/llm/poll_relatorio_2024.parquet`:
   149,934 candidate-scenario rows from 8,169 distinct polls. The
   ~1,500-protocol gap vs. the on-disk PDF count is dominated by
   image-only PDFs (TO 157, SE 39, ES 15, RS 15, ...) skipped at the
   `pdftotext`/`MIN_TEXT_CHARS=200` gate, plus a small per-UF
   schema-validation drop at parquet assembly. SP (1,635 PDFs) lives
-  in the a separate host cache only and is 0 rows in the laptop parquet.
+  in a separate-host cache only and is 0 rows in this parquet.
   Diagnosis note: an initial coverage check looking only at
   `_cache_meta.doc_id` distribution in the new cache wrongly suggested
-  AC was completely missed (0 entries); the 48 AC files are in the legacy-pilot
+  AC was completely missed (0 entries); the 48 AC files are in the
   legacy pilot cache and are correctly merged in by
   `assemble_long_table()`. Verified by re-running `--states AC AL` →
   `cached: 190 / image_only: 6 / ok: 0`. See `data.md` "Coverage and

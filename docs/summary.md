@@ -65,11 +65,10 @@ source/clean/poll_sponsor.py       Clean sponsor (contratante/pagante) data
 The poll pipeline reads from the core pipeline (`candidato.csv`,
 `politico.csv`, `despesa_partidaria.csv`) and from TSE registration
 CSVs in `build/scrape/tse_polls_2024/`. See `docs/data.md` for column
-schemas and external-mirror mirror locations.
+schemas and external-mirror locations.
 
 ### Downstream consumers
 
-- `projects/DOWNSTREAM_PROJECT/` — within-candidate FE analysis
-  of sponsor-driven poll bias
-- `DOWNSTREAM_PROJECT` — polling effects of REDACTED filings ([an])
-- `projects/REDACTED-PROJECT/` — 2024 poll assembly (wide format)
+The cleaned tables feed several downstream analysis projects (kept in
+separate repositories) — e.g. within-candidate poll-bias analysis and
+poll assembly into muni-day panels.

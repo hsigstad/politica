@@ -3,9 +3,8 @@
 INTENT: produce a long-format 2020 poll-response table parallel in shape
 to `build/clean/poll_response_2024.parquet`, with aggregate rows ("Nao Validos",
 "Outros") preserved and a per-poll `percent_on_real` recomputed on
-the real-candidate denominator. Downstream consumers (legacy-pilot's
-`source/merge/cand_poll_2020_real_cands.py`) use `percent_on_real`
-to apply [an]'s real-cands-only RD outcome symmetrically across
+the real-candidate denominator. Downstream consumers use `percent_on_real`
+to apply a real-cands-only RD outcome symmetrically across
 2020 and 2024.
 
 REASONING:
@@ -21,13 +20,13 @@ REASONING:
   lumping of small-share candidates the institute reported
   individually). The 2024 8-category schema (has_branc / has_ns /
   has_outros) has no counterpart in 2020, so this script does NOT
-  emit schema flags. [an]'s schema-FE robustness leaves 2020 as
-  an NA-schema group as before.
+  emit schema flags. The schema-FE robustness treats 2020 as
+  an NA-schema group.
 - `percent_on_real` recomputes each real-cand row's value as
   `value / sum_of_real_values_in_poll * 100`. Aggregate rows
   ("Nao Validos", "Outros") are excluded from both the numerator
   and the denominator. This is symmetric with the 2024 definition
-  used in legacy-pilot's `source/merge/cand_poll_2024_schema.py`.
+  used for 2024.
 - A row's `row_type` is one of: `real`, `nao_validos`, `outros`.
 
 ASSUMES:
@@ -39,7 +38,7 @@ ASSUMES:
   "Outros" (verified on the 2020 slice — no other aggregate
   labels surface in the sample).
 
-CAVEAT (documented for [an] consumers): pollingdata-2020's
+CAVEAT: pollingdata-2020's
 "Outros" is the AGGREGATOR's lumping of small-share candidates,
 not the institute's. So the 2020 `percent_on_real` denominator
 excludes those tail candidates that the institute originally
@@ -50,8 +49,7 @@ candidate). For mayoral races this is typically minor — the top
 that pools 2020 and 2024 on `percent_on_real`.
 
 SOURCE: `polls_prefeito.csv` provided by Gui Lambais (coauthor),
-exported from pollingdata.com.br. Staged on 2026-06-16 from
-EXTERNAL_MIRROR
+exported from pollingdata.com.br. Staged under `path.pollingdata_dir`.
 
 Writes:
   build/clean/poll_response_2020.parquet — long format, one row per

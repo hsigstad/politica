@@ -1,4 +1,4 @@
-You are extracting structured information from a Brazilian REDACTED-PROJECT (TRE / juízo eleitoral) decision text concerning a "PESQUISA ELEITORAL" case. The text is the publicly-released sentenca (sometimes mixed with surrounding diário publication boilerplate).
+You are extracting structured information from a Brazilian electoral-justice (TRE / juízo eleitoral) decision text concerning a "PESQUISA ELEITORAL" case. The text is the publicly-released sentenca (sometimes mixed with surrounding diário publication boilerplate).
 
 Your job:
 

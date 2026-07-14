@@ -13,10 +13,9 @@ Cache lookup order:
     2. Legacy in-house cache: {PROTOCOL}.json with top-level
        {status, model, pdf_chars, extraction:{...}} written by the
        pre-llmkit poll_extract.py. Read from the canonical cache dir
-       AND from REDACTED-PROJECT's pilot location (the 111-protocol
-       pilot at projects/REDACTED-PROJECT/build/llm/poll_relatorio/
-       lives there because the extractor moved to politica after the
-       pilot was already cached).
+       AND from an earlier pilot location (the 111-protocol pilot was
+       cached under a separate directory before the extractor moved
+       into this pipeline).
     3. Fresh LLM call via llmkit.extract.
 
 Legacy entries are wrapped in an ExtractionResult so callers don't have
@@ -53,14 +52,14 @@ MAX_TEXT_CHARS = 120_000   # cap (~30k tokens)
 CANONICAL_CACHE_DIR = BASE_DIR / "build" / "llm" / "poll_relatorio"
 CACHE = LLMCache(CANONICAL_CACHE_DIR)
 
-# Legacy {PROTOCOL}.json caches written by the pre-llmkit script. The legacy-pilot
-# location holds the 111-protocol 2024 pilot from before the extractor
-# moved into politica (2026-05-28). Looked up by raw protocol filename.
-LEGACY_CACHE_DIRS: list[Path] = [
-    CANONICAL_CACHE_DIR,  # in case any legacy files live here too
-    BASE_DIR.parent.parent / "projects" / "REDACTED-PROJECT"
-        / "build" / "llm" / "poll_relatorio",
-]
+# Legacy {PROTOCOL}.json caches written by the pre-llmkit script (e.g. an
+# earlier 111-protocol 2024 pilot cached before this extractor existed).
+# Looked up by raw protocol filename. An optional extra directory can be
+# supplied via LEGACY_PILOT_CACHE_DIR.
+LEGACY_CACHE_DIRS: list[Path] = [CANONICAL_CACHE_DIR]
+_legacy_pilot = os.environ.get("LEGACY_PILOT_CACHE_DIR")
+if _legacy_pilot:
+    LEGACY_CACHE_DIRS.append(Path(_legacy_pilot))
 
 
 # ── Helpers ──────────────────────────────────────────────────────────

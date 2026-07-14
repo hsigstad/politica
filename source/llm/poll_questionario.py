@@ -5,8 +5,7 @@ extracts the survey instrument: question wording, candidate roster
 ordering across estimulada / espontanea scenarios, name rotation, and
 any nonresponse instructions printed inside the questionnaire.
 
-Targets the levers the registration narrative cannot reach (probe
-items 1 & 2 in projects/DOWNSTREAM_PROJECT/docs/source-of-bias.md):
+Targets the levers the registration narrative cannot reach:
 within-poll scenario selection, name-order priming, candidate-roster
 composition.
 

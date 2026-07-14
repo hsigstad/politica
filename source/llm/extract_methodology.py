@@ -19,9 +19,9 @@ Reads:
   - pipelines/politica/build/scrape/tse_polls_2024/pesquisa_eleitoral_2024_*.csv
 
 Writes:
-  - pipelines/politica/build/llm/poll_methodology_2024.parquet (wide)
-  - pipelines/politica/build/llm/poll_methodology_2024_summary.json
-  - per-task caches at pipelines/politica/build/llm/poll_{task}/ (managed by wrappers)
+  - build/llm/poll_methodology_2024.parquet (wide)
+  - build/llm/poll_methodology_2024_summary.json
+  - per-task caches at build/llm/poll_{task}/ (managed by wrappers)
 
 Run:
   PYTHONPATH=/path/to/llmkit:$PWD/source/llm \\

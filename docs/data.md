@@ -81,7 +81,8 @@ relatório PDFs (`pesquisa_eleitoral`). Produced by `source/llm/poll_extract.py`
 ### Location
 - `build/llm/poll_relatorio_2024.parquet` — assembled long table.
 - `build/llm/poll_relatorio/<hash>.json` — raw llmkit cache, one file per
-  poll (composite-key filenames). Not committed (292 MB); see external-mirror below.
+  poll (composite-key filenames). Not committed (292 MB); see the external
+  mirror below.
 
 ### Unit of observation
 One row per **candidate × scenario × poll**. 149,934 rows from 8,169 distinct
@@ -105,9 +106,9 @@ polls across 25 states.
 - `extraction_notes` — per-poll note on any ambiguity or judgment call.
 - `source` — extraction provenance tag (`llmkit`).
 
-### external-mirror
-Both outputs are mirrored alongside the source relatórios at
-`EXTERNAL_MIRROR`:
+### External mirror
+Both outputs are mirrored alongside the source relatórios on external
+storage:
 - `poll_relatorio_2024.parquet` (the table above).
 - `poll_relatorio_cache.tar.zst` (the raw JSON cache, 292 MB → 21 MB;
   restore with `tar --use-compress-program='zstd -d' -xf` → `poll_relatorio/`).
@@ -117,8 +118,8 @@ Both outputs are mirrored alongside the source relatórios at
 The 2024 mayoral poll registration universe is **14,876 protocols** (per-UF
 `pesquisa_eleitoral_2024_*.csv`). Coverage at each step:
 
-**Scrape (`source/scrape/tse_relatorio.py`, on disk at
-`projects/REDACTED-PROJECT/build/scrape/tse_relatorio/2024/`):**
+**Scrape (`source/scrape/tse_relatorio.py`, PDFs on disk under
+`build/scrape/tse_relatorio/2024/`):**
 - 11,372 PDFs downloaded.
 - 3,415 protocols have no relatório uploaded to TSE (the divulgação
   portal returns an empty result; logged as `no_relatorio` in
@@ -133,10 +134,9 @@ The 2024 mayoral poll registration universe is **14,876 protocols** (per-UF
 - The new-format llmkit cache at `build/llm/poll_relatorio/` has 9,325
   entries from a single bulk run on 2026-06-01 (10:20–15:12 UTC,
   `gpt-4o-mini`, all UFs except SP).
-- 110 additional protocols (48 AC + 62 AL + 1 stray) sit in the legacy-pilot
-  legacy pilot cache at
-  `projects/REDACTED-PROJECT/build/llm/poll_relatorio/{PROTOCOL}.json`
-  — written before the extractor moved into politica (2026-05-28).
+- 110 additional protocols (48 AC + 62 AL + 1 stray) sit in a legacy
+  pilot cache (`{PROTOCOL}.json`), written before the extractor was
+  migrated to llmkit.
   These are picked up automatically by `assemble_long_table()`'s
   legacy fallback and by `extract_poll_relatorio`'s
   `_read_legacy_pilot()`. They count as `cached` hits on re-runs even
@@ -144,9 +144,9 @@ The 2024 mayoral poll registration universe is **14,876 protocols** (per-UF
   the new cache by `_cache_meta.doc_id` will show 0 AC entries even
   though AC is fully covered. **Don't read the new-cache file
   distribution as a coverage report;** use the parquet.
-- SP (1,635 PDFs) was extracted earlier on a separate host; that cache lives
-  on a separate host only. The laptop-assembled parquet therefore has 0 SP
-  rows. The a separate host parquet has SP merged in.
+- SP (1,635 PDFs) was extracted earlier on a separate host; that cache
+  lives on that host only. The parquet assembled elsewhere therefore has
+  0 SP rows. The parquet assembled on that host has SP merged in.
 
 Of the 9,737 non-SP PDFs on disk, the parquet covers ~8,169 distinct
 polls (149,934 candidate-scenario rows across 25 states). The

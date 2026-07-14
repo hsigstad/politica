@@ -1,17 +1,15 @@
 # Decisions
 
-## 2026-05-28 — Poll pipeline (scrape + LLM extract + clean) moved in from REDACTED-PROJECT
+## 2026-05-28 — Poll pipeline (scrape + LLM extract + clean) consolidated here
 
-**Decision:** The TSE poll acquisition + cleaning chain moves into
-`pipelines/politica/source/{scrape,llm,clean}/` from
-`projects/REDACTED-PROJECT/source/{scrape,llm,clean}/`. The
-project-specific muni-day assembly step stays in REDACTED-PROJECT.
+**Decision:** The TSE poll acquisition + cleaning chain lives here in
+`source/{scrape,llm,clean}/`. Project-specific assembly steps (e.g.
+muni-day panels) stay in the downstream analysis repositories.
 
-**Why:** A second project (`DOWNSTREAM_PROJECT`) now wants to use the
-cleaned poll table to test REDACTED effects on 2024 SP
-polls. Cleaned polls are project-neutral political data — same shape
-as candidato.csv, processo.csv, etc., already in politica — so they
-belong at workspace-level infrastructure.
+**Why:** More than one downstream analysis needs the cleaned poll
+table. Cleaned polls are project-neutral political data — same shape
+as candidato.csv, processo.csv, etc., already here — so they belong in
+shared pipeline infrastructure.
 
 **Touched files:**
 
@@ -31,11 +29,10 @@ belong at workspace-level infrastructure.
   to hard-code paths).
 
 **Open caveat (intentional, time-bounded):** the 2024 poll
-registration CSVs and PDFs are rclone'd into
-`pipelines/politica/build/scrape/` rather than the canonical
-`$DATA_DIR/`. This is a workspace-local staging so
-the sandboxed Claude can read directly. Migrate to `data_dir/` once
-the SP-slice pilot is stable — one-line edit to `path.tse_polls_2024_dir`.
+registration CSVs and PDFs are staged under `build/scrape/` rather than
+the canonical `$DATA_DIR`. This is workspace-local staging for
+convenience. Migrate to `$DATA_DIR` once the SP-slice pilot is stable —
+one-line edit to `path.tse_polls_2024_dir`.
 
 ## 2026-05-27 — Recover 2024 candidate status from `consulta_cand_complementar`
 
@@ -61,15 +58,14 @@ INDEFERIDO (10,381), RENUNCIA (9,167), consistent with prior years.
 **Vocabulary changes in 2024** (noted for downstream consumers):
 - `INDEFERIDO EM PRAZO RECURSAL OU COM RECURSO` (522) replaces 2022's
   `INDEFERIDO COM RECURSO`. Functionally equivalent — downstream
-  consumers that set-match on `INDEFERIDO COM RECURSO` (e.g.
-  `DOWNSTREAM_PROJECT:INELIGIBLE_STATUSES`)
-  should add the new form.
+  consumers that set-match on `INDEFERIDO COM RECURSO` should add the
+  new form.
 - `AGUARDANDO JULGAMENTO` (16) — new, functionally equivalent to
   `PENDENTE DE JULGAMENTO`. Downstream consumers that match on the
   latter should add this form.
 - `PEDIDO NAO CONHECIDO EM PRAZO RECURSAL OU COM RECURSO` (7) — new,
   analogous to `PEDIDO NAO CONHECIDO`.
-- `FALECIMENTO` (162) replaces `FALECIDO`. Neither appears in DOWNSTREAM_PROJECT's
+- `FALECIMENTO` (162) replaces `FALECIDO`. Neither appears in typical
   eligibility sets (dead candidates do not re-run).
 
 ## 2026-05-26 — Row-level CPF recovery for 2024 (Bug 1 in `candidato_politico.py`)
@@ -105,67 +101,65 @@ targets (37% / 62%).
 - 2024 `status` column is 100% empty — TSE either renamed or also
   redacted `DS_DETALHE_SITUACAO_CAND`.
 
-## 2026-05-26 — Defer migration of LEGACY_TRE_DIARIOS `tse_processos.py` to politica
+## 2026-05-26 — Defer retiring the legacy TRE-diários processo cleaning path
 
-**Decision:** Keep `LEGACY_TRE_DIARIOS` alive
-as the 2020 path used by the REDACTED-PROJECT paper build, even though
-`pipelines/politica/source/clean/processo.py` now covers the same TSE bulk
-processo data (and additionally covers 2024). Use politica's `processo.csv`
-for 2024+ work only; do not repoint `projects/REDACTED-PROJECT/source/query/proc__tse.py`
-to politica until the schema-translation work below is done and verified.
+**Decision:** Keep the legacy TRE-diários `processo` cleaning path alive
+for 2020 work, even though this pipeline's `source/clean/processo.py` now
+covers the same TSE bulk processo data (and additionally covers 2024).
+Use `processo.csv` for 2024+ work only; do not repoint the legacy
+consumer to it until the schema-translation work below is done and
+verified.
 
 **Reason:** The two cleaning paths produce non-equivalent outputs, so a
-drop-in repoint of `proc__tse.py` would break downstream R tables. Three
-material differences between `LEGACY_TRE_DIARIOS`
-(2020) and `politica/build/clean/processo.csv` (2020 slice):
+drop-in repoint would break downstream tables. Three material
+differences between the legacy `tse_proc_instancia.csv` (2020) and this
+pipeline's `processo.csv` (2020 slice):
 
-1. **`classe` values.** LEGACY_TRE_DIARIOS applies `clean_classe` +
-   `diarios.clean.transform` on `DS_CLASSE` to produce sigla form preserving
-   case (`Pet`, `Rp`, `AIJE`, `PC`, ...), plus manual overrides
-   ("PRESTACAO DE CONTAS ELEITORAIS" → "PC", "REPRESENTACAO ESPECIAL" → "Rp",
-   "PETICAO CIVEL" → "Pet"). Politica keeps `classe_sigla` (raw `SG_CLASSE`,
-   all-caps: `PETCIV`, `RP`, `AIJE`) plus the full `classe` (DS_CLASSE post
-   `clean_text_columns`, all-caps no accents). The R tables filter on
-   `classe_inicial.isin(["AIJE","Rp","AIME"])` — the "Rp" match would break
-   on case alone, and the manual overrides are absent.
-2. **`assunto1..4` is unrecoverable from politica's output.** LEGACY_TRE_DIARIOS
-   splits `DS_ASSUNTO_PRINCIPAL` on " - " into four case-preserving columns.
-   Politica concatenates the string and runs it through `clean_text_columns`,
-   destroying the " - " separator. Rebuilding the split from politica's
-   output is impossible.
-3. **11-row count gap.** LEGACY_TRE_DIARIOS applies
-   `drop_duplicates(['number','instancia'])` removing 11 rows it documents
-   as "looks like errors". Politica does not dedupe.
+1. **`classe` values.** The legacy path applies `clean_classe` +
+   `diarios.clean.transform` on `DS_CLASSE` to produce sigla form
+   preserving case (`Pet`, `Rp`, `AIJE`, `PC`, ...), plus manual
+   overrides ("PRESTACAO DE CONTAS ELEITORAIS" → "PC", "REPRESENTACAO
+   ESPECIAL" → "Rp", "PETICAO CIVEL" → "Pet"). This pipeline keeps
+   `classe_sigla` (raw `SG_CLASSE`, all-caps: `PETCIV`, `RP`, `AIJE`)
+   plus the full `classe` (DS_CLASSE post `clean_text_columns`, all-caps
+   no accents). Downstream tables filtering on
+   `classe_inicial.isin(["AIJE","Rp","AIME"])` would break on case
+   alone, and the manual overrides are absent.
+2. **`assunto1..4` is unrecoverable from this pipeline's output.** The
+   legacy path splits `DS_ASSUNTO_PRINCIPAL` on " - " into four
+   case-preserving columns. This pipeline concatenates the string and
+   runs it through `clean_text_columns`, destroying the " - " separator.
+   Rebuilding the split is impossible.
+3. **11-row count gap.** The legacy path applies
+   `drop_duplicates(['number','instancia'])` removing 11 rows it
+   documents as "looks like errors". This pipeline does not dedupe.
 
 Plus minor differences in `tribunal` (`TRE-MA` vs `TREMA`),
-`tipo_distribuicao` (`Por sorteio` vs `POR SORTEIO`), and `judge_title` case.
+`tipo_distribuicao` (`Por sorteio` vs `POR SORTEIO`), and `judge_title`
+case.
 
-**Reason for keeping the duplication:** The REDACTED-PROJECT paper is at
-a sensitive stage. `git diff HEAD -- build/` is currently empty —
-tables and figures on this server reproduce the laptop commit byte-for-byte.
-A repoint risks regressing those outputs right before submission, for no
-near-term gain. The duplication is one extra script in LEGACY_TRE_DIARIOS per
-publication year, tolerable.
+**Reason for keeping the duplication:** A downstream paper build is at a
+sensitive stage and reproduces byte-for-byte against a fixed commit. A
+repoint risks regressing those outputs for no near-term gain. The
+duplication is one extra legacy script per publication year, tolerable.
 
-**To unlock the migration later (post-acceptance):**
+**To unlock the migration later:**
 
-- Change politica's `processo.py` to exclude `assunto` from
-  `clean_text_columns` (preserve case + " - " separator); add a dedup pass
-  matching LEGACY_TRE_DIARIOS's. This change also forces a sweep of
-  `cassacao_2024.py`/`proc_2024.py` keyword constants which currently match
-  the cleaned uppercase form.
-- Add a sigla-transform step in `proc__tse.py` mirroring LEGACY_TRE_DIARIOS's
-  `clean_classe` + `diarios.clean.transform("classe","classe_sigla")`, with
-  the manual overrides.
-- Run scons on the legacy-pilot build, byte-diff `build/merge/proc.csv` and all
-  `build/table/*.tex` against the commit at migration time. Only proceed if
-  identical.
-- Then delete `LEGACY_TRE_DIARIOS` and its
-  build outputs.
+- Change `processo.py` to exclude `assunto` from `clean_text_columns`
+  (preserve case + " - " separator); add a dedup pass matching the
+  legacy path's. This also forces a sweep of the `cassacao`/`proc`
+  keyword constants that currently match the cleaned uppercase form.
+- Add a sigla-transform step in the consumer mirroring the legacy
+  `clean_classe` + `diarios.clean.transform("classe","classe_sigla")`,
+  with the manual overrides.
+- Rebuild the downstream tables, byte-diff the merged processo output
+  and all generated tables against the commit at migration time. Only
+  proceed if identical.
+- Then delete the legacy cleaning script and its build outputs.
 
 **Alternatives considered:**
-- Repoint `proc__tse.py` now with on-the-fly classe transform — rejected:
-  doesn't address the `assunto1..4` loss and risks subtle row-count drift.
-- Modify politica's `processo.py` immediately to preserve assunto structure
-  — rejected: breaks the existing `cassacao_2024.py` keyword logic and
-  requires a coordinated update; not session-sized.
+- Repoint now with on-the-fly classe transform — rejected: doesn't
+  address the `assunto1..4` loss and risks subtle row-count drift.
+- Modify `processo.py` immediately to preserve assunto structure —
+  rejected: breaks the existing keyword logic and requires a coordinated
+  update; not session-sized.

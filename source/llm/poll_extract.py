@@ -4,13 +4,11 @@ Pipeline-level driver: walks the PDF set, calls the llmkit-backed
 extraction wrapper in `poll_relatorio.py`, and assembles the cached
 results into a long-format parquet.
 
-Moved into pipelines/politica 2026-05-28 from
-projects/REDACTED-PROJECT/source/llm/. Migrated to llmkit 2026-06-01
-(cache + Pydantic validation + audit metadata are now standardized).
-The pre-llmkit in-house cache format (`{PROTOCOL}.json` with a
-top-level `status` and a nested `extraction`) is read transparently
-by the wrapper's legacy fallback — including the 111-protocol pilot
-that lives at projects/REDACTED-PROJECT/build/llm/poll_relatorio/.
+Migrated to llmkit 2026-06-01 (cache + Pydantic validation + audit
+metadata are now standardized). The pre-llmkit in-house cache format
+(`{PROTOCOL}.json` with a top-level `status` and a nested `extraction`)
+is read transparently by the wrapper's legacy fallback — including an
+earlier 111-protocol pilot kept under a legacy cache directory.
 
 Reads PDFs from build/scrape/tse_relatorio/{year}/{PROTOCOLO}.pdf,
 caches one JSON per protocol at build/llm/poll_relatorio/, writes the
@@ -25,10 +23,10 @@ Image-only PDFs (where pdftotext returns near-zero chars) are skipped.
 An OCR fallback is left for a future pass.
 
 Usage:
-    # Live run, all UFs except SP (SP was already done on a separate host):
+    # Live run, all UFs except SP (SP was extracted separately):
     python source/llm/poll_extract.py --year 2024 --exclude-states SP
 
-    # Smoke test (PDF-free) — re-validate the 111-protocol legacy-pilot pilot
+    # Smoke test (PDF-free) — re-validate the 111-protocol legacy pilot
     # against the current schema and assemble a parquet without
     # touching PDFs or the OpenAI API:
     python source/llm/poll_extract.py --year 2024 --validate-cached
@@ -62,20 +60,18 @@ load_dotenv()
 BASE_DIR = Path(os.environ["BASE_DIR"])
 BUILD_DIR = BASE_DIR / "build"
 PDFS_BASE = BUILD_DIR / "scrape" / "tse_relatorio"
-# Pre-migration PDF stash from when the scraper still lived in legacy-pilot. The
-# move into politica (2026-05-28) didn't relocate the PDFs themselves
-# (~11k files, ~2 GB) — they're still discoverable here. Used as a
-# fallback only when PDFS_BASE/<year> is empty.
-EJ_PDF_FALLBACK = (
-    BASE_DIR.parent.parent / "projects" / "REDACTED-PROJECT"
-    / "build" / "scrape" / "tse_relatorio"
-)
+# Optional fallback PDF directory (e.g. a pre-migration stash), used only
+# when PDFS_BASE/<year> is empty. Configure via PDF_FALLBACK_DIR.
+_pdf_fallback = os.environ.get("PDF_FALLBACK_DIR")
+PDF_FALLBACK_DIR = Path(_pdf_fallback) if _pdf_fallback else None
 
 
 # ── PDF discovery and state filtering ────────────────────────────────
 
 def discover_pdfs(year: int) -> list[Path]:
-    for root in (PDFS_BASE, EJ_PDF_FALLBACK):
+    for root in (PDFS_BASE, PDF_FALLBACK_DIR):
+        if root is None:
+            continue
         d = root / str(year)
         if d.exists():
             pdfs = sorted(d.glob("*.pdf"))
