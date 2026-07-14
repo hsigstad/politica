@@ -1,7 +1,7 @@
 # TODOs
 
 - [ ] **Publish the 2024 poll relatório README alongside the mirrored artifacts**
-  - source: `docs/poll_relatorio_2024_README.md`
+  - source: `docs/reference/poll_relatorio_2024.md`
   - action: copy it to the external mirror next to
     `poll_relatorio_2024.parquet` and `poll_relatorio_cache.tar.zst`
     (rename to plain `README.md` at the destination).
