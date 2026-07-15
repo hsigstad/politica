@@ -1,0 +1,12 @@
+TSE protocol: {tse_protocol_display}
+Município: {municipality} ({uf})
+
+Registered candidate slate (número de urna, nome de urna, party):
+{slate_json}
+
+PDF text (pdftotext -layout):
+---
+{pdf_text}
+---
+
+Find the single "intenção de voto estimulada" scenario whose candidate set matches EXACTLY the registered slate above (ignore Branco/Nulo/Não sabe rows). Match by número de urna. Return its label and one percent per registered ballot number. If no scenario matches the slate exactly, set all_registered_present=false and leave estimates empty.
