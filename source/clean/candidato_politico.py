@@ -1,3 +1,15 @@
+"""Build the candidate registry (candidato.csv) + politician crosswalk
+(politico.csv) from raw TSE consulta_cand + votacao_candidato_munzona.
+
+INTENT: one clean candidacy table across all states × 1998-2024, keyed by
+a stable politico_id (CPF, or 'T'+titulo when CPF is redacted).
+REASONING: per (state, year) we collapse votes to one row per candidacy ×
+round, merge in candidate metadata, then concat across all state-years.
+ASSUMES: the `states` list holds each UF exactly once (a repeated entry
+processes that state twice and emits exact-duplicate rows); raw TSE files
+live under path.data_dir. candidato.csv is deduped before writing as a
+safety net against that class of bug.
+"""
 import path
 import pandas as pd
 import numpy as np
@@ -82,11 +94,12 @@ def main():
         'RN',
         'RO',
         'RR',
-        'RS',
         'SC',
         'SE',
         'TO',
-    ]
+    ]  # NB: 'RS' is listed once above (after 'BA'); it must NOT be repeated
+    # here — a duplicate entry processes RS twice and emits every RS
+    # candidacy row twice (exact full-row duplicates).
     #years = ['2000']
     #states = ['AC', 'AL']
     years, states = multiply_cartesian(years, states)
@@ -146,6 +159,14 @@ def main():
     }.intersection(results.columns)
     candidato = results.loc[:, list(cols)]
     candidato['ibge7'] = clean.transform(candidato['municipio_id'], 'municipio_id', 'ibge7')
+    # Safety net: drop any exact-duplicate candidacy rows (e.g. from a state
+    # accidentally processed twice). Full-row dedup keeps distinct rounds of a
+    # runoff candidacy (they differ in round/votes) and removes only true copies.
+    n_before = len(candidato)
+    candidato = candidato.drop_duplicates()
+    if len(candidato) != n_before:
+        print(f'  dropped {n_before - len(candidato):,} exact-duplicate '
+              f'candidacy rows before writing candidato.csv')
     candidato.to_csv(candidato_file, index=False)
     politico.to_csv(politico_file, index=False)
     return politico, candidato
@@ -178,7 +199,8 @@ def clean_election(state, year):
         results = pd.merge(results,
                            municipio_names,
                            on='municipio_id',
-                           how='left')
+                           how='left',
+                           validate='many_to_many')
     results = add_office_type(results)
     results = add_win_margin(results)
     return results
@@ -385,7 +407,8 @@ def get_candidates(state, year):
                 TITULO_CPF_XWALK = build_titulo_cpf_crosswalk()
             df['titulo_key'] = df['NR_TITULO_ELEITORAL_CANDIDATO'].astype(str).str.zfill(12)
             df = df.merge(TITULO_CPF_XWALK, left_on='titulo_key',
-                          right_on='titulo', how='left')
+                          right_on='titulo', how='left',
+                          validate='many_to_one')
             recovered = sentinel & df['cpf_from_titulo'].notna()
             df.loc[recovered, 'NR_CPF_CANDIDATO'] = df.loc[recovered, 'cpf_from_titulo']
             print(f'  CPF recovery via titulo: {recovered.sum()}/{sentinel.sum()} '
@@ -416,7 +439,8 @@ def get_candidates(state, year):
                 compl = compl.drop_duplicates('SQ_CANDIDATO')
                 if status_col in df.columns:
                     df = df.drop(columns=[status_col])
-                df = df.merge(compl, on='SQ_CANDIDATO', how='left')
+                df = df.merge(compl, on='SQ_CANDIDATO', how='left',
+                              validate='many_to_one')
                 filled = df[status_col].notna().sum()
                 print(f'  Status recovery from complementar: {filled}/{len(df)} rows')
     cols = get_candidate_column_mapping()
@@ -524,6 +548,7 @@ def merge_in_candidates(results, candidates, year):
         candidates,
         on=merge_vars,
         how='outer',
+        validate='many_to_many',
     )  # .drop(columns=['NUMERO_CAND', 'SQ_CANDIDATO'])
 
 
