@@ -136,11 +136,18 @@ def reconcile(parsed, slate: pd.DataFrame) -> dict:
     want = set(slate.numero_cand)
     got = {e.numero_cand for e in parsed.estimates}
     with_pct = {e.numero_cand for e in parsed.estimates if e.percent is not None}
+    # Candidate shares can't sum past ~100 (undecided/blank take the rest).
+    # A sum well over 100 means the model read the wrong table (e.g. a
+    # cross-tab column or two merged scenarios) — a catchable quality flag.
+    pct_sum = sum(e.percent for e in parsed.estimates
+                  if e.percent is not None and e.numero_cand in want)
     return {
         "in_slate": got & want,          # echoed números that are real slate members
         "off_slate": got - want,         # echoed números NOT in the slate (model error)
         "missing": want - got,           # slate members the model omitted entirely
         "n_filled": len(with_pct & want),
+        "pct_sum": round(pct_sum, 1),
+        "suspect_sum": pct_sum > 105,    # >105 ⇒ impossible ⇒ likely wrong table
     }
 
 
@@ -172,8 +179,21 @@ def run(args) -> None:
     from openai import OpenAI
     from poll_relatorio_registered import CANONICAL_CACHE_DIR, MODEL, extract_registered
 
+    vision = args.engine == "vision"
+    if vision:
+        from poll_relatorio_vision import CACHE_DIR as CANONICAL_CACHE_DIR
+        from poll_relatorio_vision import extract_vision
+
+    def call(row, slate):
+        common = dict(protocol=row.protocol, pdf_path=row.pdf_path,
+                      slate_json=slate_json(slate), municipality=row.municipality,
+                      uf=row.uf, client=client, model=args.model or MODEL,
+                      reextract=args.reextract)
+        return extract_vision(**common) if vision else extract_registered(**common)
+
     client = OpenAI()
-    print(f"cache: {CANONICAL_CACHE_DIR}  model: {args.model or MODEL}")
+    print(f"engine: {args.engine}  cache: {CANONICAL_CACHE_DIR}  "
+          f"model: {args.model or MODEL}")
     rows: list[dict] = []
     counts = {"scenario": 0, "no_scenario": 0, "image_only": 0, "error": 0}
     t0 = time.monotonic()
@@ -183,12 +203,7 @@ def run(args) -> None:
         num2pid = dict(zip(slate.numero_cand, slate.politico_id))
         num2party = dict(zip(slate.numero_cand, slate.party))
         try:
-            r = extract_registered(
-                protocol=row.protocol, pdf_path=row.pdf_path,
-                slate_json=slate_json(slate), municipality=row.municipality,
-                uf=row.uf, client=client, model=args.model or MODEL,
-                reextract=args.reextract,
-            )
+            r = call(row, slate)
         except Exception as exc:  # noqa: BLE001 — log + continue over the batch
             counts["error"] += 1
             print(f"  ERR {row.protocol}: {exc!r}")
@@ -224,6 +239,8 @@ def run(args) -> None:
                 "n_filled": rec["n_filled"],
                 "n_missing": len(rec["missing"]),
                 "n_off_slate": len(rec["off_slate"]),
+                "pct_sum": rec["pct_sum"],
+                "suspect_sum": rec["suspect_sum"],
                 "extra_candidates": "; ".join(parsed.extra_candidates),
                 "extraction_notes": parsed.extraction_notes,
             })
@@ -234,7 +251,8 @@ def run(args) -> None:
     if not rows:
         print("No rows assembled.")
         return
-    out = BUILD_DIR / "llm" / f"poll_relatorio_registered_{args.year}.parquet"
+    stem = "poll_relatorio_vision" if args.engine == "vision" else "poll_relatorio_registered"
+    out = BUILD_DIR / "llm" / f"{stem}_{args.year}.parquet"
     out.parent.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(rows)
     df.to_parquet(out, index=False)
@@ -247,6 +265,8 @@ def run(args) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, choices=[2024], default=2024)
+    ap.add_argument("--engine", choices=["text", "vision"], default="text",
+                    help="text = pdftotext + LLM; vision = render page + vision LLM.")
     ap.add_argument("--model", default=None)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--reextract", action="store_true")
