@@ -67,6 +67,10 @@ from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
 
+from source.clean.poll_sponsor_route_e import (
+    SOCIO_PARQUET, load_slate_candidates, route_e_socio,
+)
+
 load_dotenv()
 
 BASE_DIR = Path(os.environ["BASE_DIR"])
@@ -280,6 +284,7 @@ def route_a_cpf(sponsor: pd.DataFrame, cands: pd.DataFrame) -> pd.DataFrame:
     j = s.merge(
         cands, left_on=["sponsor_id", "muni_id"],
         right_on=["cand_cpf", "muni_id"], how="inner",
+        validate="many_to_many",   # cands not round-deduped; a CPF may sponsor many polls
     )
     j["sponsor_route"] = "cpf"
     j["sponsor_candidate_name_parsed"] = pd.NA
@@ -326,6 +331,7 @@ def route_b_committee(
     j = prefeito.merge(
         cands, left_on=["parsed_norm", "muni_id"],
         right_on=["politico_norm", "muni_id"], how="left",
+        validate="many_to_many",
     )
     j["sponsor_route"] = "committee"
 
@@ -383,15 +389,16 @@ def route_c_party_cnpj(
 
     s = s.merge(
         already_matched_keys, on=["protocol", "role", "sponsor_idx"],
-        how="left", indicator=True,
+        how="left", indicator=True, validate="many_to_one",
     )
     s = s[s["_merge"] == "left_only"].drop(columns="_merge")
 
     s = s.merge(party_lu, left_on="sponsor_id", right_on="cnpj", how="inner",
-                suffixes=("", "_dir"))
+                suffixes=("", "_dir"), validate="many_to_many")
     j = s.merge(
         cands, left_on=["party", "muni_id"],
         right_on=["cand_party", "muni_id"], how="inner",
+        validate="many_to_many",
     )
     j["sponsor_route"] = "party"
     j["sponsor_candidate_name_parsed"] = pd.NA
@@ -471,7 +478,7 @@ def route_d_party_name(
 
     s = s.merge(
         already_matched_keys, on=["protocol", "role", "sponsor_idx"],
-        how="left", indicator=True,
+        how="left", indicator=True, validate="many_to_one",
     )
     s = s[s["_merge"] == "left_only"].drop(columns="_merge")
 
@@ -487,6 +494,7 @@ def route_d_party_name(
     j = s.merge(
         cands, left_on=["parsed_party", "muni_id"],
         right_on=["cand_party", "muni_id"], how="inner",
+        validate="many_to_many",
     )
     j["sponsor_route"] = "party_name"
     j["sponsor_candidate_name_parsed"] = pd.NA
@@ -555,12 +563,28 @@ def clean_year(year: int) -> None:
     print(f"Route D (party name→PREFEITO): {len(d):,} sponsor rows matched "
           f"({d['protocol'].nunique():,} protocols)")
 
-    # ── Reassemble full long table: A+B+C+D + untagged residue ──────
-    matched = pd.concat([a, b, c, d], ignore_index=True)
+    # ── Route E (firm-ownership sócio) ──────────────────────────────
+    abcd_keys = pd.concat([a, b, c, d], ignore_index=True)[
+        ["protocol", "role", "sponsor_idx"]
+    ].drop_duplicates()
+    e = pd.DataFrame()
+    if year in SOCIO_PARQUET and SOCIO_PARQUET[year].exists():
+        slate = load_slate_candidates(year)
+        socio = pd.read_parquet(
+            SOCIO_PARQUET[year],
+            columns=["cnpj", "nome_socio", "cpf_cnpj_socio", "data_entrada"])
+        e = route_e_socio(sponsor, slate, socio, abcd_keys, year)
+        print(f"Route E (sócio firm-ownership): {len(e):,} sponsor rows matched "
+              f"({e['protocol'].nunique():,} protocols)")
+    else:
+        print(f"Route E: skipped (no sócio snapshot for {year})")
+
+    # ── Reassemble full long table: A+B+C+D+E + untagged residue ────
+    matched = pd.concat([a, b, c, d, e], ignore_index=True)
     matched_keys = matched[["protocol", "role", "sponsor_idx"]].drop_duplicates()
     unmatched = sponsor.merge(
         matched_keys, on=["protocol", "role", "sponsor_idx"],
-        how="left", indicator=True,
+        how="left", indicator=True, validate="many_to_one",
     )
     unmatched = unmatched[unmatched["_merge"] == "left_only"].drop(columns="_merge").copy()
     for col in ["sponsor_route", "sponsor_candidate_name_parsed", "committee_office",
@@ -602,7 +626,8 @@ def clean_year(year: int) -> None:
         ["muni_id", "sponsor_candidate_politico_id"]
     )["protocol"].nunique().rename("self_polls")
     race_polls = race_protocols.groupby("muni_id")["protocol"].nunique().rename("race_polls")
-    cand_race = self_count.reset_index().merge(race_polls.reset_index(), on="muni_id")
+    cand_race = self_count.reset_index().merge(
+        race_polls.reset_index(), on="muni_id", validate="many_to_one")
     cand_race["other_polls"] = cand_race["race_polls"] - cand_race["self_polls"]
     cand_race["has_both"] = (cand_race["self_polls"] >= 1) & (cand_race["other_polls"] >= 1)
 
@@ -620,7 +645,7 @@ def clean_year(year: int) -> None:
         ["muni_id", "sponsor_candidate_politico_id"]
     )["protocol"].nunique()
     a_cand_race = a_self_count.reset_index(name="self_polls").merge(
-        race_polls.reset_index(), on="muni_id",
+        race_polls.reset_index(), on="muni_id", validate="many_to_one",
     )
     a_cand_race["other_polls"] = a_cand_race["race_polls"] - a_cand_race["self_polls"]
     print(f"\nRoute A alone:")
