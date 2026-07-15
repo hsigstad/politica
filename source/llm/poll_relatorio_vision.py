@@ -40,7 +40,6 @@ from dotenv import load_dotenv
 from llmkit.cache import text_hash
 from llmkit.extract import _validate
 
-from poll_relatorio import pdf_to_text  # reuse (pdftotext -layout)
 from schemas_registered import PollRelatorioRegistered
 
 load_dotenv(os.environ.get("DOTENV_PATH", "/workspace/pipelines/politica/.env"))
@@ -51,6 +50,9 @@ PROMPT_DIR = HERE / "prompts"
 MODEL = "gpt-4o-mini"
 DPI = 200
 MAX_PAGES = 2                # cap images sent per poll (cost + focus)
+IMAGE_ONLY_MAX_PAGES = 5     # image-only PDFs: no text to locate the page,
+                            # so render the first few pages and let vision find it
+IMAGE_ONLY_TEXT_CHARS = 200  # below this total pdftotext yield → treat as scanned
 CACHE_DIR = BASE_DIR / "build" / "llm" / "poll_relatorio_vision"
 
 SYSTEM_PROMPT = (PROMPT_DIR / "poll_relatorio_vision_system.txt").read_text(encoding="utf-8")
@@ -68,6 +70,23 @@ def _page_text(pdf_path: Path, page: int) -> str:
         return out.stdout
     except (subprocess.SubprocessError, OSError):
         return ""
+
+
+def _is_image_only(pdf_path: Path) -> bool:
+    """True when pdftotext recovers almost no text from the whole PDF — a
+    scanned/image-only relatório the text page-finder cannot locate a
+    scenario in. Few but nonrandom; vision reads them directly off the
+    rendered pages. NB: on some scanned PDFs pdftotext exits non-zero
+    rather than returning empty text — that counts as image-only too, so
+    we run it directly (no check=True) and treat any failure as scanned."""
+    try:
+        out = subprocess.run(
+            ["pdftotext", "-layout", str(pdf_path), "-"],
+            capture_output=True, text=True, timeout=60,
+        )
+        return len(out.stdout.strip()) < IMAGE_ONLY_TEXT_CHARS
+    except (subprocess.SubprocessError, OSError):
+        return True
 
 
 def _n_pages(pdf_path: Path) -> int:
@@ -200,6 +219,11 @@ def extract_vision(
     reextract: bool = False,
 ) -> Optional[VisionResult]:
     pages = find_estimulada_pages(pdf_path)
+    if not pages and _is_image_only(pdf_path):
+        # Scanned/image-only PDF: no text to locate the scenario, so render
+        # the first few pages and let vision find the estimulada result.
+        n = _n_pages(pdf_path)
+        pages = list(range(1, min(n, IMAGE_ONLY_MAX_PAGES) + 1))
     if not pages:
         return None
     try:
