@@ -535,6 +535,18 @@ def string_from_date(date):
 
 
 def merge_in_candidates(results, candidates, year):
+    # NB: this outer join does NOT create spurious duplicate rows. It looks
+    # like it does if you key the output on (year, SQ_CANDIDATO, round): that
+    # flags ~1.1M "dups" in pre-2012 proportional-office (VEREADOR/DEPUTADO)
+    # data. But SQ_CANDIDATO is a per-município code before ~2012 (reused
+    # across thousands of munis — ~3,111 distinct values for ~385k rows in
+    # 2000), so (year, SQ, round) collides across DISTINCT real candidacies
+    # (a single key can cover >1,800 different people). Those are correct
+    # rows, not merge artifacts — verified 2026-07-15, every row in the big
+    # SQ groups has a distinct politico_id/muni/votes. The global candidacy
+    # key is politico_id (or SQ_CANDIDATO + municipio_id for old years). This
+    # corrects the "outer-join dup" NB in commit 0965d58. See data_catalog
+    # _annotations/relationships/identifiers.yaml -> sq_candidato.
     if year == '2000':
         merge_vars = ['district', 'office', 'NUMERO_CAND', 'politico']
         results.drop(columns=['SQ_CANDIDATO'], inplace=True)
