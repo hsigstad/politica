@@ -10,3 +10,6 @@ build/
 sconstruct.log
 user-config.yaml
 .env
+
+# Raw data staged locally (move to DATA_DIR + bi-dropbox later)
+/data/
