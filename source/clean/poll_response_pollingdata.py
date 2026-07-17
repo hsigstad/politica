@@ -46,7 +46,8 @@ def main() -> None:
     df["pct"] = pd.to_numeric(df["pct"], errors="coerce")
     df["sample_size"] = pd.to_numeric(df["sample_size"], errors="coerce")
     df["institute"] = df["institute_raw"].astype("string").str.strip().str.upper()
-    df["turno"] = df["turno"].astype("string").str.extract(r"([12])", expand=False)
+    # turno from the URL (authoritative: /…/tN); single-round races (senate) → 1
+    df["turno"] = df["url"].astype("string").str.extract(r"/[^/]*t([12])", expand=False).fillna("1")
     df["is_aggregate"] = df["candidate"].astype("string").str.strip().str.upper().isin(AGGREGATE_LABELS)
 
     # share among "real" (non-aggregate) candidates within a poll×scenario

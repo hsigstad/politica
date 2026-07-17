@@ -93,7 +93,8 @@ def parse_index(html: str) -> pd.DataFrame:
                     "office": (office.group(0).lower() if office else ""),
                     "cargo_raw": cargo,
                     "uf": _strip(data.get("Team", [""] * n)[i]),
-                    "turno": _strip(data.get("SoS_rating", [""] * n)[i]).split()[0] if data.get("SoS_rating") else "",
+                    "turno": (re.search(r"\d", _strip(data.get("SoS_rating", [""] * n)[i])) or [""])[0]
+                    if data.get("SoS_rating") else "",
                     "url": url.group(0) if url else None,
                 })
             return pd.DataFrame(rows).dropna(subset=["url"]).drop_duplicates("url")
