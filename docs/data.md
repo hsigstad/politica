@@ -18,6 +18,23 @@
 - `build/clean/receita.txt` — campaign revenue data (completion flag)
 - `build/clean/eleicao.csv` — election results
 
+### Campaign-finance coverage (receita / despesa)
+
+- **receita** (`source/clean/receita.py` → `build/clean/receita_{year}.csv`):
+  candidate donations for **2004, 2008, 2010, 2012, 2014, 2016, 2018, 2020,
+  2022, 2024**. Column names are harmonized across three schema eras in
+  `get_cols()`. 2010 has no consolidated national file, so all
+  `candidato/{UF}/` partitions are concatenated.
+- **despesa** (`despesa_contratada.py`, `despesa_paga.py` →
+  `build/clean/despesa_{contratada,paga}.csv`): candidate expenditures for
+  **2018, 2020, 2022, 2024**. Only the post-2018 schema carries the
+  contratada/paga split; each despesa row is tagged with CPF/`SQ_CANDIDATO`
+  via a `SQ_PRESTADOR_CONTAS` merge to that year's receita file.
+- **Not covered (by design, 2026-07-17):** 2002 & 2006 receita (no candidate
+  CPF in-file; would need a `consulta_cand` name/number recovery merge), and
+  the pre-2018 single-file despesa schema (2002/2004/2006/2008/2010/2012/2014/2016
+  — never had a cleaner).
+
 ### `politico_id` — cross-cycle person identifier
 
 `politico_id` is the unified person key used across `candidato.csv` and
