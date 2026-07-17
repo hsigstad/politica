@@ -150,18 +150,18 @@ def add_cpf_2004(df):
 
 
 def add_cpf_via_sq_ue(df, year, sq_col, ue_col):
-    """Recover candidate CPF for the 2002/2006 general cycles, whose receita
-    files carry no candidate CPF (only a committee CNPJ), by joining to
-    consulta_cand on (SQ_CANDIDATO, electoral unit).
+    """Recover candidate CPF for cycles whose finance files carry no candidate
+    CPF (only a committee CNPJ), by joining consulta_cand on (SQ_CANDIDATO,
+    electoral unit). Used by receita (2002/2006) and despesa (2002/2006/2008).
 
     REASONING: (SQ_CANDIDATO, SG_UE) uniquely determines the candidate within a
-    year (0 conflicting CPFs in consulta_cand for 2002/2006) and matches ~98-99%
-    of receita rows — cleaner than the name-based key add_cpf_2004 uses, which
+    year (0 conflicting CPFs in consulta_cand for 2002/2006/2008) and matches
+    ~98-99% of rows — cleaner than the name-based key add_cpf_2004 uses, which
     is noisy from spelling/encoding. SQ_CANDIDATO ALONE is NOT unique pre-2012
     (reused per electoral unit), so the UE qualifier is required.
     ASSUMES: consulta_cand_{year}_BRASIL.csv has one CPF per (SQ_CANDIDATO,
-    SG_UE); the receita unit column (SG_UF in 2002, UNIDADE_ELEITORAL_CANDIDATO
-    in 2006) is the same electoral unit as consulta_cand's SG_UE.
+    SG_UE); the caller's unit column (e.g. SG_UF in 2002, SG_UE in 2008,
+    UNIDADE_ELEITORAL_CANDIDATO in 2006) is the same electoral unit as SG_UE.
     """
     cand = pd.read_csv(
         os.path.join(path.data_dir,
@@ -169,18 +169,19 @@ def add_cpf_via_sq_ue(df, year, sq_col, ue_col):
         encoding='latin1', sep=';',
         dtype={'NR_CPF_CANDIDATO': str, 'SQ_CANDIDATO': str},
     )
+    # Temp key names so the join columns never collide with the caller's own
+    # columns (e.g. 2008 despesa already has SG_UE); only NR_CPF_CANDIDATO stays.
     xwalk = (
         cand[['SQ_CANDIDATO', 'SG_UE', 'NR_CPF_CANDIDATO']]
         .dropna(subset=['SQ_CANDIDATO', 'SG_UE'])
         .drop_duplicates(['SQ_CANDIDATO', 'SG_UE'])
+        .rename(columns={'SQ_CANDIDATO': '_xw_sq', 'SG_UE': '_xw_ue'})
     )
     out = df.merge(
         xwalk, how='left', validate='m:1',
-        left_on=[sq_col, ue_col], right_on=['SQ_CANDIDATO', 'SG_UE'],
+        left_on=[sq_col, ue_col], right_on=['_xw_sq', '_xw_ue'],
     )
-    # Drop the crosswalk's join columns so they don't collide with the
-    # receita SEQUENCIAL_CANDIDATO/UE columns when get_cols() renames them.
-    return out.drop(columns=['SQ_CANDIDATO', 'SG_UE'])
+    return out.drop(columns=['_xw_sq', '_xw_ue'])
 
 
 if __name__ == '__main__':

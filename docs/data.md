@@ -33,12 +33,14 @@
     Each row is tagged with CPF/`SQ_CANDIDATO` via a `SQ_PRESTADOR_CONTAS` merge
     to that year's receita file.
   - Pre-2018 single despesa file (`despesa.py` →
-    `build/clean/despesa_{year}.csv`): general cycles **2002, 2006, 2010, 2014**.
-    Reuses `receita.add_cpf_via_sq_ue` for 2002/2006 (2010/2014 carry CPF
-    in-file). Per-year totals track the matching receita totals (in ≈ out).
-- **Not covered (by design):** the pre-2018 single-file despesa for the
-  *municipal* cycles 2004/2008/2012/2016 (no downstream consumer; add their
-  paths to `despesa.py`'s `infiles` to include them).
+    `build/clean/despesa_{year}.csv`): **2002, 2004, 2006, 2008, 2010, 2012,
+    2014**. CPF recovery by schema: name-based `add_cpf_2004` for 2004; the
+    `(SQ_CANDIDATO, SG_UE)` `add_cpf_via_sq_ue` for 2002/2006/2008; 2010/2012/2014
+    carry CPF in-file. Per-year totals track the matching receita totals (in ≈ out).
+- **Not covered:** 2016 despesa — every `despesas_candidatos_2016` file on disk
+  is header-only (empty) and the shared mirror has no 2016 folder; re-download
+  from TSE to include it (2016 receita is intact). A `len(df)==0` guard in
+  `despesa.py` skips empty inputs so this never produces a silent 0-row output.
 
 ### `politico_id` — cross-cycle person identifier
 
