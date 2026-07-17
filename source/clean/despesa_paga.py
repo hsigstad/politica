@@ -1,3 +1,11 @@
+# INTENT: Build build/clean/despesa_paga.csv — candidate "paid" campaign
+# expenditures, one row per despesa, tagged with the candidate's CPF and
+# SQ_CANDIDATO recovered from the matching receita file.
+# SOURCE: TSE prestação-de-contas BRASIL files (despesas_pagas_candidatos +
+# receitas_candidatos) under $DATA_DIR/TSE/{year}/. Only the post-2018 schema
+# carries the contratada/paga split, so this covers 2018 onward.
+# ASSUMES: SQ_PRESTADOR_CONTAS is unique per (candidate) in the deduped receita,
+# so the despesa→receita join is many-to-one (validated below).
 import path
 import pandas as pd
 import os
@@ -27,7 +35,8 @@ def clean_year(year):
         despesa = despesa.rename(columns={'AA_ELEICAO': 'ANO_ELEICAO'})
     return despesa
 
-years = [2020, 2024]
+# General cycles 2018/2022 added 2026-07-17; they share the post-2018 schema.
+years = [2018, 2020, 2022, 2024]
 
 df = pd.concat(map(clean_year, years))
 

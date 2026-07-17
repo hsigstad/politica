@@ -1,3 +1,12 @@
+# INTENT: Harmonize TSE candidate campaign-donation ("receita") records into
+# one cleaned file per election year (build/clean/receita_{year}.csv), mapping
+# each era's idiosyncratic column names onto a shared vocabulary.
+# SOURCE: TSE prestação-de-contas BRASIL/BR national receita files under
+# $DATA_DIR/TSE/{year}/ (see infiles below). Covers both municipal cycles
+# (2004/2008/2012/2016/2020/2024) and general cycles (2010/2014/2018/2022).
+# ASSUMES: the first /{4-digit}/ component of each path is the election year;
+# amounts use a comma decimal separator; column headers vary by era and are
+# reconciled via get_cols().
 import path
 import pandas as pd
 import re
@@ -7,21 +16,26 @@ from diarios.clean import clean_cpf
 
 
 def clean_file(infile):
-    print(infile)
+    # infile is a single path, or a list of same-year paths to concatenate.
+    # 2010 has no consolidated national file: candidato/{UF}/ReceitasCandidatos.txt
+    # partitions by electoral unit (BR = president/federal), so all UFs are read.
+    files = [infile] if isinstance(infile, str) else list(infile)
+    print(files[0] if len(files) == 1 else f'{files[0]} (+{len(files) - 1} more)')
     encoding = 'latin-1'
     sep = ';'
-    df = pd.read_csv(infile,
-                     encoding=encoding,
-                     sep=sep,
-                     dtype={
-                         'Sequencial Candidato': str,
-                         'CPF do candidato': str,
-                         'CPF/CNPJ do doador': str,
-                         'CD_NUM_CPF': str,
-                         'NR_CPF_CANDIDATO': str,
-                         'CD_CPF_CGC_DOA': str,
-                     })
-    year = re.search('/([0-9]{4})/', infile).group(1)
+    dtype = {
+        'Sequencial Candidato': str,
+        'CPF do candidato': str,
+        'CPF/CNPJ do doador': str,
+        'CD_NUM_CPF': str,
+        'NR_CPF_CANDIDATO': str,
+        'CD_CPF_CGC_DOA': str,
+    }
+    df = pd.concat(
+        [pd.read_csv(f, encoding=encoding, sep=sep, dtype=dtype) for f in files],
+        ignore_index=True,
+    )
+    year = re.search('/([0-9]{4})/', files[0]).group(1)
     if year == "2004":
         df = add_cpf_2004(df)
     cols = get_cols()
@@ -91,6 +105,10 @@ def get_cols():
         'SG_UE_SUP': 'estado',
         'RTRIM(LTRIM(DR.DS_TITULO))': 'tipo_receita',
         'CD_CPF_CGC_DOA': 'doador_documento',
+        # Accented header variants (2010 general-cycle ReceitasCandidatos.txt).
+        'Número candidato': 'NUMERO_CAND',
+        'Espécie recurso': 'especie_recurso',
+        'Descrição da receita': 'descricao_receita',
     }
 
 
@@ -120,15 +138,28 @@ if __name__ == '__main__':
     ]
 
     infiles = [
+        # Municipal cycles.
         f'{path.data_dir}/TSE/2004/prestacao_contas_final/Candidato/Receita/ReceitaCandidato.csv',
         f'{path.data_dir}/TSE/2008/prestacao_contas_final/receitas_candidatos_2008_brasil.csv',
         f'{path.data_dir}/TSE/2012/prestacao_contas_final/receitas_candidatos_2012_brasil.txt',
         f'{path.data_dir}/TSE/2016/prestacao_contas_final/receitas_candidatos_prestacao_contas_final_2016_brasil.txt',
         f'{path.data_dir}/TSE/2020/prestacao_contas_final/receitas_candidatos_2020_BRASIL.csv',
         f'{path.data_dir}/TSE/2024/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2024_BRASIL.csv',
+        # General cycles (added 2026-07-17). 2010 has no consolidated file, so
+        # concatenate every UF partition (candidato/{UF}/, incl. BR); 2014 keeps
+        # a national ..._brasil.txt; 2018/2022 use the new
+        # prestacao_de_contas_eleitorais schema (as 2020/2024).
+        sorted(glob(f'{path.data_dir}/TSE/2010/prestacao_contas/candidato/*/ReceitasCandidatos.txt')),
+        f'{path.data_dir}/TSE/2014/prestacao_contas/receitas_candidatos_2014_brasil.txt',
+        f'{path.data_dir}/TSE/2018/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2018_BRASIL.csv',
+        f'{path.data_dir}/TSE/2022/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2022_BRASIL.csv',
     ]
 
-    df = pd.concat(map(clean_file, infiles))
+    # clean_file writes build/clean/receita_{year}.csv per file; iterate rather
+    # than concatenating (the combined frame was unused and would hold every
+    # year in memory at once).
+    for infile in infiles:
+        clean_file(infile)
 
     with open('build/clean/receita.txt', 'w') as f:
         f.write('Done')
