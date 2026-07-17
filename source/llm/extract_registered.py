@@ -30,8 +30,8 @@ ASSUMES.
 
 Usage:
     # Dry run — build slates, report PDF+slate coverage, NO API calls:
-    BASE_DIR=/workspace/pipelines/politica \
-    PYTHONPATH=/workspace/packages/llmkit:/workspace/pipelines/politica/source/llm \
+    BASE_DIR=/path/to/politica \
+    PYTHONPATH=/path/to/llmkit:/path/to/politica/source/llm \
       python source/llm/extract_registered.py --year 2024 --dry-run --limit 20
 
     # Live smoke test on a few PDFs (real API):

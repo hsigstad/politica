@@ -20,7 +20,7 @@ matched administrative point) is carried as a geocode-quality proxy.
 
 ASSUMES.
   - Raw staged at data/geocode_br_polling_stations/geocoded_polling_stations.csv.gz
-    (gitignored; move to $DATA_DIR + bi-dropbox later — override with
+    (gitignored; move to $DATA_DIR later — override with
     LOCAL_VOTACAO_RAW). One row per (cd_localidade_tse, ano, nr_zona,
     nr_locvot); verified unique on those keys.
   - `cd_localidade_tse` is the TSE município code (== municipio_id used by

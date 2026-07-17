@@ -141,8 +141,8 @@ The 2024 mayoral poll registration universe is **14,876 protocols** (per-UF
 `pesquisa_eleitoral_2024_*.csv`). Coverage at each step:
 
 **Scrape (`source/scrape/tse_relatorio.py`):** the canonical complete
-PDF set (all 11,372) is archived on Dropbox at
-`bi-dropbox:data/TSE/2024/pesquisa_eleitoral/relatorios/` (per-UF
+PDF set (all 11,372) is archived on the project's shared Dropbox under
+`data/TSE/2024/pesquisa_eleitoral/relatorios/` (per-UF
 `.tar.zst` + `_logs.tar.zst` with the `_runlog.jsonl`). The local
 `build/scrape/tse_relatorio/2024/` dir is a partial working copy and may
 hold fewer — pull from Dropbox when you need the full set. Counts below

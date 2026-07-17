@@ -42,7 +42,8 @@ from llmkit.extract import _validate
 
 from schemas_registered import PollRelatorioRegistered
 
-load_dotenv(os.environ.get("DOTENV_PATH", "/workspace/pipelines/politica/.env"))
+_default_dotenv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".env")
+load_dotenv(os.environ.get("DOTENV_PATH", _default_dotenv))
 
 BASE_DIR = Path(os.environ["BASE_DIR"])
 HERE = Path(__file__).resolve().parent
