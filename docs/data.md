@@ -21,19 +21,24 @@
 ### Campaign-finance coverage (receita / despesa)
 
 - **receita** (`source/clean/receita.py` → `build/clean/receita_{year}.csv`):
-  candidate donations for **2004, 2008, 2010, 2012, 2014, 2016, 2018, 2020,
-  2022, 2024**. Column names are harmonized across three schema eras in
-  `get_cols()`. 2010 has no consolidated national file, so all
-  `candidato/{UF}/` partitions are concatenated.
-- **despesa** (`despesa_contratada.py`, `despesa_paga.py` →
-  `build/clean/despesa_{contratada,paga}.csv`): candidate expenditures for
-  **2018, 2020, 2022, 2024**. Only the post-2018 schema carries the
-  contratada/paga split; each despesa row is tagged with CPF/`SQ_CANDIDATO`
-  via a `SQ_PRESTADOR_CONTAS` merge to that year's receita file.
-- **Not covered (by design, 2026-07-17):** 2002 & 2006 receita (no candidate
-  CPF in-file; would need a `consulta_cand` name/number recovery merge), and
-  the pre-2018 single-file despesa schema (2002/2004/2006/2008/2010/2012/2014/2016
-  — never had a cleaner).
+  candidate donations for **all cycles 2002–2024**. Column names are harmonized
+  across schema eras in `get_cols()`. 2010 has no consolidated national file, so
+  all `candidato/{UF}/` partitions are concatenated. 2002 & 2006 carry no
+  candidate CPF in-file (only a committee CNPJ); CPF is recovered by joining
+  `consulta_cand` on `(SQ_CANDIDATO, SG_UE)` — see `add_cpf_via_sq_ue` (~99%
+  match; SQ alone is not unique pre-2012, so the electoral unit is required).
+- **despesa** — two families by schema era:
+  - Post-2018 contratada/paga split (`despesa_contratada.py`, `despesa_paga.py`
+    → `build/clean/despesa_{contratada,paga}.csv`): **2018, 2020, 2022, 2024**.
+    Each row is tagged with CPF/`SQ_CANDIDATO` via a `SQ_PRESTADOR_CONTAS` merge
+    to that year's receita file.
+  - Pre-2018 single despesa file (`despesa.py` →
+    `build/clean/despesa_{year}.csv`): general cycles **2002, 2006, 2010, 2014**.
+    Reuses `receita.add_cpf_via_sq_ue` for 2002/2006 (2010/2014 carry CPF
+    in-file). Per-year totals track the matching receita totals (in ≈ out).
+- **Not covered (by design):** the pre-2018 single-file despesa for the
+  *municipal* cycles 2004/2008/2012/2016 (no downstream consumer; add their
+  paths to `despesa.py`'s `infiles` to include them).
 
 ### `politico_id` — cross-cycle person identifier
 
