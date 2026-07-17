@@ -34,16 +34,13 @@
     to that year's receita file.
   - Pre-2018 single despesa file (`despesa.py` →
     `build/clean/despesa_{year}.csv`): **2002, 2004, 2006, 2008, 2010, 2012,
-    2014**. CPF recovery by schema: name-based `add_cpf_2004` for 2004; the
-    `(SQ_CANDIDATO, SG_UE)` `add_cpf_via_sq_ue` for 2002/2006/2008; 2010/2012/2014
-    carry CPF in-file. Per-year totals track the matching receita totals (in ≈ out).
-- **Pending data:** 2016 despesa is wired into `despesa.py`'s `infiles` but its
-  source files on disk are header-only (empty; 2016 receita is intact, so this
-  is a download gap, not a TSE-side one). A `len(df)==0` guard skips it — no
-  silent 0-row output — until the real `despesas_candidatos_2016` files are
-  re-fetched from TSE (`prestacao_contas_final_2016.zip` on the dados-abertos
-  CDN) and dropped into `$DATA_DIR/TSE/2016/prestacao_contas_final/`; then it
-  builds automatically (2016 carries CPF in-file, like 2012).
+    2014, 2016** (all pre-2018 cycles). CPF recovery by schema: name-based
+    `add_cpf_2004` for 2004; the `(SQ_CANDIDATO, SG_UE)` `add_cpf_via_sq_ue` for
+    2002/2006/2008; 2010/2012/2014/2016 carry CPF in-file. Per-year totals track
+    the matching receita totals (in ≈ out). 2016's despesas were re-fetched from
+    TSE (`prestacao_contas_final_2016.zip`) on 2026-07-17 — the earlier snapshot
+    had header-only despesa files. A `len(df)==0` guard in `despesa.py` skips any
+    header-only source rather than writing a silent 0-row output.
 
 ### `politico_id` — cross-cycle person identifier
 
