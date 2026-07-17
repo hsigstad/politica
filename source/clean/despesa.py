@@ -135,14 +135,16 @@ if __name__ == '__main__':
         sorted(glob(f'{path.data_dir}/TSE/2010/prestacao_contas/candidato/*/DespesasCandidatos.txt')),
         f'{path.data_dir}/TSE/2014/prestacao_contas/despesas_candidatos_2014_brasil.txt',
         # Municipal cycles (same pre-2018 schema). 2004 lacks CPF+SQ (name-based
-        # recovery); 2008 lacks CPF but has SQ ((SQ, SG_UE) recovery); 2012
-        # carries "CPF do candidato" in-file.
+        # recovery); 2008 lacks CPF but has SQ ((SQ, SG_UE) recovery); 2012/2016
+        # carry "CPF do candidato" in-file.
         f'{path.data_dir}/TSE/2004/prestacao_contas_final/Candidato/Despesa/DespesaCandidato.csv',
         f'{path.data_dir}/TSE/2008/prestacao_contas_final/despesas_candidatos_2008_brasil.csv',
         f'{path.data_dir}/TSE/2012/prestacao_contas_final/despesas_candidatos_2012_brasil.txt',
-        # 2016 candidate despesa is unavailable — every despesas_candidatos_2016
-        # file on disk is header-only (493 B) and the shared mirror has no 2016
-        # folder. Re-download from TSE to include it (receita 2016 is intact).
+        # 2016 candidate despesa files on disk are currently header-only (the
+        # download's despesas were empty; receita 2016 is intact). The len(df)==0
+        # guard in clean_file skips this until the real files are dropped in, so
+        # it just works once TSE's despesas_candidatos_2016 are re-fetched.
+        f'{path.data_dir}/TSE/2016/prestacao_contas_final/despesas_candidatos_prestacao_contas_final_2016_brasil.txt',
     ]
     for infile in infiles:
         clean_file(infile)
