@@ -30,6 +30,9 @@ def clean_file(infile):
         'CD_NUM_CPF': str,
         'NR_CPF_CANDIDATO': str,
         'CD_CPF_CGC_DOA': str,
+        # 2002/2006 candidate-sequence columns — keep as strings so the
+        # (SQ, UE) CPF-recovery merge matches consulta_cand (also read as str).
+        'SEQUENCIAL_CANDIDATO': str,
     }
     df = pd.concat(
         [pd.read_csv(f, encoding=encoding, sep=sep, dtype=dtype) for f in files],
@@ -38,6 +41,10 @@ def clean_file(infile):
     year = re.search('/([0-9]{4})/', files[0]).group(1)
     if year == "2004":
         df = add_cpf_2004(df)
+    elif year == "2002":
+        df = add_cpf_via_sq_ue(df, 2002, 'SEQUENCIAL_CANDIDATO', 'SG_UF')
+    elif year == "2006":
+        df = add_cpf_via_sq_ue(df, 2006, 'SEQUENCIAL_CANDIDATO', 'UNIDADE_ELEITORAL_CANDIDATO')
     cols = get_cols()
     df = df.rename(columns=cols)
     new_cols = list(set(df.columns).intersection(cols.values()))
@@ -109,6 +116,19 @@ def get_cols():
         'Número candidato': 'NUMERO_CAND',
         'Espécie recurso': 'especie_recurso',
         'Descrição da receita': 'descricao_receita',
+        # 2002 general-cycle ReceitaCandidato.csv (no candidate CPF in-file).
+        'CD_CPF_CGC': 'doador_documento',
+        'NO_DOADOR': 'doador_nome',
+        'TP_RECURSO': 'especie_recurso',
+        # 2006 general-cycle ReceitaCandidato.csv (Portuguese-uppercase headers).
+        'VALOR_RECEITA': 'valor_receita',
+        'DATA_RECEITA': 'data_receita',
+        'TIPO_RECEITA': 'tipo_receita',
+        'NOME_DOADOR': 'doador_nome',
+        'NUMERO_CPF_CGC_DOADOR': 'doador_documento',
+        'NUMERO_CANDIDATO': 'NUMERO_CAND',
+        'UNIDADE_ELEITORAL_CANDIDATO': 'estado',
+        'DESCRICAO_TIPO_RECURSO': 'especie_recurso',
     }
 
 
@@ -129,6 +149,40 @@ def add_cpf_2004(df):
     return out
 
 
+def add_cpf_via_sq_ue(df, year, sq_col, ue_col):
+    """Recover candidate CPF for the 2002/2006 general cycles, whose receita
+    files carry no candidate CPF (only a committee CNPJ), by joining to
+    consulta_cand on (SQ_CANDIDATO, electoral unit).
+
+    REASONING: (SQ_CANDIDATO, SG_UE) uniquely determines the candidate within a
+    year (0 conflicting CPFs in consulta_cand for 2002/2006) and matches ~98-99%
+    of receita rows — cleaner than the name-based key add_cpf_2004 uses, which
+    is noisy from spelling/encoding. SQ_CANDIDATO ALONE is NOT unique pre-2012
+    (reused per electoral unit), so the UE qualifier is required.
+    ASSUMES: consulta_cand_{year}_BRASIL.csv has one CPF per (SQ_CANDIDATO,
+    SG_UE); the receita unit column (SG_UF in 2002, UNIDADE_ELEITORAL_CANDIDATO
+    in 2006) is the same electoral unit as consulta_cand's SG_UE.
+    """
+    cand = pd.read_csv(
+        os.path.join(path.data_dir,
+                     f'TSE/{year}/consulta_cand/consulta_cand_{year}_BRASIL.csv'),
+        encoding='latin1', sep=';',
+        dtype={'NR_CPF_CANDIDATO': str, 'SQ_CANDIDATO': str},
+    )
+    xwalk = (
+        cand[['SQ_CANDIDATO', 'SG_UE', 'NR_CPF_CANDIDATO']]
+        .dropna(subset=['SQ_CANDIDATO', 'SG_UE'])
+        .drop_duplicates(['SQ_CANDIDATO', 'SG_UE'])
+    )
+    out = df.merge(
+        xwalk, how='left', validate='m:1',
+        left_on=[sq_col, ue_col], right_on=['SQ_CANDIDATO', 'SG_UE'],
+    )
+    # Drop the crosswalk's join columns so they don't collide with the
+    # receita SEQUENCIAL_CANDIDATO/UE columns when get_cols() renames them.
+    return out.drop(columns=['SQ_CANDIDATO', 'SG_UE'])
+
+
 if __name__ == '__main__':
     infiles1 = [ # Does not have CPF of candidato (only name). Need to write code to merge cpf in
         os.path.join(
@@ -145,10 +199,13 @@ if __name__ == '__main__':
         f'{path.data_dir}/TSE/2016/prestacao_contas_final/receitas_candidatos_prestacao_contas_final_2016_brasil.txt',
         f'{path.data_dir}/TSE/2020/prestacao_contas_final/receitas_candidatos_2020_BRASIL.csv',
         f'{path.data_dir}/TSE/2024/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2024_BRASIL.csv',
-        # General cycles (added 2026-07-17). 2010 has no consolidated file, so
-        # concatenate every UF partition (candidato/{UF}/, incl. BR); 2014 keeps
-        # a national ..._brasil.txt; 2018/2022 use the new
+        # General cycles (added 2026-07-17). 2002/2006 carry no candidate CPF
+        # in-file (recovered via consulta_cand in clean_file); 2010 has no
+        # consolidated file, so concatenate every UF partition (candidato/{UF}/,
+        # incl. BR); 2014 keeps a national ..._brasil.txt; 2018/2022 use the new
         # prestacao_de_contas_eleitorais schema (as 2020/2024).
+        f'{path.data_dir}/TSE/2002/prestacao_contas/2002/Candidato/Receita/ReceitaCandidato.csv',
+        f'{path.data_dir}/TSE/2006/prestacao_contas/2006/Candidato/Receita/ReceitaCandidato.csv',
         sorted(glob(f'{path.data_dir}/TSE/2010/prestacao_contas/candidato/*/ReceitasCandidatos.txt')),
         f'{path.data_dir}/TSE/2014/prestacao_contas/receitas_candidatos_2014_brasil.txt',
         f'{path.data_dir}/TSE/2018/prestacao_de_contas_eleitorais_candidatos/receitas_candidatos_2018_BRASIL.csv',
