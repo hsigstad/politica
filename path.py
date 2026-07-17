@@ -53,3 +53,9 @@ tse_polls_2024_dir = build_scrape_dir / "tse_polls_2024"
 # once stable; single attribute keeps the migration one-line.
 pollingdata_dir = build_scrape_dir / "pollingdata"
 
+# pollingdata.com.br per-election poll archive, scraped by
+# source/scrape/pollingdata_acervo.py (one parquet per election). Covers
+# president/governor/senate/mayor across cycles — the vote-intention time
+# series behind each election's public archive page.
+pollingdata_acervo_dir = build_scrape_dir / "pollingdata_acervo"
+

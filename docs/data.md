@@ -168,3 +168,31 @@ AL 143→130, TO 318→275) are schema-validation drops at parquet-assembly
 time (the assembler silently drops entries that don't validate against
 `PollRelatorio`); the cache itself has them. Re-running the extractor
 on these UFs does not recover them — the prompt would have to be fixed.
+
+## Output: pollingdata.com.br poll archive (president / governor / senate)
+
+### Source
+- provider: pollingdata.com.br (public poll aggregator; static site)
+- scraper: `source/scrape/pollingdata_acervo.py` reads the master election
+  index, then for each election fetches the archive page → embedded data
+  widget and parses the per-poll reactable payload. One parquet per election
+  under `build/scrape/pollingdata_acervo/` (`_index.csv` lists all elections).
+- cleaner: `source/clean/poll_response_pollingdata.py` →
+  `build/clean/poll_response_pollingdata.parquet`.
+
+### Unit of observation
+- one row per (election, poll, scenario, candidate): the candidate's vote
+  intention. Aggregate rows ("Não Válido") kept and flagged (`is_aggregate`);
+  `pct_on_real` = share among non-aggregate candidates.
+
+### Key fields
+- `protocolo` — TSE registration number (e.g. `BR-05339/2022`); join key to the
+  TSE poll registry for sponsor / methodology.
+- `poll_date`, `institute` (+ `institute_raw`), `mode`, `sample_size`,
+  `cenario`, `candidate`, `party`, `pct`, `year`, `office`, `uf`, `turno`.
+
+### Coverage (initial pull, 2026-07)
+- president + governor, 2018 + 2022 = 135 elections, ~1.6k polls, 148 institutes
+  (Ipec, Paraná, Quaest, Ipespe, DataPoder360, Datafolha, Real Time, Atlas, …).
+- 2022 president alone: 823 polls (national + 27 states), 2019→Oct-2022.
+- Extend to senate / other cycles via the scraper's `--offices` / `--years` flags.
