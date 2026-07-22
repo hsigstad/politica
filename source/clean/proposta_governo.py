@@ -52,6 +52,10 @@ import pandas as pd
 
 import path
 
+# Malformed PDFs (common in scan-layer files) make MuPDF spew recoverable
+# "syntax error" lines to stderr; fitz still extracts. Silence the noise.
+fitz.TOOLS.mupdf_display_errors(False)
+
 RAW_DIR = Path(os.environ.get(
     "PROPOSTA_GOVERNO_RAW",
     path.build_clean_dir.parents[1] / "data" / "proposta_governo"))
