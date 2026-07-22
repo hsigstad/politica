@@ -83,6 +83,65 @@ per person, keeping first occurrence across all election years).
 applied. Politicians whose CPF is unavailable in one cycle and whose titulo
 changed between cycles will appear as separate persons.
 
+## Output: proposta de governo (candidate manifesto text)
+
+Full text of every mayoral candidate's *proposta de governo* — the
+government plan / manifesto that majoritarian candidates are legally
+required to file with their candidacy registration (Lei 9.504/1997 art. 11
+§1 IX). Among municipal offices only *prefeito* files one, so this table is
+implicitly mayor-only. Produced by `source/clean/proposta_governo.py`.
+
+### Location
+- `build/clean/proposta_governo.parquet` — one row per candidate plan.
+- `data/proposta_governo_ocr_cache/{basename}.txt` — per-PDF OCR cache
+  (gitignored; beside the raw data so a `build/` wipe does not force
+  re-OCR). Override with `PROPOSTA_GOVERNO_OCR_CACHE`.
+
+### Source
+- provider: TSE, Portal de Dados Abertos (`proposta_governo` dataset,
+  linked from the per-year candidatos dataset). Bulk per-UF zips at
+  `cdn.tse.jus.br/estatistica/sead/odsele/proposta_governo/proposta_governo_{YEAR}_{UF}.zip`.
+- staged (gitignored) at `data/proposta_governo/`; override with
+  `PROPOSTA_GOVERNO_RAW`. The TSE CDN is blocked from the sandbox — pull
+  the zips on a machine with open egress.
+- coverage: 2020 and 2024, 26 UFs per year (no DF — Brasília has no
+  prefeitura). Each zip holds `{UF}/{YEAR}{UF}{SQ}.pdf` (2020) or
+  `{YEAR}{UF}{SQ}_{NN}.pdf` (2024, `_NN` = document part), plus a
+  `LEIAME.pdf` readme that is skipped.
+
+### Unit of observation
+One row per **(year, estado, SQ_CANDIDATO)** — one plan per mayoral
+candidate. **32,992 plans** (17,432 in 2020, 15,560 in 2024) from 33,284
+source PDFs. The 151 candidates who split their plan across parts `_01`,
+`_02`, … (all 2024) are reassembled: text concatenated in sequence order,
+`n_docs` records how many parts. ~2,582 plans are image-only scans awaiting
+OCR (`text_source` contains `sparse`); the rest carry an embedded text
+layer.
+
+### Join key
+`SQ_CANDIDATO` (nullable Int64) joins `candidato.csv` for the same year.
+**Cast note:** `candidato.csv` stores `SQ_CANDIDATO` as float (e.g.
+`10000854328.0`); cast before merging —
+`candidato['SQ_CANDIDATO'].astype('Int64')`. Observed match rate ~99%; the
+residual are withdrawn / *indeferido* candidacies and candidato.csv vintage.
+
+### Columns
+- `year`, `estado` (UF), `SQ_CANDIDATO` — identity / join key.
+- `n_docs` — number of source PDFs reassembled (1 for all of 2020).
+- `n_pages`, `n_chars` — size of the plan.
+- `text_source` — where the final text came from: `embedded` (PDF text
+  layer), `ocr` / `ocr_cache` (image-only scan, tesseract `por`),
+  `embedded_sparse` (scan seen under `--no-ocr`, awaiting OCR), or `error`.
+  Multi-part plans mixing sources show e.g. `embedded+ocr`.
+- `extract_error`, `source_file` (`;`-joined for multi-part) — provenance.
+- `text` — the extracted plan text.
+
+### OCR
+Image-only scans (embedded text < 100 chars/page) are OCR'd in-process
+(PyMuPDF render → tesseract `por`, staged at `data/tessdata/`). OCR output
+is cached per PDF, so only unseen scans are OCR'd on a re-run; `--refresh-ocr`
+rewrites the cache, `--no-ocr` skips OCR for a fast text-only pass.
+
 ## Output: SQLite database
 
 ### Location
