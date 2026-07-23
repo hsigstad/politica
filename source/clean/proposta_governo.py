@@ -77,6 +77,8 @@ if "TESSDATA_PREFIX" not in os.environ and _LOCAL_TESSDATA.exists():
 # and sent to OCR.
 MIN_CHARS_PER_PAGE = 100
 OCR_DPI = 300
+# Cap the OCR render so a single huge embedded scan can't blow up memory/time.
+MAX_OCR_PIXELS = 30_000_000
 
 # `{YEAR}{UF}{SQ_CANDIDATO}.pdf` (2020) or with a document-sequence suffix
 # `{YEAR}{UF}{SQ}_{NN}.pdf` (2024, e.g. 2024AC10001885334_01.pdf). A few
@@ -100,13 +102,25 @@ def parse_member_name(member: str) -> dict | None:
 
 
 def _ocr_pdf(data: bytes) -> str:
-    """OCR every page of a PDF (bytes) with tesseract `por`."""
+    """OCR every page of a PDF (bytes) with tesseract `por`.
+
+    Renders at OCR_DPI but caps the pixmap at MAX_OCR_PIXELS: some scanned
+    plans embed a single enormous image (seen: 150 MP) that at 300 dpi
+    produces a gigantic bitmap — slow to OCR and tripping PIL's
+    decompression-bomb guard. For such pages we scale the dpi down so the
+    render stays bounded; text quality is unaffected at these sizes.
+    """
     import pytesseract
     from PIL import Image
+    Image.MAX_IMAGE_PIXELS = None  # we bound render size ourselves
     parts = []
     with fitz.open(stream=data, filetype="pdf") as doc:
         for pg in doc:
-            pix = pg.get_pixmap(dpi=OCR_DPI)
+            r = pg.rect
+            px = (r.width / 72 * OCR_DPI) * (r.height / 72 * OCR_DPI)
+            dpi = OCR_DPI if px <= MAX_OCR_PIXELS or px <= 0 else max(
+                72, int(OCR_DPI * (MAX_OCR_PIXELS / px) ** 0.5))
+            pix = pg.get_pixmap(dpi=dpi)
             img = Image.open(io.BytesIO(pix.tobytes("png")))
             parts.append(pytesseract.image_to_string(img, lang="por"))
     return "\n".join(parts)
