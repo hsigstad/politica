@@ -123,12 +123,22 @@ contains `sparse`; older cycles are scan-heavy — 2012: 4,532, 2016: 2,183,
 SQ_CANDIDATO)**. **Cast note:** `candidato.csv` stores `SQ_CANDIDATO` as float
 (e.g. `10000854328.0`); cast before merging —
 `candidato['SQ_CANDIDATO'].astype('Int64')`. Match rate by cycle: 2024 99.0%,
-2020 96.7%, 2016 94.5%, **2012 82.7%**. The residual are withdrawn /
-*indeferido* candidacies and candidato.csv vintage — **plus, for 2012, a
-known SQ-scheme boundary**: for a subset of 2012 the filename `SQ` is not
-`candidato`'s `SQ_CANDIDATO` (the pre-2012 per-município SQ era, before
-`SQ_CANDIDATO` became nationally unique). Treat 2012 joins with care; 2016+
-are clean.
+2020 96.7%, 2016 94.5%, **2012 82.7%** — degrading monotonically with age.
+
+**2012 join gap (diagnosed 2026-07-23).** The residual is a **TSE-side
+inconsistency** between the `proposta_governo` archive (compiled by TSE in
+2023) and the `consulta_cand` bulk that `candidato` is built from: ~17% of
+2012 filename-`SQ` exist in **no** `consulta_cand` 2012 record (any UF/office),
+and 2012 has ~1,435 more distinct proposta-`SQ` than there are prefeito
+candidates. It is **not** a per-município SQ collision (2012 `SQ` is
+município-unique here) and **not** fixable with a better join key — loosening
+to any-UF / any-office recovers ~nothing, and the dataset ships no crosswalk
+CSV. Recovery requires **content matching**: the PDFs name the município (e.g.
+"PLANO DE GOVERNO PORTO ACRE") and usually the candidate, so an LLM/regex
+extract → fuzzy-match on `(município, nome)` could reclaim much of the tail.
+Until then, use the matched subset and note the missing ~17% may be
+non-random (plausibly substituted/annulled candidacies). **2016+ join cleanly
+on `SQ`.**
 
 ### Columns
 - `year`, `estado` (UF), `SQ_CANDIDATO` — identity / join key.
