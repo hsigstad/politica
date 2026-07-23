@@ -104,26 +104,31 @@ implicitly mayor-only. Produced by `source/clean/proposta_governo.py`.
 - staged (gitignored) at `data/proposta_governo/`; override with
   `PROPOSTA_GOVERNO_RAW`. The TSE CDN is blocked from the sandbox — pull
   the zips on a machine with open egress.
-- coverage: 2020 and 2024, 26 UFs per year (no DF — Brasília has no
-  prefeitura). Each zip holds `{UF}/{YEAR}{UF}{SQ}.pdf` (2020) or
-  `{YEAR}{UF}{SQ}_{NN}.pdf` (2024, `_NN` = document part), plus a
-  `LEIAME.pdf` readme that is skipped.
+- coverage: **2012, 2016, 2020, 2024**; 26 UFs per year (no DF — Brasília has
+  no prefeitura), except 2016 = 25 (one UF zip missing — TODO). Each zip holds
+  `{UF}/{YEAR}{UF}{SQ}.pdf` (2012/2016/2020) or `{YEAR}{UF}{SQ}_{NN}.pdf`
+  (2024, `_NN` = document part), plus a `LEIAME.pdf` readme that is skipped.
 
 ### Unit of observation
 One row per **(year, estado, SQ_CANDIDATO)** — one plan per mayoral
-candidate. **32,992 plans** (17,432 in 2020, 15,560 in 2024) from 33,284
-source PDFs. The 151 candidates who split their plan across parts `_01`,
-`_02`, … (all 2024) are reassembled: text concatenated in sequence order,
-`n_docs` records how many parts. ~2,582 plans are image-only scans awaiting
-OCR (`text_source` contains `sparse`); the rest carry an embedded text
-layer.
+candidate. **65,271 plans** (2012: 17,608; 2016: 14,671; 2020: 17,432;
+2024: 15,560) from 65,563 source PDFs. Multi-part 2024 plans (`_01`, `_02`, …)
+are reassembled: text concatenated in sequence order, `n_docs` records how
+many parts. **~9,300 plans are image-only scans awaiting OCR** (`text_source`
+contains `sparse`; older cycles are scan-heavy — 2012: 4,532, 2016: 2,183,
+2020: 1,566, 2024: 1,016); the rest carry an embedded text layer.
 
 ### Join key
-`SQ_CANDIDATO` (nullable Int64) joins `candidato.csv` for the same year.
-**Cast note:** `candidato.csv` stores `SQ_CANDIDATO` as float (e.g.
-`10000854328.0`); cast before merging —
-`candidato['SQ_CANDIDATO'].astype('Int64')`. Observed match rate ~99%; the
-residual are withdrawn / *indeferido* candidacies and candidato.csv vintage.
+`SQ_CANDIDATO` (nullable Int64) joins `candidato.csv` on **(year, estado,
+SQ_CANDIDATO)**. **Cast note:** `candidato.csv` stores `SQ_CANDIDATO` as float
+(e.g. `10000854328.0`); cast before merging —
+`candidato['SQ_CANDIDATO'].astype('Int64')`. Match rate by cycle: 2024 99.0%,
+2020 96.7%, 2016 94.5%, **2012 82.7%**. The residual are withdrawn /
+*indeferido* candidacies and candidato.csv vintage — **plus, for 2012, a
+known SQ-scheme boundary**: for a subset of 2012 the filename `SQ` is not
+`candidato`'s `SQ_CANDIDATO` (the pre-2012 per-município SQ era, before
+`SQ_CANDIDATO` became nationally unique). Treat 2012 joins with care; 2016+
+are clean.
 
 ### Columns
 - `year`, `estado` (UF), `SQ_CANDIDATO` — identity / join key.
