@@ -60,6 +60,7 @@ is a CPF; one with "T" is a titulo eleitoral.
 
 | Period    | CPF available? | `politico_id` basis | Notes |
 |-----------|---------------|---------------------|-------|
+| 1996      | No            | T + titulo (if present) | From TSE's modern re-release of `votacao_candidato_munzona` (header CSV, modern columns, real per-município `SQ_CANDIDATO`) — winner-complete, flows through the same reader as 2016+. Needs `consulta_cand_1996` staged. No CPF; cross-cycle person linkage is **name-based**, not guaranteed. |
 | 1998–2000 | No            | T + titulo          | TSE files lack CPF entirely |
 | 2002–2022 | Yes (~100%)   | CPF                 | Gold-standard person key |
 | 2024      | Redacted      | CPF (~50%), T + titulo (~50%) | CPF recovered via titulo→CPF crosswalk built from 1998–2022 data; remaining candidates fall back to titulo |

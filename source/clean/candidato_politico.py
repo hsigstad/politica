@@ -54,6 +54,7 @@ def main():
     candidato_file = 'build/clean/candidato.csv'
     politico_file = 'build/clean/politico.csv'
     years = [
+        '1996',
         '1998',
         '2000',
         '2002',
@@ -68,7 +69,10 @@ def main():
         '2020',
         '2022',
         '2024',
-    ]  # 1994 and 1996 does not have CPF and is missing for many states
+    ]  # 1994 excluded (older schema, no CPF). 1996 is included via TSE's modern
+    # re-release of votacao_candidato_munzona (header .csv, modern column names,
+    # real SQ_CANDIDATO) — same shape as the 2016+ files, so it flows through the
+    # modern-format branches below. Needs the matching consulta_cand_1996 staged.
     states = [
         'AC',
         'SP',
@@ -213,7 +217,7 @@ def get_election_results(state, year):
     columns_file = os.path.join(path.data_dir, 'TSE', year,
                                 'votacao_candidato_munzona',
                                 'variable-description.csv')
-    if year in ['2016', '2018', '2020', '2022', '2024']:
+    if year in ['1996', '2016', '2018', '2020', '2022', '2024']:
         infile = infile.replace('.txt', '.csv')
         results = pd.read_csv(infile, encoding='latin1', sep=';')
     else:
@@ -230,7 +234,7 @@ def rename_columns(results, year):
 
 
 def get_column_mapping(year):
-    if year in ['2016', '2018', '2020', '2022', '2024']:
+    if year in ['1996', '2016', '2018', '2020', '2022', '2024']:
         mapping = {
             'NM_CANDIDATO': 'politico',
             'DS_ELEICAO': 'eleicao',
