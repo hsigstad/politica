@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>/* INJECT_TITLE */</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- INJECT_NAV -->
+<div class="page-header">
+  <h1>/* INJECT_TITLE */</h1>
+  <p>/* INJECT_DESCRIPTION */</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>
