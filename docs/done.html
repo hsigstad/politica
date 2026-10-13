@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Completed Tasks — politica</title>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+  main { padding: 1.5rem 2rem 3rem; max-width: 42rem; margin: 0 auto; }
+  .md-body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.06rem; line-height: 1.78; color: var(--fg);
+  }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .md-body h1 { font-size: 1.5rem; font-weight: 600; margin: 1.8rem 0 .8rem;
+    padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  .md-body h2 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 .6rem;
+    padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.05rem; font-weight: 600; margin: 1.3rem 0 .5rem; }
+  .md-body h4 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  .md-body h5, .md-body h6 { font-size: .88rem; font-weight: 600; margin: 1rem 0 .4rem; }
+  .md-body h1:first-child { margin-top: 0; }
+  .md-body strong { font-weight: 600; }
+  .md-body ul li { list-style: disc; }
+  .md-body li > ul, .md-body li > ol { margin-top: .25rem; margin-bottom: 0; }
+  .md-body li input[type="checkbox"] {
+    margin-right: .4rem; vertical-align: middle; position: relative; top: -1px;
+  }
+  .md-body p { margin: 0 0 .8rem; }
+  .md-body ul, .md-body ol { margin: 0 0 .8rem; padding-left: 1.8rem; }
+  .md-body li { margin-bottom: .25rem; }
+  .md-body a { color: var(--accent); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    margin: 0 0 .8rem; padding: .4rem 1rem;
+    border-left: 4px solid var(--accent); background: #f5f3ee;
+    color: #555;
+  }
+  .md-body blockquote.verdict-callout {
+    border-left-width: 6px;
+    background: #fffefa;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: .7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    color: var(--fg);
+    margin: 1rem 0 1.2rem;
+  }
+  .md-body blockquote.verdict-callout > p:first-child > strong:first-child {
+    color: #111;
+  }
+  .md-body blockquote.verdict-callout.verdict-refuted   { border-left-color: #dc3545; }
+  .md-body blockquote.verdict-callout.verdict-confirmed { border-left-color: #198754; }
+  .md-body blockquote.verdict-callout.verdict-mixed     { border-left-color: #d39e00; }
+  .md-body blockquote.verdict-callout.verdict-pending   { border-left-color: #6b7280; }
+  .md-body blockquote.verdict-callout.verdict-neutral   { border-left-color: var(--accent); }
+
+  /* Analysis page: headline (one-paragraph plain-English finding) */
+  .an-headline {
+    font-size: 1.05rem; line-height: 1.55; font-weight: 500;
+    color: #1f2328; background: #f6f8fa;
+    border-left: 4px solid var(--accent);
+    padding: .8rem 1rem; margin: 0 0 1.2rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Analysis info panel (rendered from .md frontmatter) — three tiers:
+     top (hypothesis/confidence), Design block, provenance footer. */
+  .an-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1.5rem;
+    font-size: .85rem;
+  }
+  .an-meta {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .2rem 1rem; margin: 0;
+  }
+  .an-row { display: contents; }
+  .an-meta dt { color: var(--muted); font-weight: 600; }
+  .an-meta dd { margin: 0; }
+  .an-meta code { font-size: .82em; }
+  .an-meta-top { font-size: .95rem; gap: .35rem 1rem; }
+  .an-meta-top dt { font-weight: 700; }
+  .an-meta-prov {
+    font-size: .75rem; gap: .15rem 1rem;
+    margin-top: .65rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .an-meta-prov dt { font-weight: 500; }
+  .an-meta-prov dd { color: var(--muted); }
+  .an-meta-prov code { color: var(--muted); }
+  .an-panel-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    margin: .65rem 0 .3rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+  }
+  .conf-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; text-transform: capitalize;
+  }
+  .conf-green   { background: #d4edda; color: #155724; }
+  .conf-yellow  { background: #fff3cd; color: #856404; }
+  .conf-red     { background: #f8d7da; color: #721c24; }
+  .conf-pending { background: #e9ecef; color: #495057; }
+  .md-body code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: .85em; background: #f0ede6; padding: .15rem .35rem;
+    border-radius: 4px;
+  }
+  .md-body pre {
+    margin: 0 0 .8rem; padding: .9rem 1rem;
+    background: #f5f3ee; border: 1px solid var(--border);
+    border-radius: 6px; overflow-x: auto;
+  }
+  .md-body pre code { background: none; padding: 0; }
+  .md-body table {
+    width: 100%; border-collapse: collapse; margin: 0 0 .8rem; font-size: .9rem;
+  }
+  .md-body th, .md-body td {
+    padding: .45rem .7rem; border: 1px solid var(--border); text-align: left;
+  }
+  .md-body th { background: #f5f3ee; font-weight: 600; }
+  .md-body tr:nth-child(even) td { background: var(--bg); }
+  .md-body img { max-width: 100%; }
+  .md-body li:target { background: #fff8c4; scroll-margin-top: 4rem; }
+  .md-body a.cite-ref, .md-body a.anec-ref, .md-body a.concept-ref {
+    color: var(--fg); text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  .md-body a.cite-ref:hover, .md-body a.anec-ref:hover,
+  .md-body a.concept-ref:hover { border-bottom-style: solid; }
+  /* Legal citations (`LE.33.IV`, `CPC.144.§3`): tan chip with a
+     browser-native title-tooltip carrying the verbatim statutory text,
+     linking out to the brazil-institutions law page. Rendered by
+     sitekit.links_extra.link_legal_refs when enable_legal_refs=True
+     and the workspace's artigos.db is reachable. */
+  .md-body code.legal-cite, .md-body a.legal-cite {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .85em; background: #fdf8e8; border: 1px solid #e5d48b;
+    padding: .15rem .35rem; border-radius: 4px; cursor: help;
+  }
+  .md-body a.legal-cite { color: var(--fg); text-decoration: none; }
+  .md-body a.legal-cite:hover { text-decoration: underline; }
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link active">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header"><h1>Completed Tasks</h1></div>
+
+<main>
+<div class="md-body">
+<h1>Done</h1>
+<p>Completed TODOs (moved out of <code>todo.md</code> so the active list stays scoped to current work).</p>
+<ul>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Token stopword filter on the candmatch ladder</strong></p>
+<ul>
+<li>source: <code>source/clean/poll_2024.py</code> (<code>TOKEN_STOPWORDS</code> constant,
+<code>_score_name</code> token-overlap branch).</li>
+<li>change: a match is dropped when the shared-token set against
+either <code>politico_norm</code> or <code>nome_urna_norm</code> consists entirely of
+stopwords (<code>DE, DA, DO, DOS, DAS, E, DR, DRA, PROF, PROFA</code>).
+Mixed sets (e.g. <code>{JOAO, DA}</code>) still score by raw shared count,
+so prior score-2 matches with one stopword + one real token are
+preserved.</li>
+<li>matcher-side impact: score 1 rows 4,157 → 3,267 (-890 stopword-
+only matches dropped); score ≥ 2 layer unchanged at 85,419 rows;
+top score-1 <code>match_method</code> no longer features <code>tokens_full=DE</code>
+etc. (now <code>tokens_full=JOAO</code>, <code>=JUNIOR</code>, <code>=HELIO,LOPES</code>, …).</li>
+<li>downstream impact: <code>matched_share == 1.0</code> row count in
+the downstream <code>cand_poll.parquet</code> assemble output
+unchanged (the dropped rows were below the <code>match_score &gt;= 2</code>
+threshold). Improvement is purely on parquet-quality / signal
+cleanliness, not regression sample size.</li>
+<li>created: 2026-06-14</li>
+<li>resolved: 2026-06-14</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Improve poll candidate-name matcher (three concrete fixes)</strong></p>
+<ul>
+<li>source: <code>source/clean/poll_2024.py</code> (<code>best_match</code> +
+new <code>_score_name</code>, <code>_strip_honorifics</code>, <code>_split_joint_ticket</code>
+helpers, <code>HONORIFICS</code>/<code>JOINT_SEP_RE</code> constants).</li>
+<li>changes:<ol>
+<li><code>nome_urna_norm</code> is now a parallel target alongside
+<code>politico_norm</code> at scores 3/2/1 (not just score 4). Token
+overlap takes the max shared-token count across the two forms;
+substring at score 3 hits either form. Method label records
+which form won (<code>substring_urna</code>, <code>tokens_urna=…</code>).</li>
+<li>Leading honorifics are stripped from the poll-side normalized
+name before scoring; a second pass with the stripped form
+runs only when the original differs. <code>HONORIFICS</code> covers
+masculine + feminine variants (DR/DRA, PROF/PROFA, PE/PADRE,
+PR/PASTOR, BISPO/BISPA, MAJOR/CEL/CORONEL, CAP/CAPITAO,
+SGT/SARGENTO, CABO/SD/SOLDADO, TEN, COMANDANTE,
+DELEGADO/DELEGADA, VEREADOR/VEREADORA, PREFEITO/PREFEITA,
+MEDICO/MEDICA, ADVOGADO/ADVOGADA, …) plus a few less-common
+prefixes (FREI, IRMAO/IRMA, REVERENDO/REVERENDA, MISSIONARIO).</li>
+<li>Joint-ticket fallback: when the whole-name score is &lt; 3, the
+poll string is split on ticket separators (<code>/</code>, <code>&amp;</code>,
+en/em-dash, <code>E</code>, <code>COM</code>, <code>-</code>) and each half is rescored
+(with and without honorifics). The split sub-match only wins
+if it scores strictly higher than the whole-name result, so
+a real name containing &quot; E &quot; or &quot; - &quot; isn't wrongly split.</li>
+</ol>
+</li>
+<li>matcher-side impact (174,747-row poll parquet, 2024 prefeito):<ul>
+<li>score ≥ 2 matched: 83,917 → 85,419 (+1,502, +1.8%)</li>
+<li>score 4: 82,278 → 83,257 (+979)</li>
+<li>score 3: 535 → 630 (+95)</li>
+<li>score 2: 1,104 → 1,532 (+428)</li>
+<li>score 1: 4,541 → 4,157 (−384; many promoted to 2+)</li>
+</ul>
+</li>
+<li>downstream impact in the poll-sponsor analysis:
+<code>cand_poll.parquet</code> <code>matched_share == 1.0</code> rows
+21,030 → 22,665 (+1,635, +7.8%). Still below the original 85%
+aspirational target — see todo.md follow-up on stopword
+filtering + image-PDF re-extraction.</li>
+<li>created: 2026-06-14</li>
+<li>resolved: 2026-06-14</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Migrate <code>source/llm/poll_extract.py</code> to llmkit</strong></p>
+<ul>
+<li>notes: split into <code>source/llm/schemas.py</code> (PollRelatorio inherits
+<code>ExtractionSchema</code>, schema_name=&quot;poll_relatorio&quot; v1), prompt files
+under <code>source/llm/prompts/poll_relatorio_{system,user}.txt</code>, and a
+wrapper <code>source/llm/poll_relatorio.py</code> (<code>extract_poll_relatorio</code> —
+PDF-driven; cache lookup order: new llmkit composite key →
+legacy <code>{PROTOCOL}.json</code> in canonical and legacy-pilot dirs → fresh
+LLM call). The runner <code>source/llm/poll_extract.py</code> now calls the
+wrapper, adds <code>--states / --exclude-states</code> for UF filtering and a
+<code>--validate-cached</code> PDF-free mode that re-validates every cached
+entry against the current schema and assembles the parquet.
+Smoke test: <code>--validate-cached</code> against the 111-protocol legacy pilot
+produced 1,461 candidate-scenario rows from 102 polls (all
+validated against new schema, 0 schema failures). See
+<code>done.md</code> 2026-06-01 entry below for extraction-quality findings
+from the audit that the migration surfaced — they're prompt-level,
+not migration regressions.
+Live smoke test: 5 fresh RR-state PDFs (none in pilot) → 0
+validation failures after the system prompt was hardened to
+spell out the exact nested JSON schema (llmkit uses the legacy
+json_object response mode, which doesn't enforce schemas
+server-side; the in-prompt schema fills the gap). Cost
+$0.005 / 17s for 5 PDFs at 4 workers. Spot-checked
+RR-01685/2024 (Boa Vista, Globo/Quaest) against the PDF text:
+all vote percentages, party labels, and aggregate rows exact.</li>
+<li>created: 2026-06-01</li>
+<li>resolved: 2026-06-01</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>2024 titulo-mismatch in SC and AL</strong> (Bug 2 from the 2024 CPF
+recovery audit). Root cause was the same as Bug 1b: <code>get_candidates()</code>
+reads without <code>dtype=str</code>, so leading zeros in titulo were stripped.
+Fixed by <code>.str.zfill(12)</code> on both sides of the join. Post-fix: SC
+recovers 45.6%, AL 58.5% — in line with other states.</p>
+<ul>
+<li>created: 2026-05-26</li>
+<li>resolved: 2026-05-26</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>2024 <code>status</code> column is 100% empty in <code>candidato.csv</code></strong>. TSE
+moved <code>DS_DETALHE_SITUACAO_CAND</code> to a separate
+<code>consulta_cand_complementar</code> file under the name
+<code>DS_SITUACAO_JULGAMENTO</code>. Fixed by reading the complementar file and
+joining on <code>SQ_CANDIDATO</code>. Post-fix: 100% coverage. Three new status
+values in 2024 vocabulary — see <code>docs/decisions.md</code> 2026-05-27 entry.</p>
+<ul>
+<li>created: 2026-05-26</li>
+<li>resolved: 2026-05-27</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Rebuild <code>candidato.csv</code> to populate <code>nome_urna</code></strong> <em>(load-bearing
+for the 2024 poll → candidate matcher)</em>. Candidato rebuilt with
+<code>nome_urna</code>, candidate matching folded into <code>poll_2024.py</code>
+(<code>poll_2024__candmatch.py</code> removed). National match rate: 61% of
+non-aggregate rows (82K via nome_urna alone).</p>
+<ul>
+<li>created: 2026-05-28</li>
+<li>resolved: 2026-06-02</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Stage a TSE partidos-CNPJ table for sponsor-linking Route C</strong>
+Used <code>despesa_partidaria.csv</code> (2024 municipal-level rows, 42,829
+directorate CNPJs across 5,548 munis) as CNPJ→party×muni lookup.
+Route C added to <code>poll_sponsor_2024_join.py</code> (141 rows, 58 protocols).
+Also added Route D (party name parsing from sponsor name, 343 rows,
+149 protocols). Combined within-candidate overlap: 449 (up from 350
+with A+B only).</p>
+<ul>
+<li>created: 2026-06-01</li>
+<li>resolved: 2026-06-02</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled checked/><strong>Bulk poll-relatório LLM extraction (all UFs except SP)</strong>
+Ran 2026-06-01 (10:20–15:12 UTC, <code>gpt-4o-mini</code>, 8 workers) over the
+fallback PDF dir at <code>build/scrape/tse_relatorio/2024/</code>. New-format
+llmkit cache at <code>build/llm/poll_relatorio/</code>: <strong>9,325 entries</strong>
+(1 schema-invalid). Combined with 110 legacy-pilot entries
+(48 AC + 62 AL + 1 stray, picked up automatically by the wrapper's
+legacy fallback), all 25 non-SP UFs
+are covered. Parquet at <code>build/llm/poll_relatorio_2024.parquet</code>:
+149,934 candidate-scenario rows from 8,169 distinct polls. The
+~1,500-protocol gap vs. the on-disk PDF count is dominated by
+image-only PDFs (TO 157, SE 39, ES 15, RS 15, ...) skipped at the
+<code>pdftotext</code>/<code>MIN_TEXT_CHARS=200</code> gate, plus a small per-UF
+schema-validation drop at parquet assembly. SP (1,635 PDFs) lives
+in a separate-host cache only and is 0 rows in this parquet.
+Diagnosis note: an initial coverage check looking only at
+<code>_cache_meta.doc_id</code> distribution in the new cache wrongly suggested
+AC was completely missed (0 entries); the 48 AC files are in the
+legacy pilot cache and are correctly merged in by
+<code>assemble_long_table()</code>. Verified by re-running <code>--states AC AL</code> →
+<code>cached: 190 / image_only: 6 / ok: 0</code>. See <code>data.md</code> &quot;Coverage and
+known gaps&quot; for the authoritative status, including the upstream
+scrape gap (3,415 protocols TSE never published + 89 transient
+errors retryable).</p>
+<ul>
+<li>created: 2026-06-01</li>
+<li>resolved: 2026-06-01 (coverage verified 2026-06-12)</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</main>
+
+<footer>Generated by <code>sitekit</code></footer>
+<script>
+/* Mermaid diagrams: render ```mermaid fenced code blocks as diagrams.
+   Guarded + lazy — the CDN library loads ONLY on pages that contain one, so
+   doc pages without a diagram are completely unaffected. */
+(function () {
+  var blocks = document.querySelectorAll("pre > code.language-mermaid");
+  if (!blocks.length) return;
+  blocks.forEach(function (code) {
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;   // entity-decoded source
+    code.closest("pre").replaceWith(div);
+  });
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload = function () { mermaid.initialize({ startOnLoad: false }); mermaid.run(); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

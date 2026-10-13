@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opinion polls</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* dataset table */
+  .ds-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .ds-table th, .ds-table td {
+    padding: .5rem .7rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .ds-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .ds-table tbody tr:hover { background: #f0ede6; }
+  .ds-table .ds-name { font-weight: 600; }
+  .ds-table .ds-desc { color: var(--muted); font-size: .8rem; }
+  .ds-table .view-link {
+    color: var(--accent); text-decoration: none; font-weight: 600; font-size: .82rem;
+  }
+  .ds-table .view-link:hover { text-decoration: underline; }
+  .ds-table .cat-row td {
+    background: #ece8de; font-weight: 700; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .04em; color: #4b5563;
+    padding: .45rem .7rem;
+  }
+  .num { text-align: right; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>Opinion polls</h1>
+  <p>TSE-registered opinion polls: the 2020 and 2024 mayoral-poll registrations (poll_2020, poll_2024), the per-candidate vote intentions extracted from the 2020 and 2024 relatórios (poll_response_2020, poll_response_2024), and the pollingdata.com.br president/governor archive (poll_response_pollingdata).</p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<main>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Dataset listing -->
+<h2 class="section-title">Datasets</h2>
+<div class="card full">
+  <table class="ds-table" id="ds-table"></table>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+const DATA = /* INJECT_DATA */ {"id":"polls","name":"Opinion polls","description":"TSE-registered opinion polls: the 2020 and 2024 mayoral-poll registrations (poll_2020, poll_2024), the per-candidate vote intentions extracted from the 2020 and 2024 relatórios (poll_response_2020, poll_response_2024), and the pollingdata.com.br president/governor archive (poll_response_pollingdata).","total_rows":247998,"total_file_size":5087017,"dataset_count":5,"temporal_range":{"min":"2017-04-07","max":"2026-05-21"},"datasets":[{"id":"poll_response_2024","name":"poll_response_2024 — 2024 poll vote intentions","description":"Per-candidate vote intentions extracted by LLM from the 2024 mayoral relatório PDFs, joined to the registration and the TSE candidate registry: one row per (candidate × scenario × poll), 149,934 rows from ~8,169 polls. Carries scenario_type, reported percent, and the matched candidate (cand_politico_id, match_method).","category":"Opinion polls","row_count":174747,"col_count":33,"file_size":3805433},{"id":"poll_response_pollingdata","name":"poll_response_pollingdata — president/governor polls","description":"President/governor/senate vote intentions from the pollingdata.com.br archive (2018, 2022): one row per (election, poll, scenario, candidate), joinable to the TSE poll registry on protocolo.","category":"Opinion polls","row_count":39986,"col_count":19,"file_size":303657},{"id":"poll_2024","name":"poll_2024 — 2024 mayoral poll registrations","description":"TSE-registered 2024 mayoral opinion polls: one row per protocol, same schema as poll_2020 (institute, município, dates, sample size, value).","category":"Opinion polls","row_count":14876,"col_count":16,"file_size":533499},{"id":"poll_2020","name":"poll_2020 — 2020 mayoral poll registrations","description":"TSE-registered 2020 mayoral opinion polls: one row per protocol, with the contracting institute, município, registration/disclosure dates, sample size and declared value.","category":"Opinion polls","row_count":10957,"col_count":16,"file_size":314245},{"id":"poll_response_2020","name":"poll_response_2020 — 2020 poll vote intentions","description":"Per-candidate vote intentions from the 2020 mayoral polls: one row per (poll, round, candidate), with the reported value and the share among real (non-aggregate) candidates (percent_on_real).","category":"Opinion polls","row_count":7432,"col_count":11,"file_size":130183}],"featured":{"categorical":{"scenario_type":{"labels":["estimulado","espontaneo","rejeicao","avaliacao_governo","segundo_turno_simulacao","votos_validos","outro","expectativa_vitoria","clima_vitoria","lembranca_voto","voto_definitivo","avaliacao_vitoria","conviccao_voto","clima_de_campanha","participacao_segundo_turno","percepcao_vitoria","branco_nulo","nao_sabe"],"values":[56651,48964,37436,14443,7525,7462,2082,126,23,7,6,6,4,4,3,3,1,1]},"uf":{"labels":["SP","GO","MG","BA","PE","RN","PI","PR","MA","PA","PB","ES","MT","RJ","SE","TO","MS","SC","RS","CE"],"values":[24813,17057,13512,13505,13320,12506,9751,8737,7845,6069,5913,5450,4285,4265,4265,4259,3950,3941,3137,3020]},"party":{"labels":["<NA>","PL","PT","PSD","MDB","PP","PSDB","PSB","PSOL","PDT","REPUBLICANOS","NOVO","UNIÃO","Republicanos","UB","PODEMOS","PSTU","PRD","Podemos","PRTB"],"values":[150449,3206,2776,1932,1864,1235,964,930,763,753,673,638,586,453,427,350,334,295,291,263]},"cargo":{"labels":["Prefeito","Prefeito, Vereador"],"values":[120443,54304]},"institute":{"labels":["100% CIDADES PARTICIPACOES LTDA","INSTITUTO PARANA DE PESQUISAS E ANALISE DE CONSUMIDOR LTDA","INSTITUTO VOX BRASIL OPINIAO E PESQUISAS LTDA","INSTITUTO VERITA LTDA","INSTITUTO DATATRENDS LTDA","SECULUS CONSULTORIA E ASSESSORIA LTDA ME","REAL TIME MIDIA LTDA","RANKING BRASIL INTELIGENCIA LTDA","SMS - DIRECT PESQUISAS E MARKETING LTDA","AGILI PESQUISAS E MARKETING EIRELI","SETA INSTITUTO DE PESQUISA LTDA","INSTITUTO GAZETA LTDA","OPINIAO PESQUISAS SOCIAIS LTDA","AR7 PESQUISAS INTELIGENTES LTDA","CONSULTORIA E PESQUISA TECNICA LTDA","AGORASEI PESQUISA LTDA","CENSUS INSTITUTO DE PESQUISAS EIRELI","QUALITATIVA INSTITUTO DE OPINIAO PUBLICA EIRELI","NAIPE'S ASSESSORIA E CONSULTORIA EM MARKETING LTDA","ESTIMATIVA EDITORA COMUNICACAO E GRAFICA EIRELI"],"values":[7204,6633,4715,4325,4175,3874,3803,3325,2860,2630,2474,2298,1988,1920,1874,1869,1774,1751,1730,1640]},"match_method":{"labels":["<NA>","nome_urna","nome_urna+honorific","substring","nome_urna+ticket","substring+honorific","tokens_full=JOAO","tokens_full=JUNIOR","tokens_full=HELIO,LOPES","tokens_full=PAULO","tokens_urna=ZE","tokens_full=JOSE","tokens_full=OLIVEIRA","tokens_urna=CONSUMIDOR,JORGE,WILSON,XERIFE","tokens_urna=LUSO,QUEIROZ","tokens_urna=DO,POSTO","tokens_full=RONALDO","substring+ticket","tokens_full=VINICIUS","tokens_full=ADRIANA"],"values":[86061,82278,584,535,395,61,51,50,47,43,42,41,39,38,38,38,35,34,33,33]}},"temporal":{"date_start":{"min":"2024-01-06","max":"2025-09-27","by_year":{"labels":[2024,2025],"values":[174723,24]}},"date_registered":{"min":"2024-01-11","max":"2025-09-27","by_year":{"labels":[2024,2025],"values":[174723,24]}}}}};
+
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  return (bytes / 1073741824).toFixed(1) + ' GB';
+}
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Total Rows', fmtNum(DATA.total_rows)],
+    ['Datasets', DATA.dataset_count],
+    ['Total Size', fmtSize(DATA.total_file_size)],
+  ];
+  if (DATA.temporal_range && DATA.temporal_range.min) {
+    items.push(['Temporal Range', DATA.temporal_range.min + ' \u2013 ' + DATA.temporal_range.max]);
+  }
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Categorical distribution charts (from featured dataset)
+(function() {
+  var section = document.getElementById('dist-section');
+  var featured = DATA.featured || {};
+  var cats = Object.entries(featured.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts (from featured dataset)
+(function() {
+  var section = document.getElementById('temporal-section');
+  var featured = DATA.featured || {};
+  var temps = Object.entries(featured.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Dataset table \u2014 grouped by category when there are multiple categories
+(function() {
+  var table = document.getElementById('ds-table');
+  var groups = {};
+  var order = [];
+  DATA.datasets.forEach(function(ds) {
+    var cat = ds.category || '';
+    if (!(cat in groups)) { groups[cat] = []; order.push(cat); }
+    groups[cat].push(ds);
+  });
+
+  var html = '<thead><tr><th>Dataset</th><th class="num">Rows</th><th class="num">Columns</th><th class="num">Size</th><th></th></tr></thead><tbody>';
+  var showGroups = order.length > 1 || (order.length === 1 && order[0] !== '');
+  order.forEach(function(cat) {
+    if (showGroups) {
+      html += '<tr class="cat-row"><td colspan="5">' + (cat || '(uncategorised)') + '</td></tr>';
+    }
+    groups[cat].forEach(function(ds) {
+      html += '<tr>'
+        + '<td><div class="ds-name">' + ds.name + '</div><div class="ds-desc">' + ds.description + '</div></td>'
+        + '<td class="num">' + fmtNum(ds.row_count) + '</td>'
+        + '<td class="num">' + ds.col_count + '</td>'
+        + '<td class="num">' + fmtSize(ds.file_size) + '</td>'
+        + '<td><a class="view-link" href="../datasets/' + ds.id + '.html">View \u2192</a></td>'
+        + '</tr>';
+    });
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

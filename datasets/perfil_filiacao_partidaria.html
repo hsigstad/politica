@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>perfil_filiacao_partidaria — membership profile</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>perfil_filiacao_partidaria — membership profile</h1>
+  <p>Aggregated party-membership counts by month and cell: filiados per (ano_mes, party, município, zona) broken down by gender, age band, education, occupation and race. No person-level rows — counts only.</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {"id":"perfil_filiacao_partidaria","name":"perfil_filiacao_partidaria — membership profile","description":"Aggregated party-membership counts by month and cell: filiados per (ano_mes, party, município, zona) broken down by gender, age band, education, occupation and race. No person-level rows — counts only.","grain":"One row per (ano_mes, party, municipio_id, zona, demographic cell).","notes":"","category":"Party organization","layer":"clean","source_script":"source/clean/perfil_filiacao_partidaria.py","file_size":166978439,"row_count":12659344,"col_count":28,"columns":[{"name":"ano_mes","dtype":"int64","null_count":0,"null_pct":0.0,"example":"202605"},{"name":"nr_partido","dtype":"int64","null_count":0,"null_pct":0.0,"example":"11"},{"name":"partido","dtype":"str","null_count":0,"null_pct":0.0,"example":"PP"},{"name":"nm_partido","dtype":"str","null_count":0,"null_pct":0.0,"example":"PROGRESSISTAS"},{"name":"estado","dtype":"str","null_count":0,"null_pct":0.0,"example":"MG"},{"name":"municipio_id","dtype":"str","null_count":0,"null_pct":0.0,"example":"48950"},{"name":"municipio","dtype":"str","null_count":0,"null_pct":0.0,"example":"NOVA LIMA"},{"name":"zona","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"194"},{"name":"cd_genero","dtype":"Int64","null_count":826,"null_pct":0.0,"example":"2"},{"name":"genero","dtype":"str","null_count":0,"null_pct":0.0,"example":"FEMININO"},{"name":"cd_faixa_etaria","dtype":"Int64","null_count":826,"null_pct":0.0,"example":"6"},{"name":"faixa_etaria","dtype":"str","null_count":0,"null_pct":0.0,"example":"SUPERIOR A 79 ANOS"},{"name":"cd_estado_civil","dtype":"Int64","null_count":826,"null_pct":0.0,"example":"1"},{"name":"estado_civil","dtype":"str","null_count":0,"null_pct":0.0,"example":"CASADO"},{"name":"cd_escolaridade","dtype":"Int64","null_count":826,"null_pct":0.0,"example":"6"},{"name":"escolaridade","dtype":"str","null_count":0,"null_pct":0.0,"example":"ENSINO FUNDAMENTAL COMPLETO"},{"name":"cd_ocupacao","dtype":"Int64","null_count":41145,"null_pct":0.3,"example":"100"},{"name":"ocupacao","dtype":"str","null_count":0,"null_pct":0.0,"example":"OUTROS"},{"name":"cd_raca","dtype":"Int64","null_count":10568953,"null_pct":83.5,"example":"3"},{"name":"raca","dtype":"str","null_count":0,"null_pct":0.0,"example":"NAO INFORMADO"},{"name":"cd_identidade_genero","dtype":"Int64","null_count":10568955,"null_pct":83.5,"example":"3"},{"name":"identidade_genero","dtype":"str","null_count":0,"null_pct":0.0,"example":"NAO INFORMADO"},{"name":"cd_quilombola","dtype":"Int64","null_count":10568954,"null_pct":83.5,"example":"2"},{"name":"quilombola","dtype":"str","null_count":0,"null_pct":0.0,"example":"NAO INFORMADO"},{"name":"cd_interprete_libras","dtype":"Int64","null_count":10568965,"null_pct":83.5,"example":"2"},{"name":"interprete_libras","dtype":"str","null_count":0,"null_pct":0.0,"example":"NAO INFORMADO"},{"name":"qt_filiados","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"1"},{"name":"ibge7","dtype":"float64","null_count":22620,"null_pct":0.2,"example":"3547304.0"}],"binary":{},"categorical":{"partido":{"labels":["MDB","PT","PP","PRD","PSDB","UNIAO","PDT","PL","PODE","PSB","REPUBLICANOS","PSD","CIDADANIA","PCDOB","SOLIDARIEDADE","PV","PSOL","AVANTE","MOBILIZA","AGIR"],"values":[1436831,1155216,988805,980971,977131,863246,815383,786019,648417,535888,465173,404811,361242,320807,313325,299460,212117,211596,183317,171689]},"estado":{"labels":["SP","MG","RS","BA","PR","RJ","SC","GO","PA","PE","MA","CE","MT","PB","ES","PI","MS","RN","AM","TO"],"values":[2205265,1381572,937133,807117,790780,714486,671900,558625,495423,479247,455477,421029,307602,275456,258945,252827,244496,228805,208856,175331]},"genero":{"labels":["MASCULINO","FEMININO","NAO INFORMADO","NULO"],"values":[6806312,5847998,4208,826]},"faixa_etaria":{"labels":["45 A 59 ANOS","60 A 69 ANOS","35 A 44 ANOS","70 A 79 ANOS","25 A 34 ANOS","SUPERIOR A 79 ANOS","21 A 24 ANOS","18 A 20 ANOS","17 ANOS","NULO","16 ANOS","INVALIDA"],"values":[4267447,2902609,2245651,1562475,844221,707233,99691,26947,1524,826,501,219]},"escolaridade":{"labels":["ENSINO MEDIO COMPLETO","ENSINO FUNDAMENTAL INCOMPLETO","SUPERIOR COMPLETO","ENSINO MEDIO INCOMPLETO","ENSINO FUNDAMENTAL COMPLETO","LE E ESCREVE","SUPERIOR INCOMPLETO","ANALFABETO","NAO INFORMADO","NULO"],"values":[3357411,2819747,2193752,1130397,1055909,1051022,727921,318072,4287,826]},"raca":{"labels":["NAO INFORMADO","PARDA","BRANCA","PRETA","INDIGENA","AMARELA"],"values":[10568953,1044472,806421,211183,17946,10369]},"ocupacao":{"labels":["OUTROS","AGRICULTORAAGRICULTOR","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","DONADONO DE CASA","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","TRABALHADORATRABALHADOR RURAL","SERVIDORA PUBLICA MUNICIPALSERVIDOR PUBLICO MUNICIPAL","COMERCIANTE","TRABALHADORATRABALHADOR DE CONSTRUCAO CIVIL","PROFESSORAPROFESSOR DE ENSINO FUNDAMENTAL","VENDEDORAVENDEDOR DE COMERCIO VAREJISTA E ATACADISTA","EMPRESARIAEMPRESARIO","SERVIDORA PUBLICA ESTADUALSERVIDOR PUBLICO ESTADUAL","EMPREGADAEMPREGADO DOMESTICO","MOTORISTA DE VEICULOS DE TRANSPORTE COLETIVO DE PASSAGEIROS","SERVIDORA PUBLICA CIVIL APOSENTADASERVIDOR PUBLICO CIVIL APOSENTADO","MOTORISTA DE VEICULOS DE TRANSPORTE DE CARGA","AUXILIAR DE ESCRITORIO E ASSEMELHADOS","PROFESSORAPROFESSOR DE ENSINO MEDIO","PESCADORAPESCADOR"],"values":[1908125,1033641,993064,813479,772415,461594,406184,402502,254406,240798,224254,205737,203617,192604,178763,177135,175037,146602,139258,131260]},"ano_mes":{"labels":["202605"],"values":[12659344]}},"temporal":{},"sample_columns":["ano_mes","nr_partido","partido","nm_partido","estado","municipio_id","municipio","zona","cd_genero","genero","cd_faixa_etaria","faixa_etaria","cd_estado_civil","estado_civil","cd_escolaridade","escolaridade","cd_ocupacao","ocupacao","cd_raca","raca","cd_identidade_genero","identidade_genero","cd_quilombola","quilombola","cd_interprete_libras","interprete_libras","qt_filiados","ibge7"],"sample":[["202605","11","PP","PROGRESSISTAS","MG","48950","NOVA LIMA","194","4","FEMININO","10","SUPERIOR A 79 ANOS","3","CASADO","4","ENSINO FUNDAMENTAL COMPLETO","76","OUTROS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3144805.0"],["202605","25","PRD","PARTIDO DA RENOVACAO DEMOCRATICA","SP","70777","SAO CAETANO DO SUL","269","4","FEMININO","8","60 A 69 ANOS","1","SOLTEIRO","8","SUPERIOR COMPLETO","112","PUBLICITARIAPUBLICITARIO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3548807.0"],["202605","45","PSDB","PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA","BA","34479","CATOLANDIA","100","4","FEMININO","6","35 A 44 ANOS","7","SEPARADO JUDICIALMENTE","6","ENSINO MEDIO COMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2907400.0"],["202605","77","SOLIDARIEDADE","SOLIDARIEDADE","BA","37770","PARIPIRANGA","52","4","FEMININO","7","45 A 59 ANOS","3","CASADO","8","SUPERIOR COMPLETO","1265","PROFESSORAPROFESSOR DE ENSINO FUNDAMENTAL","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2923803.0"],["202605","10","REPUBLICANOS","REPUBLICANOS","SP","71510","SUZANO","181","4","FEMININO","7","45 A 59 ANOS","9","DIVORCIADO","8","SUPERIOR COMPLETO","1266","PROFESSORAPROFESSOR DE ENSINO MEDIO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3552502.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","PI","12416","JUAZEIRO DO PIAUI","34","4","FEMININO","6","35 A 44 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","3","PARDA","1","CISGENERO","2","NAO","2","NAO","1","2205516.0"],["202605","45","PSDB","PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA","SC","81736","JAGUARUNA","33","4","FEMININO","9","70 A 79 ANOS","3","CASADO","2","LE E ESCREVE","155","DONADONO DE CASA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","4208807.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","BA","36978","MACAUBAS","65","4","FEMININO","6","35 A 44 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","178","COZINHEIRACOZINHEIRO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2919801.0"],["202605","13","PT","PARTIDO DOS TRABALHADORES","SP","70750","SAO BERNARDO DO CAMPO","409","4","FEMININO","6","35 A 44 ANOS","1","SOLTEIRO","3","ENSINO FUNDAMENTAL INCOMPLETO","99","EMPREGADAEMPREGADO DOMESTICO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3548708.0"],["202605","55","PSD","PARTIDO SOCIAL DEMOCRATICO","SP","68314","PAULINIA","323","2","MASCULINO","7","45 A 59 ANOS","3","CASADO","8","SUPERIOR COMPLETO","143","BANCARIABANCARIO E ECONOMIARIAECONOMIARIO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3536505.0"],["202605","40","PSB","PARTIDO SOCIALISTA BRASILEIRO","SP","64190","FLOREAL","162","2","MASCULINO","5","25 A 34 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","242","EMPRESARIAEMPRESARIO","1","BRANCA","3","PREFERE NAO INFORMAR","2","NAO","2","NAO","1","3515905.0"],["202605","43","PV","PARTIDO VERDE","SP","66192","JUNDIAI","65","4","FEMININO","6","35 A 44 ANOS","1","SOLTEIRO","1","ANALFABETO","76","OUTROS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3525904.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","SP","70718","SANTOS","118","2","MASCULINO","7","45 A 59 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","","GUARDA MUNICIPAL","3","PARDA","1","CISGENERO","2","NAO","2","NAO","1","3548500.0"],["202605","22","PL","PARTIDO LIBERAL","GO","94331","JATAI","18","4","FEMININO","5","25 A 34 ANOS","3","CASADO","7","SUPERIOR INCOMPLETO","76","OUTROS","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","5211909.0"],["202605","65","PCDOB","PARTIDO COMUNISTA DO BRASIL","CE","13218","ARACATI","8","4","FEMININO","5","25 A 34 ANOS","1","SOLTEIRO","5","ENSINO MEDIO INCOMPLETO","76","OUTROS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2301109.0"],["202605","70","AVANTE","AVANTE","SP","70610","SANTO ANTONIO DE POSSE","333","2","MASCULINO","7","45 A 59 ANOS","1","SOLTEIRO","3","ENSINO FUNDAMENTAL INCOMPLETO","1214","ESCULTORAESCULTOR E PINTORAPINTOR","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3548005.0"],["202605","12","PDT","PARTIDO DEMOCRATICO TRABALHISTA","MG","50490","POUSO ALEGRE","227","2","MASCULINO","8","60 A 69 ANOS","9","DIVORCIADO","3","ENSINO FUNDAMENTAL INCOMPLETO","100","AGRICULTORAAGRICULTOR","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","3152501.0"],["202605","12","PDT","PARTIDO DEMOCRATICO TRABALHISTA","RJ","60011","RIO DE JANEIRO","21","2","MASCULINO","7","45 A 59 ANOS","1","SOLTEIRO","5","ENSINO MEDIO INCOMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","7","3304557.0"],["202605","43","PV","PARTIDO VERDE","MG","44075","CRISTIANO OTONI","88","4","FEMININO","6","35 A 44 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","140","TRABALHADORATRABALHADOR DOS SERVICOS DE CONTABILIDADE DE CAIXA E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3120409.0"],["202605","44","UNIAO","UNIAO BRASIL","DF","97012","BRASILIA","16","4","FEMININO","6","35 A 44 ANOS","1","SOLTEIRO","4","ENSINO FUNDAMENTAL COMPLETO","155","DONADONO DE CASA","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","5300108.0"],["202605","11","PP","PROGRESSISTAS","GO","95834","SANTA RITA DO ARAGUAIA","21","2","MASCULINO","7","45 A 59 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","136","SERVIDORA PUBLICA MUNICIPALSERVIDOR PUBLICO MUNICIPAL","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","5219407.0"],["202605","44","UNIAO","UNIAO BRASIL","GO","92665","SAO MIGUEL DO PASSA QUATRO","31","4","FEMININO","8","60 A 69 ANOS","3","CASADO","3","ENSINO FUNDAMENTAL INCOMPLETO","155","DONADONO DE CASA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","5220264.0"],["202605","43","PV","PARTIDO VERDE","RJ","58530","MARICA","55","4","FEMININO","5","25 A 34 ANOS","1","SOLTEIRO","5","ENSINO MEDIO INCOMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","5","3302700.0"],["202605","12","PDT","PARTIDO DEMOCRATICO TRABALHISTA","RS","86835","GRAVATAI","71","4","FEMININO","9","70 A 79 ANOS","3","CASADO","3","ENSINO FUNDAMENTAL INCOMPLETO","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","4309209.0"],["202605","27","DC","DEMOCRACIA CRISTA","SP","71455","SOROCABA","137","4","FEMININO","7","45 A 59 ANOS","3","CASADO","8","SUPERIOR COMPLETO","21","ADMINISTRADORAADMINISTRADOR","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3552205.0"],["202605","13","PT","PARTIDO DOS TRABALHADORES","BA","38164","PRESIDENTE TANCREDO NEVES","197","2","MASCULINO","6","35 A 44 ANOS","1","SOLTEIRO","3","ENSINO FUNDAMENTAL INCOMPLETO","245","TRABALHADORATRABALHADOR RURAL","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2925758.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","BA","38636","SANTA MARIA DA VITORIA","72","2","MASCULINO","10","SUPERIOR A 79 ANOS","3","CASADO","2","LE E ESCREVE","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2928109.0"],["202605","55","PSD","PARTIDO SOCIAL DEMOCRATICO","SP","66052","JARINU","344","4","FEMININO","7","45 A 59 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","239","VIGILANTE","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","3525201.0"],["202605","25","PRD","PARTIDO DA RENOVACAO DEMOCRATICA","SP","72010","TUPA","143","2","MASCULINO","8","60 A 69 ANOS","9","DIVORCIADO","6","ENSINO MEDIO COMPLETO","173","COMERCIANTE","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","2","3555000.0"],["202605","22","PL","PARTIDO LIBERAL","BA","35076","ENCRUZILHADA","152","4","FEMININO","9","70 A 79 ANOS","3","CASADO","2","LE E ESCREVE","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2910404.0"],["202605","23","CIDADANIA","CIDADANIA","MA","8915","ROSARIO","18","4","FEMININO","8","60 A 69 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","134","SERVIDORA PUBLICA FEDERALSERVIDOR PUBLICO FEDERAL","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2109601.0"],["202605","65","PCDOB","PARTIDO COMUNISTA DO BRASIL","RS","87696","NOVA PRATA","75","2","MASCULINO","6","35 A 44 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","238","TRABALHADORATRABALHADOR DE MINAS E PEDREIRAS SONDADOR E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","4313300.0"],["202605","27","DC","DEMOCRACIA CRISTA","AM","2976","BOA VISTA DO RAMOS","5","2","MASCULINO","8","60 A 69 ANOS","1","SOLTEIRO","2","LE E ESCREVE","103","PESCADORAPESCADOR","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","1300680.0"],["202605","45","PSDB","PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA","MS","91316","PONTA PORA","52","4","FEMININO","7","45 A 59 ANOS","9","DIVORCIADO","8","SUPERIOR COMPLETO","1265","PROFESSORAPROFESSOR DE ENSINO FUNDAMENTAL","1","BRANCA","1","CISGENERO","2","NAO","2","NAO","1","5006606.0"],["202605","77","SOLIDARIEDADE","SOLIDARIEDADE","PR","75833","GUARAPUAVA","44","4","FEMININO","7","45 A 59 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","155","DONADONO DE CASA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","4109401.0"],["202605","23","CIDADANIA","CIDADANIA","PA","5894","RUROPOLIS","68","2","MASCULINO","7","45 A 59 ANOS","3","CASADO","6","ENSINO MEDIO COMPLETO","88","MECANICAMECANICO DE MANUTENCAO","3","PARDA","1","CISGENERO","2","NAO","2","NAO","1","1506195.0"],["202605","44","UNIAO","UNIAO BRASIL","RS","88412","SANTA MARIA","41","2","MASCULINO","6","35 A 44 ANOS","1","SOLTEIRO","4","ENSINO FUNDAMENTAL COMPLETO","76","OUTROS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","4316907.0"],["202605","11","PP","PROGRESSISTAS","PE","24171","GAMELEIRA","28","4","FEMININO","8","60 A 69 ANOS","3","CASADO","7","SUPERIOR INCOMPLETO","1266","PROFESSORAPROFESSOR DE ENSINO MEDIO","3","PARDA","1","CISGENERO","2","NAO","2","NAO","1","2605905.0"],["202605","10","REPUBLICANOS","REPUBLICANOS","MG","54070","UNAI","280","4","FEMININO","4","21 A 24 ANOS","1","SOLTEIRO","5","ENSINO MEDIO INCOMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","2","3170404.0"],["202605","13","PT","PARTIDO DOS TRABALHADORES","SP","71072","SAO PAULO","246","4","FEMININO","9","70 A 79 ANOS","9","DIVORCIADO","8","SUPERIOR COMPLETO","26","PSICOLOGAPSICOLOGO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3550308.0"],["202605","44","UNIAO","UNIAO BRASIL","MG","45535","GOVERNADOR VALADARES","118","4","FEMININO","10","SUPERIOR A 79 ANOS","5","VIUVO","2","LE E ESCREVE","200","LAVANDEIRALAVANDEIRO TINTUREIRATINTUREIRO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3127701.0"],["202605","55","PSD","PARTIDO SOCIAL DEMOCRATICO","BA","34410","CARINHANHA","125","2","MASCULINO","5","25 A 34 ANOS","1","SOLTEIRO","5","ENSINO MEDIO INCOMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","2","2907103.0"],["202605","10","REPUBLICANOS","REPUBLICANOS","BA","34193","CAMPO FORMOSO","53","4","FEMININO","9","70 A 79 ANOS","3","CASADO","2","LE E ESCREVE","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2906006.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","RS","89630","VIAMAO","72","4","FEMININO","10","SUPERIOR A 79 ANOS","3","CASADO","4","ENSINO FUNDAMENTAL COMPLETO","76","OUTROS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","2","4323002.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","SC","81620","CUNHATAI","70","2","MASCULINO","8","60 A 69 ANOS","3","CASADO","3","ENSINO FUNDAMENTAL INCOMPLETO","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","3","4204756.0"],["202605","45","PSDB","PARTIDO DA SOCIAL DEMOCRACIA BRASILEIRA","PE","25372","RIO FORMOSO","26","4","FEMININO","10","SUPERIOR A 79 ANOS","1","SOLTEIRO","2","LE E ESCREVE","72","APOSENTADAAPOSENTADO EXCETO SERVIDOR PUBLICOSERVIDORA PUBLICA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2611903.0"],["202605","20","PODE","PODEMOS","RJ","58394","ITAGUAI","105","2","MASCULINO","5","25 A 34 ANOS","1","SOLTEIRO","7","SUPERIOR INCOMPLETO","74","ESTUDANTE BOLSISTA ESTAGIARIAESTAGIARIO E ASSEMELHADOS","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","3302007.0"],["202605","15","MDB","MOVIMENTO DEMOCRATICO BRASILEIRO","SC","81795","JOINVILLE","76","4","FEMININO","5","25 A 34 ANOS","1","SOLTEIRO","3","ENSINO FUNDAMENTAL INCOMPLETO","155","DONADONO DE CASA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","4209102.0"],["202605","43","PV","PARTIDO VERDE","PA","4707","CANAA DOS CARAJAS","75","2","MASCULINO","6","35 A 44 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","156","AGENTE DE SAUDE E SANITARISTA","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","1502152.0"],["202605","13","PT","PARTIDO DOS TRABALHADORES","PI","10340","LAGOA DO BARRO DO PIAUI","69","2","MASCULINO","6","35 A 44 ANOS","1","SOLTEIRO","6","ENSINO MEDIO COMPLETO","100","AGRICULTORAAGRICULTOR","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","","NAO INFORMADO","1","2205565.0"]],"grain_check":null,"pseudocode":null};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

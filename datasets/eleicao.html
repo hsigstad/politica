@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eleicao — aggregated election results</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>eleicao — aggregated election results</h1>
+  <p>Municipality/election-level turnout and vote totals: eligible voters (aptos), turnout (comparecimento), abstentions, and nominal/legend/blank/null vote counts per (year, round, office, electoral unit).</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {"id":"eleicao","name":"eleicao — aggregated election results","description":"Municipality/election-level turnout and vote totals: eligible voters (aptos), turnout (comparecimento), abstentions, and nominal/legend/blank/null vote counts per (year, round, office, electoral unit).","grain":"One row per aggregated result unit (year × round × office × electoral unit × abrangência).","notes":"","category":"Elections & results","layer":"clean","source_script":"source/clean/eleicao.py","file_size":15353505,"row_count":129907,"col_count":23,"columns":[{"name":"year","dtype":"int64","null_count":0,"null_pct":0.0,"example":"2024"},{"name":"round","dtype":"int64","null_count":0,"null_pct":0.0,"example":"1"},{"name":"estado","dtype":"str","null_count":0,"null_pct":0.0,"example":"PA"},{"name":"office","dtype":"str","null_count":0,"null_pct":0.0,"example":"VEREADOR"},{"name":"ue","dtype":"str","null_count":0,"null_pct":0.0,"example":"4065"},{"name":"suplementar","dtype":"int64","null_count":0,"null_pct":0.0,"example":"0"},{"name":"secoes_agregadas","dtype":"int64","null_count":0,"null_pct":0.0,"example":"8"},{"name":"tp_abrangencia","dtype":"str","null_count":0,"null_pct":0.0,"example":"MM"},{"name":"abstencoes","dtype":"int64","null_count":0,"null_pct":0.0,"example":"7106"},{"name":"st_voto_em_transito","dtype":"str","null_count":0,"null_pct":0.0,"example":"NN"},{"name":"votos_nulos","dtype":"int64","null_count":0,"null_pct":0.0,"example":"336"},{"name":"secoes","dtype":"int64","null_count":0,"null_pct":0.0,"example":"142"},{"name":"comparecimento","dtype":"int64","null_count":0,"null_pct":0.0,"example":"30514"},{"name":"secoes_tot","dtype":"int64","null_count":0,"null_pct":0.0,"example":"150"},{"name":"votos_anulados","dtype":"float64","null_count":0,"null_pct":0.0,"example":"0.0"},{"name":"votos_nominais","dtype":"int64","null_count":0,"null_pct":0.0,"example":"28278"},{"name":"votos_legenda","dtype":"float64","null_count":0,"null_pct":0.0,"example":"942.0"},{"name":"aptos","dtype":"int64","null_count":0,"null_pct":0.0,"example":"37620"},{"name":"votos_brancos","dtype":"int64","null_count":0,"null_pct":0.0,"example":"144"},{"name":"aptos_tot","dtype":"float64","null_count":0,"null_pct":0.0,"example":"0.0"},{"name":"votos_pendentes","dtype":"float64","null_count":0,"null_pct":0.0,"example":"0.0"},{"name":"municipio_id","dtype":"float64","null_count":1017,"null_pct":0.8,"example":"76376.0"},{"name":"ibge7","dtype":"float64","null_count":1025,"null_pct":0.8,"example":"4123600.0"}],"binary":{"suplementar":{"mean":0.0025,"na_pct":0.0,"true_label":"1"}},"categorical":{"office":{"labels":["PREFEITO","VEREADOR","GOVERNADOR","DEPUTADO FEDERAL","SENADOR","DEPUTADO ESTADUAL","PRESIDENTE","DEPUTADO DISTRITAL","CONSELHEIRO DISTRITAL"],"values":[39724,39071,16934,11283,11283,11276,328,7,1]},"estado":{"labels":["MG","SP","RS","PR","BA","SC","GO","PB","PI","MA","CE","PE","RN","PA","MT","TO","AL","RJ","MS","SE"],"values":[18868,15643,12023,9647,9235,7113,5484,5411,5159,4823,4467,4118,4067,3499,3156,3113,2296,2095,1920,1853]},"round":{"labels":["1","2"],"values":[123786,6121]},"tp_abrangencia":{"labels":["MM","F","MMMM","FF","MMMMMM","MMMMMMMM","FFF","FFFF","MMMMMMMMMM","MMMMMMMMMMMM","MMMMMMMMMMMMMMMMMMMM","MMMMMMMMMMMMMM","FFFFFF","FFFFFFF","FFFFFFFFFF","MMMMMMMMMMMMMMMMMM","FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF","FFFFF","FFFFFFFFF","FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],"values":[75365,48374,1936,986,522,325,254,202,135,119,99,90,48,48,44,42,37,36,35,34]}},"temporal":{"year":{"min":"1994","max":"2024","by_year":{"labels":[1994,1996,1998,2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2024],"values":[103,248,149,11143,50150,11226,174,11304,175,11298,182,11193,179,11194,11189]}}},"sample_columns":["year","round","estado","office","ue","suplementar","secoes_agregadas","tp_abrangencia","abstencoes","st_voto_em_transito","votos_nulos","secoes","comparecimento","secoes_tot","votos_anulados","votos_nominais","votos_legenda","aptos","votos_brancos","aptos_tot","votos_pendentes","municipio_id","ibge7"],"sample":[["2024","1","PA","VEREADOR","4065","0","8","MM","7106","NN","336","142","30514","150","0.0","28278","942.0","37620","144","0.0","0.0","4065.0","1507474.0"],["2016","1","SP","VEREADOR","70092","0","0","MM","2998","NN","476","38","11236","38","0.0","9700","730.0","14234","330","14234.0","0.0","70092.0","3545407.0"],["2012","1","MS","PREFEITO","90891","0","0","MM","3070","NN","586","82","23776","82","0.0","22944","0.0","26846","246","26846.0","0.0","90891.0","5004502.0"],["2002","1","RS","DEPUTADO ESTADUAL","89575","0","0","F","1350","N","241","53","13985","53","-3.0","11706","1305.0","15335","733","15335.0","0.0","89575.0","4322707.0"],["2024","1","AP","PREFEITO","6157","0","40","MM","30120","NN","5730","512","139740","552","0.0","129594","0.0","169860","4416","0.0","0.0","6157.0","1600600.0"],["2002","1","BA","DEPUTADO ESTADUAL","39357","0","17","F","8525","N","515","56","8901","56","-3.0","6671","1443.0","17426","272","17426.0","0.0","39357.0","2931806.0"],["2000","1","PI","VEREADOR","11274","0","16","MM","678","NN","392","48","12288","48","-6.0","10724","1082.0","12966","90","12966.0","0.0","11274.0","2206407.0"],["2012","1","MG","VEREADOR","43036","0","4","MM","384","NN","168","26","6472","26","0.0","5972","290.0","6856","42","6856.0","0.0","43036.0","3115201.0"],["2008","1","BA","VEREADOR","37451","0","8","MM","922","NN","396","46","11668","46","-6.0","10296","866.0","12590","110","12590.0","0.0","37451.0","2922201.0"],["2002","1","GO","DEPUTADO FEDERAL","95010","0","0","F","600","N","52","14","2794","14","-3.0","2467","208.0","3394","67","3394.0","0.0","95010.0","5215207.0"],["2000","1","MG","VEREADOR","52515","0","0","MM","1894","NN","488","40","11246","40","-6.0","9452","1172.0","13140","134","13140.0","0.0","52515.0","3162609.0"],["2002","1","SC","SENADOR","80489","0","2","F","295","N","408","16","2966","16","-3.0","5130","0.0","3261","394","3261.0","0.0","80489.0","4201273.0"],["2008","1","SP","VEREADOR","62006","0","0","MM","1072","NN","204","46","11588","46","-6.0","10384","908.0","12660","92","12660.0","0.0","62006.0","3520426.0"],["2002","2","CE","GOVERNADOR","13315","0","11","F","4753","N","459","58","10321","58","-3.0","9705","0.0","15074","157","15074.0","0.0","13315.0","2301604.0"],["2002","1","RN","GOVERNADOR","17396","0","1","F","1577","N","983","26","5629","26","-3.0","4467","0.0","7206","179","7206.0","0.0","17396.0","2407005.0"],["2000","1","MA","VEREADOR","9318","0","0","MM","1672","NN","490","36","11104","36","-6.0","9434","1114.0","12776","66","12776.0","0.0","9318.0","2111904.0"],["2000","1","SP","PREFEITO","66478","0","0","MM","2788","NN","1288","54","28426","54","-6.0","26478","0.0","31214","660","31214.0","0.0","66478.0","3527306.0"],["2016","1","MG","VEREADOR","49891","0","0","MM","710","NN","144","18","5678","18","0.0","5160","322.0","6388","52","6388.0","0.0","49891.0","3149507.0"],["2012","1","BA","PREFEITO","39730","0","10","MM","7752","NN","1606","146","33614","146","0.0","31624","0.0","41366","384","41366.0","0.0","39730.0","2919157.0"],["2002","1","PE","SENADOR","24457","0","0","F","4562","N","4931","49","10315","49","-3.0","13445","0.0","14877","2254","14877.0","0.0","24457.0","2607307.0"],["2002","2","SP","GOVERNADOR","70734","0","0","F","1500","N","178","13","6080","13","-3.0","5788","0.0","7580","114","7580.0","0.0","70734.0","3548609.0"],["2002","1","SP","GOVERNADOR","67938","0","0","F","4695","N","1015","42","17825","42","-3.0","15817","0.0","22520","993","22520.0","0.0","67938.0","3534609.0"],["2000","1","TO","PREFEITO","96679","0","18","MM","1162","NN","312","32","7334","32","-6.0","6962","0.0","8496","60","8496.0","0.0","96679.0","1707652.0"],["2016","1","MG","VEREADOR","42412","0","6","MM","1214","NN","144","38","7698","38","0.0","6828","604.0","8912","122","8912.0","0.0","42412.0","3112109.0"],["2002","1","BA","DEPUTADO ESTADUAL","37630","0","3","F","4893","N","501","57","13027","57","-3.0","9853","2100.0","17920","573","17920.0","0.0","37630.0","2923100.0"],["2002","2","SP","GOVERNADOR","66338","0","0","F","821","N","132","11","3988","11","-3.0","3814","0.0","4809","42","4809.0","0.0","66338.0","3526605.0"],["2002","1","MT","GOVERNADOR","90824","0","2","F","600","N","121","9","1796","9","-3.0","1595","0.0","2396","80","2396.0","0.0","90824.0","5103858.0"],["2012","1","MT","VEREADOR","91022","0","2","MM","288","NN","244","20","4860","20","0.0","4282","300.0","5148","34","5148.0","0.0","91022.0","5108352.0"],["2010","1","MS","GOVERNADOR","MS","0","248","FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF","616896","NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN","182414","10290","2784928","10290","-528.0","2515902","0.0","3401824","86612","3401824.0","0.0","",""],["2012","1","SP","VEREADOR","69612","0","0","MM","6104","NN","354","106","22784","106","0.0","19492","2376.0","28888","562","28888.0","0.0","69612.0","3543006.0"],["2002","1","MG","DEPUTADO ESTADUAL","51632","0","0","F","3571","N","443","34","7374","34","-3.0","5022","1598.0","10945","311","10945.0","0.0","51632.0","3158201.0"],["2000","1","MG","PREFEITO","43435","0","0","MM","280","NN","122","16","3794","16","-6.0","3646","0.0","4074","26","4074.0","0.0","43435.0","3117207.0"],["2012","1","MA","PREFEITO","7820","0","20","MM","3750","NN","1004","60","11640","60","0.0","10318","0.0","15390","318","15390.0","0.0","7820.0","2105922.0"],["2002","1","MS","SENADOR","90492","0","0","F","2335","N","2421","45","9840","45","-3.0","16278","0.0","12175","981","12175.0","0.0","90492.0","5002605.0"],["2000","1","PR","PREFEITO","77054","0","0","MM","104","NN","110","14","2962","14","-6.0","2822","0.0","3066","30","3066.0","0.0","77054.0","4116000.0"],["2002","1","SC","DEPUTADO ESTADUAL","80101","0","4","F","540","N","40","12","2714","12","-3.0","2261","306.0","3254","107","3254.0","0.0","80101.0","4209151.0"],["2020","1","MT","VEREADOR","89800","0","8","MM","1562","NN","250","24","7124","24","0.0","6554","246.0","8686","74","8686.0","0.0","89800.0","5103437.0"],["2024","1","MA","PREFEITO","8001","0","38","MM","4206","NN","416","96","22958","134","0.0","22444","0.0","27164","98","0.0","0.0","8001.0","2107357.0"],["2002","1","MG","DEPUTADO FEDERAL","42560","0","0","F","850","N","73","11","2999","11","-3.0","2416","352.0","3849","158","3849.0","0.0","42560.0","3171154.0"],["2016","1","TO","PREFEITO","96598","0","2","MM","534","NN","328","30","7434","30","0.0","7048","0.0","7968","58","7968.0","0.0","96598.0","1720655.0"],["2002","1","MT","DEPUTADO FEDERAL","90506","0","0","F","2501","N","189","36","10450","36","-3.0","8991","841.0","12951","429","12951.0","0.0","90506.0","5102678.0"],["2002","1","MG","SENADOR","51098","0","0","F","1355","N","2224","26","6641","26","-3.0","9340","0.0","7996","1718","7996.0","0.0","51098.0","3155504.0"],["2004","1","BA","PREFEITO","39624","0","8","MM","2000","NN","942","42","11460","42","-6.0","10330","0.0","13460","188","13460.0","0.0","39624.0","2933174.0"],["2004","1","RO","VEREADOR","35","0","74","MMMMMMMMMMMMMM","76550","NNNNNNNNNNNNNN","6754","1206","376930","1206","-42.0","331640","30556.0","453480","7980","453480.0","0.0","35.0","1100205.0"],["2002","1","SP","DEPUTADO FEDERAL","71510","0","0","FF","21789","NN","3616","280","123249","280","-6.0","102107","10951.0","145038","6575","145038.0","0.0","71510.0","3552502.0"],["2004","1","MG","VEREADOR","41335","0","12","MMMMMM","45912","NNNNNN","8054","1124","353302","1124","-18.0","313382","24322.0","399214","7544","399214.0","0.0","41335.0","3106705.0"],["2002","2","RS","GOVERNADOR","87025","0","0","F","357","N","86","8","1968","8","-3.0","1833","0.0","2325","49","2325.0","0.0","87025.0","4312138.0"],["2002","1","SC","SENADOR","81442","0","0","F","324","N","198","10","1437","10","-3.0","2490","0.0","1761","186","1761.0","0.0","81442.0","4211876.0"],["2016","1","MA","VEREADOR","9210","0","376","MMMMMMMMMMMMMMMMMM","185608","NNNNNNNNNNNNNNNNNN","38136","3936","1133950","3936","0.0","994008","54692.0","1319558","47114","1319558.0","0.0","9210.0","2111300.0"],["2024","1","PE","PREFEITO","23892","0","0","MM","4198","NN","1494","108","33302","108","0.0","31110","0.0","37500","698","0.0","0.0","23892.0","2604502.0"]],"grain_check":null,"pseudocode":null};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

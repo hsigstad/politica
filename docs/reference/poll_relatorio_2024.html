@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2024 Poll Relatório — politica</title>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+  main { padding: 1.5rem 2rem 3rem; max-width: 42rem; margin: 0 auto; }
+  .md-body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.06rem; line-height: 1.78; color: var(--fg);
+  }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .md-body h1 { font-size: 1.5rem; font-weight: 600; margin: 1.8rem 0 .8rem;
+    padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  .md-body h2 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 .6rem;
+    padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.05rem; font-weight: 600; margin: 1.3rem 0 .5rem; }
+  .md-body h4 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  .md-body h5, .md-body h6 { font-size: .88rem; font-weight: 600; margin: 1rem 0 .4rem; }
+  .md-body h1:first-child { margin-top: 0; }
+  .md-body strong { font-weight: 600; }
+  .md-body ul li { list-style: disc; }
+  .md-body li > ul, .md-body li > ol { margin-top: .25rem; margin-bottom: 0; }
+  .md-body li input[type="checkbox"] {
+    margin-right: .4rem; vertical-align: middle; position: relative; top: -1px;
+  }
+  .md-body p { margin: 0 0 .8rem; }
+  .md-body ul, .md-body ol { margin: 0 0 .8rem; padding-left: 1.8rem; }
+  .md-body li { margin-bottom: .25rem; }
+  .md-body a { color: var(--accent); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    margin: 0 0 .8rem; padding: .4rem 1rem;
+    border-left: 4px solid var(--accent); background: #f5f3ee;
+    color: #555;
+  }
+  .md-body blockquote.verdict-callout {
+    border-left-width: 6px;
+    background: #fffefa;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: .7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    color: var(--fg);
+    margin: 1rem 0 1.2rem;
+  }
+  .md-body blockquote.verdict-callout > p:first-child > strong:first-child {
+    color: #111;
+  }
+  .md-body blockquote.verdict-callout.verdict-refuted   { border-left-color: #dc3545; }
+  .md-body blockquote.verdict-callout.verdict-confirmed { border-left-color: #198754; }
+  .md-body blockquote.verdict-callout.verdict-mixed     { border-left-color: #d39e00; }
+  .md-body blockquote.verdict-callout.verdict-pending   { border-left-color: #6b7280; }
+  .md-body blockquote.verdict-callout.verdict-neutral   { border-left-color: var(--accent); }
+
+  /* Analysis page: headline (one-paragraph plain-English finding) */
+  .an-headline {
+    font-size: 1.05rem; line-height: 1.55; font-weight: 500;
+    color: #1f2328; background: #f6f8fa;
+    border-left: 4px solid var(--accent);
+    padding: .8rem 1rem; margin: 0 0 1.2rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Analysis info panel (rendered from .md frontmatter) — three tiers:
+     top (hypothesis/confidence), Design block, provenance footer. */
+  .an-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1.5rem;
+    font-size: .85rem;
+  }
+  .an-meta {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .2rem 1rem; margin: 0;
+  }
+  .an-row { display: contents; }
+  .an-meta dt { color: var(--muted); font-weight: 600; }
+  .an-meta dd { margin: 0; }
+  .an-meta code { font-size: .82em; }
+  .an-meta-top { font-size: .95rem; gap: .35rem 1rem; }
+  .an-meta-top dt { font-weight: 700; }
+  .an-meta-prov {
+    font-size: .75rem; gap: .15rem 1rem;
+    margin-top: .65rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .an-meta-prov dt { font-weight: 500; }
+  .an-meta-prov dd { color: var(--muted); }
+  .an-meta-prov code { color: var(--muted); }
+  .an-panel-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    margin: .65rem 0 .3rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+  }
+  .conf-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; text-transform: capitalize;
+  }
+  .conf-green   { background: #d4edda; color: #155724; }
+  .conf-yellow  { background: #fff3cd; color: #856404; }
+  .conf-red     { background: #f8d7da; color: #721c24; }
+  .conf-pending { background: #e9ecef; color: #495057; }
+  .md-body code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: .85em; background: #f0ede6; padding: .15rem .35rem;
+    border-radius: 4px;
+  }
+  .md-body pre {
+    margin: 0 0 .8rem; padding: .9rem 1rem;
+    background: #f5f3ee; border: 1px solid var(--border);
+    border-radius: 6px; overflow-x: auto;
+  }
+  .md-body pre code { background: none; padding: 0; }
+  .md-body table {
+    width: 100%; border-collapse: collapse; margin: 0 0 .8rem; font-size: .9rem;
+  }
+  .md-body th, .md-body td {
+    padding: .45rem .7rem; border: 1px solid var(--border); text-align: left;
+  }
+  .md-body th { background: #f5f3ee; font-weight: 600; }
+  .md-body tr:nth-child(even) td { background: var(--bg); }
+  .md-body img { max-width: 100%; }
+  .md-body li:target { background: #fff8c4; scroll-margin-top: 4rem; }
+  .md-body a.cite-ref, .md-body a.anec-ref, .md-body a.concept-ref {
+    color: var(--fg); text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  .md-body a.cite-ref:hover, .md-body a.anec-ref:hover,
+  .md-body a.concept-ref:hover { border-bottom-style: solid; }
+  /* Legal citations (`LE.33.IV`, `CPC.144.§3`): tan chip with a
+     browser-native title-tooltip carrying the verbatim statutory text,
+     linking out to the brazil-institutions law page. Rendered by
+     sitekit.links_extra.link_legal_refs when enable_legal_refs=True
+     and the workspace's artigos.db is reachable. */
+  .md-body code.legal-cite, .md-body a.legal-cite {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .85em; background: #fdf8e8; border: 1px solid #e5d48b;
+    padding: .15rem .35rem; border-radius: 4px; cursor: help;
+  }
+  .md-body a.legal-cite { color: var(--fg); text-decoration: none; }
+  .md-body a.legal-cite:hover { text-decoration: underline; }
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../../index.html" class="nav-brand">politica</a>
+  <a href="../../index.html" class="nav-link">Home</a>
+  <a href="../../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link active">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../../docs/summary.html">Pipeline Summary</a>
+    <a href="../../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../../docs/decisions.html">Key Decisions</a>
+    <a href="../../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../../docs/todo.html">Active Tasks</a>
+    <a href="../../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header"><h1>2024 Poll Relatório</h1></div>
+
+<main>
+<div class="md-body">
+<h1>2024 TSE poll relatório — extractions and source PDFs</h1>
+<p>Per-candidate vote intentions extracted from the 2024 TSE-registered
+electoral poll relatórios (mayoral races). This README accompanies the
+shareable artifacts on the external data mirror.</p>
+<p>Produced by the politica pipeline
+(<a href="https://github.com/hsigstad/politica">https://github.com/hsigstad/politica</a>) — runner
+<code>source/llm/poll_extract.py</code>, wrapper <code>source/llm/poll_relatorio.py</code>,
+schema <code>source/llm/schemas.py</code> (<code>PollRelatorio</code>, <code>schema_version=&quot;v1&quot;</code>).</p>
+<h2 id="what-s-in-the-bundle">What's in the bundle</h2>
+<pre><code>pesquisa_eleitoral/
+  relatorios/
+    &lt;UF&gt;.tar.zst                       per-UF tarball of source PDFs
+                                       (compact protocol filenames)
+  extractions/
+    poll_relatorio_2024.parquet        assembled long table (this README's
+                                       primary deliverable)
+    poll_relatorio_cache.tar.zst       raw per-poll LLM JSON cache
+                                       (292 MB → 21 MB compressed)
+    README.md                          this file
+</code></pre>
+<p>Restore the JSON cache with:</p>
+<pre><code class="language-bash">tar --use-compress-program='zstd -d' -xf poll_relatorio_cache.tar.zst
+# → poll_relatorio/&lt;hash&gt;.json  (one file per extraction, content-hashed)
+</code></pre>
+<h2 id="the-parquet">The parquet</h2>
+<p><code>poll_relatorio_2024.parquet</code> — <strong>149,934 rows</strong>, one per
+<em>(candidate × scenario × poll)</em>, from <strong>8,169 distinct polls across
+25 states</strong>.</p>
+<table>
+<thead>
+<tr>
+  <th>column</th>
+  <th>type</th>
+  <th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>protocol</code></td>
+  <td>str</td>
+  <td>TSE protocol, compact form (e.g. <code>PE004282024</code>). Join key to registration CSVs and PDFs.</td>
+</tr>
+<tr>
+  <td><code>tse_protocol_display</code></td>
+  <td>str</td>
+  <td>Human-readable protocol (e.g. <code>PE-00428/2024</code>); echoed from the PDF for join-back validation.</td>
+</tr>
+<tr>
+  <td><code>scenario_type</code></td>
+  <td>str</td>
+  <td>One of: <code>espontaneo</code>, <code>estimulado</code>, <code>votos_validos</code>, <code>rejeicao</code>, <code>avaliacao_governo</code>, <code>segundo_turno_simulacao</code>, <code>outro</code>. A few stray buckets like <code>expectativa_vitoria</code> leak from <code>outro</code>; treat anything outside these seven as <code>outro</code>.</td>
+</tr>
+<tr>
+  <td><code>scenario_label</code></td>
+  <td>str</td>
+  <td>Exact label as printed in the PDF.</td>
+</tr>
+<tr>
+  <td><code>candidate_name</code></td>
+  <td>str</td>
+  <td>Candidate display name; aggregate rows carry descriptive labels (<code>Branco/Nulo</code>, <code>Não sabe</code>, …).</td>
+</tr>
+<tr>
+  <td><code>party</code></td>
+  <td>str?</td>
+  <td>Party abbreviation when shown next to the name, else null.</td>
+</tr>
+<tr>
+  <td><code>percent</code></td>
+  <td>float</td>
+  <td>Vote-intention percentage in that scenario, 0–100.</td>
+</tr>
+<tr>
+  <td><code>extraction_notes</code></td>
+  <td>str?</td>
+  <td>Per-poll note on any ambiguity or judgment call.</td>
+</tr>
+<tr>
+  <td><code>source</code></td>
+  <td>str</td>
+  <td>Extraction provenance tag: <code>llmkit</code> (2026-06-01 bulk run) or <code>legacy_pilot</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Load:</p>
+<pre><code class="language-python">import pandas as pd
+df = pd.read_parquet(&quot;poll_relatorio_2024.parquet&quot;)
+</code></pre>
+<h2 id="how-it-was-built">How it was built</h2>
+<ol>
+<li><strong>Scrape.</strong> <code>source/scrape/tse_relatorio.py</code> iterates the
+per-UF registration CSVs (<code>pesquisa_eleitoral_2024_&lt;UF&gt;.csv</code> from
+<a href="https://dadosabertos.tse.jus.br">https://dadosabertos.tse.jus.br</a>) and downloads the
+&quot;Relatório completo com o resultado de pesquisa&quot; PDF for each
+mayoral protocol from the TSE divulgação portal
+(<a href="https://pesqele-divulgacao.tse.jus.br">https://pesqele-divulgacao.tse.jus.br</a>). One file per protocol,
+under <code>build/scrape/tse_relatorio/2024/&lt;PROTOCOL&gt;.pdf</code>. Idempotent;
+logs to <code>_runlog.jsonl</code>.</li>
+<li><strong>Extract.</strong> <code>source/llm/poll_extract.py</code> runs each PDF through
+<code>gpt-4o-mini</code> via <code>llmkit</code>. The wrapper checks the cache first
+(composite key of protocol + text-hash + model), falls back to an
+in-house legacy cache (the legacy pilot, see below), and only calls the
+LLM on a true miss. Image-only PDFs (<code>pdftotext</code> output below
+<code>MIN_TEXT_CHARS = 200</code>) are skipped — OCR is future work.</li>
+<li><strong>Assemble.</strong> <code>assemble_long_table()</code> walks the new-format cache,
+then the legacy pilot cache, deduplicating by <code>protocol</code>. Entries
+that fail validation against <code>PollRelatorio</code> are dropped (warned).
+Output: the parquet above.</li>
+</ol>
+<p>Bulk LLM run: 2026-06-01, 10:20–15:12 UTC, <code>gpt-4o-mini</code>, 8 workers,
+all UFs except SP. SP was extracted earlier on a separate host.</p>
+<h2 id="coverage-and-known-gaps">Coverage and known gaps</h2>
+<p>The 2024 mayoral poll <strong>registration universe is 14,876 protocols</strong>
+(per-UF CSVs from TSE). Coverage at each step:</p>
+<h3 id="scrape-11-372-pdfs-76-4-of-universe">Scrape: 11,372 PDFs (76.4% of universe)</h3>
+<table>
+<thead>
+<tr>
+  <th>status</th>
+  <th>count</th>
+  <th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>downloaded</td>
+  <td>11,372</td>
+  <td>one PDF per protocol, on disk under <code>build/scrape/</code></td>
+</tr>
+<tr>
+  <td>no relatório uploaded</td>
+  <td>3,415</td>
+  <td>TSE portal returns empty for these protocols</td>
+</tr>
+<tr>
+  <td>transient errors</td>
+  <td>89</td>
+  <td>network/portal hiccups; queue at end of <code>_runlog.jsonl</code></td>
+</tr>
+</tbody>
+</table>
+<p>The &quot;no relatório uploaded&quot; gap is <strong>at the source</strong> — TSE does not
+publish a relatório for every registered poll. The scraper's docstring
+expects this; ~80% of registered polls have a downloadable relatório.
+The 89 transient errors are recoverable by re-running.</p>
+<h3 id="llm-extraction-8-169-distinct-polls-in-the-parquet">LLM extraction: 8,169 distinct polls in the parquet</h3>
+<p>The non-SP universe is 9,737 PDFs (11,372 total minus SP's 1,635).
+The gap from 9,737 PDFs down to the parquet's polls is dominated by
+image-only PDFs that the <code>pdftotext</code> gate skips
+(<code>MIN_TEXT_CHARS = 200</code>):</p>
+<table>
+<thead>
+<tr>
+  <th>UF</th>
+  <th>PDFs</th>
+  <th>image-only</th>
+  <th>extractable</th>
+  <th>in parquet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>TO</td>
+  <td>475</td>
+  <td>157</td>
+  <td>318</td>
+  <td>275</td>
+</tr>
+<tr>
+  <td>SE</td>
+  <td>373</td>
+  <td>39</td>
+  <td>334</td>
+  <td>(per parquet)</td>
+</tr>
+<tr>
+  <td>ES</td>
+  <td>342</td>
+  <td>15</td>
+  <td>327</td>
+  <td>(per parquet)</td>
+</tr>
+<tr>
+  <td>RS</td>
+  <td>205</td>
+  <td>15</td>
+  <td>190</td>
+  <td>(per parquet)</td>
+</tr>
+<tr>
+  <td>AL</td>
+  <td>148</td>
+  <td>5</td>
+  <td>143</td>
+  <td>130</td>
+</tr>
+<tr>
+  <td>AC</td>
+  <td>48</td>
+  <td>1</td>
+  <td>47</td>
+  <td>46</td>
+</tr>
+</tbody>
+</table>
+<p>TO image-only is the heaviest; those are scanned institute reports
+that would need OCR to recover. The small remaining shortfall per UF
+(e.g. AC 47→46, TO 318→275) is the schema-validation drop at parquet
+assembly — those entries are in the cache but did not validate against
+<code>PollRelatorio.v1</code>.</p>
+<h3 id="sp-is-not-in-the-parquet-from-this-bundle">SP is <em>not</em> in the parquet from this bundle</h3>
+<p>This parquet has 0 SP rows. SP (1,635 PDFs) was extracted earlier on a
+separate host; that JSON cache lives on that host only. If you need SP,
+the parquet assembled on that host has it merged in.</p>
+<h3 id="the-legacy-pilot-cache">The legacy pilot cache</h3>
+<p>The first 111 protocols (48 AC + 62 AL + 1 stray) were extracted with
+the pre-llmkit script, before the extractor was migrated to llmkit.
+Those JSON files (<code>{PROTOCOL}.json</code>, in the
+old in-house format) are bundled into <code>poll_relatorio_cache.tar.zst</code>
+under a separate subdirectory. The assembler reads both formats; the
+<code>source</code> column tags rows accordingly (<code>legacy_pilot</code> vs. <code>llmkit</code>).</p>
+<h2 id="quality-caveats">Quality caveats</h2>
+<ul>
+<li><strong>Spot-checked, not row-by-row validated.</strong> A 102-protocol pilot was
+audited against source PDFs (see <code>docs/done.md</code> 2026-06-01 entry in
+the politica repo) — 9% of espontaneo/estimulado sub-scenarios
+deviate from 100% sum by more than ±5pp. Six are <em>all-zero</em>
+sub-scenarios (low text quality / unusual table layouts); the rest
+are 105–115% sums consistent with rounding in the source.</li>
+<li><strong>Aggregate rows</strong> (<code>Branco/Nulo</code>, <code>Não sabe</code>, etc.) are present
+with descriptive labels in <code>candidate_name</code>. Filter them out if you
+need only candidate-level rows.</li>
+<li><strong>One schema-invalid entry</strong> in the 2026-06-01 bulk cache is silently
+dropped at assembly. The cache and parquet are otherwise consistent.</li>
+</ul>
+<h2 id="reproducing-this">Reproducing this</h2>
+<p>Setup is documented in the politica repo's README. The end-to-end
+recipe, given the per-UF registration CSVs already staged under
+<code>$DATA_DIR/tse_polls_2024/</code>:</p>
+<pre><code class="language-bash"># 1. scrape PDFs (resumable; ~hours, gated by TSE rate limits)
+python source/scrape/tse_relatorio.py --year 2024 --rate-seconds 1.5
+
+# 2. extract (~5 hours wall, ~$10, 8 workers)
+export OPENAI_API_KEY=sk-...
+BASE_DIR=$PWD DATA_DIR=&quot;$DATA_DIR&quot; \
+  PYTHONPATH=/path/to/llmkit:$PWD/source/llm \
+  python source/llm/poll_extract.py --year 2024 \
+    --exclude-states SP --workers 8
+
+# 3. assemble parquet (the runner does this automatically at the end of
+#    a live pass; --validate-cached re-assembles without re-calling LLM)
+python source/llm/poll_extract.py --year 2024 --validate-cached
+</code></pre>
+<h2 id="contact">Contact</h2>
+<p>Henrik Sigstad — <a href="mailto:h.sigstad@gmail.com">h.sigstad@gmail.com</a>
+BI Norwegian Business School, Department of Economics.</p>
+
+</div>
+</main>
+
+<footer>Generated by <code>sitekit</code></footer>
+<script>
+/* Mermaid diagrams: render ```mermaid fenced code blocks as diagrams.
+   Guarded + lazy — the CDN library loads ONLY on pages that contain one, so
+   doc pages without a diagram are completely unaffected. */
+(function () {
+  var blocks = document.querySelectorAll("pre > code.language-mermaid");
+  if (!blocks.length) return;
+  blocks.forEach(function (code) {
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;   // entity-decoded source
+    code.closest("pre").replaceWith(div);
+  });
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload = function () { mermaid.initialize({ startOnLoad: false }); mermaid.run(); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

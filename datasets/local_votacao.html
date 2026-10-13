@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>local_votacao — geocoded polling places</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>local_votacao — geocoded polling places</h1>
+  <p>Polling-place registry with address and geocoordinates: one row per polling location per election year, carrying município, zona, address, CEP, latitude/longitude and the geocode provenance (coord_source).</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {"id":"local_votacao","name":"local_votacao — geocoded polling places","description":"Polling-place registry with address and geocoordinates: one row per polling location per election year, carrying município, zona, address, CEP, latitude/longitude and the geocode provenance (coord_source).","grain":"One row per (year, municipio_id, zona, local_votacao).","notes":"","category":"Elections & results","layer":"clean","source_script":"source/clean/local_votacao.py","file_size":14498960,"row_count":944687,"col_count":15,"columns":[{"name":"year","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"2022"},{"name":"estado","dtype":"str","null_count":0,"null_pct":0.0,"example":"BA"},{"name":"municipio_id","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"35130"},{"name":"municipio","dtype":"str","null_count":0,"null_pct":0.0,"example":"EUCLIDES DA CUNHA"},{"name":"zona","dtype":"Int64","null_count":1,"null_pct":0.0,"example":"17"},{"name":"local_votacao","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"1058"},{"name":"local_votacao_nome","dtype":"str","null_count":0,"null_pct":0.0,"example":"ESCOLA ESTADUAL ANTONIETA XAVIER SIQUEIRA SANTOS"},{"name":"bairro","dtype":"str","null_count":0,"null_pct":0.0,"example":"CENTRO"},{"name":"endereco","dtype":"str","null_count":0,"null_pct":0.0,"example":"RUA PROFESSOR PEDRO MONTEIRO CAMPOS SN ZONA URBANA"},{"name":"cep","dtype":"str","null_count":1650,"null_pct":0.2,"example":"38270000"},{"name":"longitude","dtype":"float64","null_count":3983,"null_pct":0.4,"example":"-56.6643541666667"},{"name":"latitude","dtype":"float64","null_count":3983,"null_pct":0.4,"example":"-15.6144166388889"},{"name":"coord_source","dtype":"str","null_count":0,"null_pct":0.0,"example":"pred"},{"name":"coord_pred_dist","dtype":"float64","null_count":3983,"null_pct":0.4,"example":"1.40074861346138"},{"name":"ibge7","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"2910701"}],"binary":{},"categorical":{"estado":{"labels":["MG","SP","BA","RS","CE","MA","PR","PA","RJ","SC","PI","PE","GO","PB","ES","RN","MT","AM","SE","MS"],"values":[102575,102078,98217,86605,71190,55539,52502,51460,49655,37873,35270,32655,24887,18135,16868,15645,15193,14903,11111,10195]},"coord_source":{"labels":["pred","tse"],"values":[687348,257339]},"year":{"labels":["2012","2014","2018","2016","2020","2010","2022","2008","2006","2024"],"values":[96848,95938,94803,94654,94326,94315,93561,93460,93445,93337]}},"temporal":{"year":{"min":"2006","max":"2024","by_year":{"labels":[2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[93445,93460,94315,96848,95938,94654,94803,94326,93561,93337]}}},"sample_columns":["year","estado","municipio_id","municipio","zona","local_votacao","local_votacao_nome","bairro","endereco","cep","longitude","latitude","coord_source","coord_pred_dist","ibge7"],"sample":[["2022","BA","35130","EUCLIDES DA CUNHA","102","1058","ESCOLA ESTADUAL ANTONIETA XAVIER SIQUEIRA SANTOS","CENTRO","RUA PROFESSOR PEDRO MONTEIRO CAMPOS SN ZONA URBANA","48500000","-39.014816","-10.506953","pred","0.632079196716322","2910701"],["2010","CE","13455","BELA CRUZ","96","1414","EEIF CRISPIM JOSE DA SILVA","RIACHO DA PRATALOCALIDADE","RIACHO DA PRATA","62570000","-40.264465","-3.007478","pred","0.0090715474278109","2302305"],["2018","SC","80616","CAMBORIU","103","1228","ESCOLA DE EDUCACAO BASICA PROFESSOR MARIO GARCIA","CEDRO","RUA SAUL DALLAGO N 370","88341070","-48.65268948","-27.03297749","tse","0.0","4203204"],["2022","RS","88390","SANTA CRUZ DO SUL","162","1171","EENOSSA SENHORA DA ESPERANCA","SANTA VITORIA","RUA FREDERICO TIETZE 160","96840660","-52.441599","-29.752165","tse","0.0","4316808"],["2016","MA","9210","SAO LUIS","1","2208","UNIDADE INTEGRADA MARIO ANDREAZZA","LIBERDADE ZONA URBANA","RUA MACHADO DE ASSIS LIBERDADE","6.5e+07","-44.2495357","-2.5123504","pred","0.26221915048918","2111300"],["2016","MG","52477","SAO JOAO DA PONTE","255","1040","ESCOLA ESTADUAL CORONEL SIMAO CAMPOS","CENTRO","RUA JOAO EVANGELISTA MADUREIRA 249","39430000","-44.004953","-15.931567","pred","0.0353525955331847","3162401"],["2024","RS","88390","SANTA CRUZ DO SUL","162","1040","ESPORTE CLUBE FLAMENGO","ARROIO GRANDE","RUA CARLOS BAUMHARDT 55","96830450","-52.418244","-29.74048","tse","0.0","4316808"],["2006","MA","7935","GRAJAU","15","1139","UNIDADE ESCOLAR FREI ALBERTO BERETTA","POVOADO ALTO BRASIL ZONA RURAL","POVOADO ALTO BRASIL","65940000","-46.163365","-5.835704","pred","0.0436824015504208","2104800"],["2022","RS","87297","LAJEADO","29","1783","EMEF GUIDO ARNOLDO LERMEN","CENTENARIO","RUA CARLOS DE ANDRADE 66","95900000","-52.001233","-29.431616","tse","0.0","4311403"],["2010","BA","34819","CORIBE","61","1120","ESCOLA DE PRIMEIRO GRAU JOAO BATISTA DE OLIVEIRA SILVA","POVOADO RANCHINHO","RUA PRINCIPAL SN ZONA RURAL","47690000","-44.44787","-14.00761","pred","0.275490342008475","2909109"],["2008","RN","17612","NATAL","2","1929","ESCOLA MUNICIPAL PROF BERILO WANDERLEY","QUINTAS","RUA DOS PAIANAZES SN","59035350","-35.230983","-5.806032","pred","0.030346306060458","2408102"],["2006","MG","45217","FORMIGA","114","1376","CENTRO COMUNITARIO DE FIVELA","ZONA RURAL","FIVELA","35577000","-45.4254172","-20.4530975","pred","3.19891848950463","3126109"],["2012","SP","61654","ARARAS","14","1082","EE SENADOR CESAR LACERDA DE VERGUEIRO","JARDIM BELVEDERE","AV PE ATILIO 748","13601100","-47.3886971","-22.366605","pred","0.0243898849859588","3503307"],["2006","SP","68918","PITANGUEIRAS","98","1074","EE MAURICIO MONTECCHI","JARDIM PAULISTA","AV ACRE 500","14750000","-48.2142481","-21.0116303","pred","0.0217365183342842","3539509"],["2010","BA","39985","SOBRADINHO","66","1082","POSTO DE SAUDE","VILA SAO JOAQUIM","VILA SAO JOAQUIM ZONA URBANA","48905000","-40.8017985","-9.471278","pred","0.163344704471291","2930774"],["2014","PB","19810","CAMPINA GRANDE","16","1384","ESCOLA MUNICIPAL DR JOSE TAVARES","CASTELO BRANCO","RUA JOSE GOMES DE FARIAS SN","58406160","-35.8672","-7.215709","pred","0.0255303372893957","2504009"],["2020","SP","70750","SAO BERNARDO DO CAMPO","414","1155","EE PROF MAURICIO ANTUNES FERRAZ","JARDIM NOVA PETROPOLIS","RUA PRINCESA FRANCISCA CAROLINA 555","9770340","-46.54292674","-23.70497931","tse","0.0","3548708"],["2016","SP","66451","LORENA","68","1066","EMEIEF CONDE DE MOREIRA LIMA","CENTRO","R DR RODRIGUES DE AZEVEDO 436","12600005","-45.1192956","-22.7336117","pred","0.0249078812414846","3527207"],["2014","PA","4715","ITAITUBA","34","1325","FACULDADE DE ITAITUBA","JARDIM DAS ARARAS","AV GOVERNADOR FERNANDO GUILHON","68180000","-55.981673","-4.265708","pred","0.0151117125218917","1503606"],["2024","SP","64777","GUARULHOS","185","1562","EPG CHICO MENDES","JARDIM OLIVEIRA","RUA IATI 55","7241361","-46.4265999","-23.4511282","tse","0.0","3518800"],["2024","MA","8770","PORTO FRANCO","46","1074","UNID INTEG ARTUR MILHOMEM","ENTRONCAMENTO ZONA URBANA","AV VALENTIN DA S AGUIAR SN","65970000","-47.3784946","-6.3554364","tse","0.0","2109007"],["2012","RO","710","SAO FELIPE DO OESTE","19","1112","COMUNIDADE SAO JOAO","ZONA RURAL","LINHA 45 KM 12 SENTIDO PRIMAVERA DE RONDONIA","76977000","-61.4733766666667","-11.905455","pred","5.6847836965332","1101484"],["2014","RS","87050","IJUI","23","1546","ESCOLA MINFANTIL SOLANGE ANA COPETTI","THOME DE SOUZA","RUA DARI TISSOT SN F 55 3332 9754","98700000","-53.934048","-28.397481","pred","0.0607586441897352","4310207"],["2020","SP","66451","LORENA","68","1139","EE ARNOLFO AZEVEDO","CIDADE INDUSTRIAL","AV TOMAZ ALVES FIGUEIREDO 350","12608140","-45.1244705","-22.7445019","pred","0.0193325716787326","3527207"],["2012","CE","15440","SALITRE","38","5512","ESCOLA FRANCISCO JACINTO DO NASCIMENTO","ZONA RURAL SALITRECE","SERRA DO JACINTO","63155000","-40.45754","-7.324618","pred","0.0222788487635725","2311959"],["2022","SE","32190","RIBEIROPOLIS","26","1015","JOAO XXIII COLEGIO ESTADUAL","BAIXA FRIA","AV DR CARLOS FIRPO 230","49530000","-37.43479","-10.537086","pred","0.0118812894633553","2806008"],["2024","SP","70750","SAO BERNARDO DO CAMPO","296","1023","EE SENADOR ROBERT KENNEDY","VILA LUCIA","RUA NILO PECANHA 200","9810580","-46.5690668","-23.7218423","tse","0.0","3548708"],["2016","PA","4413","CAMETA","12","1660","EM DULCI FERREIRA PACHECO JOROCAZINHO","REGIAO RIBEIRINHA","RIO JOROCAZINHO","68400000","-49.410448","-2.063537","pred","0.26443895163337","1502103"],["2010","RJ","60011","RIO DE JANEIRO","210","1155","CENTRO EDUCACIONAL CECILIA","BENTO RIBEIRO","RUA SAPOPEMBA","21331240","-43.36075","-22.86899","pred","0.0417866748429004","3304557"],["2008","PA","5410","SAO CAETANO DE ODIVELAS","8","1040","EMEF RAMIRO CHAGAS FILHO","ZONA RURAL","LOCALIDADE DE SAO JOAO DOS RAMOS","68775000","-48.054287","-0.722569","pred","5.23966924307403","1507102"],["2020","SP","67610","NOVA GRANADA","78","1074","EMEF MADALENA DE ALMEIDA CAIS","ESTACAO","RUA JULIO FRAZON SN","15440000","-49.3290679","-20.5421149","pred","0.0198997107455926","3533007"],["2006","BA","34630","CONCEICAO DA FEIRA","108","1171","ESCOLA MANOEL RIBEIRO BRANDAO","POVOADO MANGABEIRA","POVOADO DE MANGABEIRA ZONA RURAL","44320000","-38.976713","-12.474021","pred","0.0169630346474074","2908200"],["2024","BA","36854","LAURO DE FREITAS","180","1546","CEEP TICCENTRO EST DE EDUCACAO PROF EM TEC INFORMACAO E COMUNICACAO","CENTRO","AVENIDA BRIGADEIRO MARIO EPINGHAUS N 818 ZONA URBANA","42704730","-38.3188427","-12.8970288","tse","0.0","2919207"],["2018","MG","47554","LAMBARI","159","1090","ESCOLA MUNICIPAL ALVARENGA PEIXOTO","RURAL SERROTE","SERROTE","37480000","-45.316961","-21.970797","pred","1.22575803188832","3137809"],["2018","PI","10294","BATALHA","45","1325","UNIDADE ESCOLAR ESTER SOUSA PEDRA MIUDA","ZONA RURAL","PEDRA MIUDA","64190000","-42.0274616666667","-3.99762166666667","pred","0.247597831227196","2201507"],["2022","SE","32158","RIACHAO DO DANTAS","4","1333","ESCOLA MUNICIPAL MARIA LUCIA DANTAS","ZONA RURAL","POVOADO BOMFIM","49320000","-37.854552","-11.040491","pred","0.0058551315380021","2805802"],["2014","PR","74209","CAFEZAL DO SUL","97","1023","ESCOLA ESTADUAL SOUZA NAVES","CENTRO","RUA ARGENTINA N 1190 ZONA URBANA","87565000","-53.519224","-23.902889","pred","0.0292157207855686","4103479"],["2008","MG","52558","SAO JOAO EVANGELISTA","257","1040","ESCOLA ESTADUAL MONSENHOR PINHEIRO","CENTRO","R CORONEL ANTONIO BORGES DO AMARAL 494","39705000","-42.766282","-18.548809","pred","0.025651732475052","3162807"],["2018","SP","71030","SAO MANUEL","129","1058","EE PROF FRANCISCO DE OLIVEIRA FARACO","COHAB I","RUA FRANCISCO TEDESCO SN","18650000","-48.5734855","-22.7332719","pred","0.155996409653916","3550100"],["2010","BA","35173","FIRMINO ALVES","137","1058","COLEGIO GREGORIO DE BRITO","CENTRO","RUA LEONEL VIEIRA LIMA ZONA URBANA","45720000","-39.923168","-14.988369","pred","0.137694966808845","2910909"],["2012","CE","13897","FORTALEZA","117","1023","CENTRO DE EDUCACAO JUVENIL ECA DE QUEIROZ","VILA PERI","RUA DOM XISTO ALBANO 611","60730310","-38.57986","-3.791388","pred","0.0357162194157676","2304400"],["2018","MA","7234","BACABAL","13","1139","UNIDADE ESCOLAR MANOEL CAMPO SOUSA CEMA","RAMAL ZONA URBANA","RUA DIAS CARNEIRO","65700000","-44.7905595844566","-4.2399600915582","pred","0.227539105108118","2101202"],["2008","ES","56995","SERRA","53","1228","EEF HELIO FERRAZ","HELIO FERRAZ","R RIO IPIRANGA S NO","29160630","-40.2695798","-20.2413959","pred","0.0314494081918782","3205002"],["2024","BA","39454","UBATA","134","1279","ESCOLA MUNICIPAL JEOVA BENJOINO","SAO RAIMUNDO","RUA IRMA DULCE SN ZONA URBANA","45550000","-39.5272667","-14.2151093","tse","0.0","2932309"],["2010","RJ","58394","ITAGUAI","105","1147","COLEGIO ESTADUAL SANDRA ROLDAN BARBOZA","CENTRO","RUA CORONEL COSTA PEREIRA 27","23815040","-43.7774393","-22.8612978","pred","0.0222304576620303","3302007"],["2008","PA","4413","CAMETA","12","1210","BARRACAO DE NOSSA SENHORA DO ROSARIO","CAMETA","VILA DE JANUA COELI","68400000","-49.4149616388889","-2.00421333333333","pred","1.23384021894206","1502103"],["2010","PA","4146","SANTA LUZIA DO PARA","41","1236","EEEF MANOEL LIBORIO MACIEL","ZONA RURAL","VILA DA ESTIVA","68644000","-47.0496661","-1.3568248","pred","0.0105144108639562","1506559"],["2016","PA","5355","SANTAREM","104","1511","EMEF SAO SEBASTIAO","RIO ARAPIUNS","LOCALIDADE MENTAE","68100000","-55.605242","-2.664494","pred","0.0656990011774034","1506807"],["2016","GO","93220","TEREZOPOLIS DE GOIAS","89","1040","ESCOLA MUNICIPAL PROFESSORA DIVINA MARIA FELICIO","CENTRO","RUA LINDA VEIGA GOUTHIER SN","75175000","-49.093019","-16.4778915","pred","0.0337751687828355","5221197"],["2012","MA","9016","SANTA RITA","18","1040","ESCOLA MUNICIPAL JOSE DOS REIS CARVALHO","POVOADO AREIASZONA RURAL","POVOADO AREIAS","65105000","-44.29008","-3.16561","pred","0.0195644739668394","2110203"]],"grain_check":{"key_columns":["year","municipio_id","zona","local_votacao"],"n_rows":944687,"n_unique_keys":944687,"n_duplicate_rows":0,"n_null_keys":1,"is_unique":false},"pseudocode":null};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

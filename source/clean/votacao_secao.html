@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>source/clean/votacao_secao.py — politica</title>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+  main { padding: 1.5rem 2rem 3rem; max-width: 42rem; margin: 0 auto; }
+  .md-body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.06rem; line-height: 1.78; color: var(--fg);
+  }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .md-body h1 { font-size: 1.5rem; font-weight: 600; margin: 1.8rem 0 .8rem;
+    padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  .md-body h2 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 .6rem;
+    padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.05rem; font-weight: 600; margin: 1.3rem 0 .5rem; }
+  .md-body h4 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  .md-body h5, .md-body h6 { font-size: .88rem; font-weight: 600; margin: 1rem 0 .4rem; }
+  .md-body h1:first-child { margin-top: 0; }
+  .md-body strong { font-weight: 600; }
+  .md-body ul li { list-style: disc; }
+  .md-body li > ul, .md-body li > ol { margin-top: .25rem; margin-bottom: 0; }
+  .md-body li input[type="checkbox"] {
+    margin-right: .4rem; vertical-align: middle; position: relative; top: -1px;
+  }
+  .md-body p { margin: 0 0 .8rem; }
+  .md-body ul, .md-body ol { margin: 0 0 .8rem; padding-left: 1.8rem; }
+  .md-body li { margin-bottom: .25rem; }
+  .md-body a { color: var(--accent); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    margin: 0 0 .8rem; padding: .4rem 1rem;
+    border-left: 4px solid var(--accent); background: #f5f3ee;
+    color: #555;
+  }
+  .md-body blockquote.verdict-callout {
+    border-left-width: 6px;
+    background: #fffefa;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: .7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    color: var(--fg);
+    margin: 1rem 0 1.2rem;
+  }
+  .md-body blockquote.verdict-callout > p:first-child > strong:first-child {
+    color: #111;
+  }
+  .md-body blockquote.verdict-callout.verdict-refuted   { border-left-color: #dc3545; }
+  .md-body blockquote.verdict-callout.verdict-confirmed { border-left-color: #198754; }
+  .md-body blockquote.verdict-callout.verdict-mixed     { border-left-color: #d39e00; }
+  .md-body blockquote.verdict-callout.verdict-pending   { border-left-color: #6b7280; }
+  .md-body blockquote.verdict-callout.verdict-neutral   { border-left-color: var(--accent); }
+
+  /* Analysis page: headline (one-paragraph plain-English finding) */
+  .an-headline {
+    font-size: 1.05rem; line-height: 1.55; font-weight: 500;
+    color: #1f2328; background: #f6f8fa;
+    border-left: 4px solid var(--accent);
+    padding: .8rem 1rem; margin: 0 0 1.2rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Analysis info panel (rendered from .md frontmatter) — three tiers:
+     top (hypothesis/confidence), Design block, provenance footer. */
+  .an-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1.5rem;
+    font-size: .85rem;
+  }
+  .an-meta {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .2rem 1rem; margin: 0;
+  }
+  .an-row { display: contents; }
+  .an-meta dt { color: var(--muted); font-weight: 600; }
+  .an-meta dd { margin: 0; }
+  .an-meta code { font-size: .82em; }
+  .an-meta-top { font-size: .95rem; gap: .35rem 1rem; }
+  .an-meta-top dt { font-weight: 700; }
+  .an-meta-prov {
+    font-size: .75rem; gap: .15rem 1rem;
+    margin-top: .65rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .an-meta-prov dt { font-weight: 500; }
+  .an-meta-prov dd { color: var(--muted); }
+  .an-meta-prov code { color: var(--muted); }
+  .an-panel-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    margin: .65rem 0 .3rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+  }
+  .conf-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; text-transform: capitalize;
+  }
+  .conf-green   { background: #d4edda; color: #155724; }
+  .conf-yellow  { background: #fff3cd; color: #856404; }
+  .conf-red     { background: #f8d7da; color: #721c24; }
+  .conf-pending { background: #e9ecef; color: #495057; }
+  .md-body code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: .85em; background: #f0ede6; padding: .15rem .35rem;
+    border-radius: 4px;
+  }
+  .md-body pre {
+    margin: 0 0 .8rem; padding: .9rem 1rem;
+    background: #f5f3ee; border: 1px solid var(--border);
+    border-radius: 6px; overflow-x: auto;
+  }
+  .md-body pre code { background: none; padding: 0; }
+  .md-body table {
+    width: 100%; border-collapse: collapse; margin: 0 0 .8rem; font-size: .9rem;
+  }
+  .md-body th, .md-body td {
+    padding: .45rem .7rem; border: 1px solid var(--border); text-align: left;
+  }
+  .md-body th { background: #f5f3ee; font-weight: 600; }
+  .md-body tr:nth-child(even) td { background: var(--bg); }
+  .md-body img { max-width: 100%; }
+  .md-body li:target { background: #fff8c4; scroll-margin-top: 4rem; }
+  .md-body a.cite-ref, .md-body a.anec-ref, .md-body a.concept-ref {
+    color: var(--fg); text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  .md-body a.cite-ref:hover, .md-body a.anec-ref:hover,
+  .md-body a.concept-ref:hover { border-bottom-style: solid; }
+  /* Legal citations (`LE.33.IV`, `CPC.144.§3`): tan chip with a
+     browser-native title-tooltip carrying the verbatim statutory text,
+     linking out to the brazil-institutions law page. Rendered by
+     sitekit.links_extra.link_legal_refs when enable_legal_refs=True
+     and the workspace's artigos.db is reachable. */
+  .md-body code.legal-cite, .md-body a.legal-cite {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .85em; background: #fdf8e8; border: 1px solid #e5d48b;
+    padding: .15rem .35rem; border-radius: 4px; cursor: help;
+  }
+  .md-body a.legal-cite { color: var(--fg); text-decoration: none; }
+  .md-body a.legal-cite:hover { text-decoration: underline; }
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../../index.html" class="nav-brand">politica</a>
+  <a href="../../index.html" class="nav-link">Home</a>
+  <a href="../../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../../docs/summary.html">Pipeline Summary</a>
+    <a href="../../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../../docs/decisions.html">Key Decisions</a>
+    <a href="../../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../../docs/todo.html">Active Tasks</a>
+    <a href="../../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header"><h1>source/clean/votacao_secao.py</h1></div>
+
+<main>
+<div class="md-body">
+<p>Source: <code>source/clean/votacao_secao.py</code> (<a href="../../index.html">back to index</a>)</p><style>
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f8f8f8; }
+.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #9C6500 } /* Comment.Preproc */
+.highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #E40000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #008400 } /* Generic.Inserted */
+.highlight .go { color: #717171 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #687822 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+.highlight .no { color: #800 } /* Name.Constant */
+.highlight .nd { color: #A2F } /* Name.Decorator */
+.highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #00F } /* Name.Function */
+.highlight .nl { color: #767600 } /* Name.Label */
+.highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666 } /* Literal.Number.Float */
+.highlight .mh { color: #666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #00F } /* Name.Function.Magic */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
+.highlight .il { color: #666 } /* Literal.Number.Integer.Long */
+.code-meta { font-size: .8rem; color: var(--muted); margin-bottom: .9rem; }
+.code-refs { font-size: .85rem; margin: 0 0 1.1rem; padding-left: 1.3rem; }
+.code-refs li { margin-bottom: .15rem; }
+.highlighttable { display: table; width: 100%; margin: 0 0 .8rem;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  font-size: .82rem; }
+.highlighttable td { border: none; padding: 0; vertical-align: top; }
+.highlighttable tr:nth-child(even) td { background: none; }
+.highlighttable .linenos { width: 1%; white-space: nowrap; background: #f0f2f4;
+  -webkit-user-select: none; user-select: none; }
+.highlighttable .linenos pre { color: #aab0b8; padding: .9rem .55rem;
+  background: none; border: none; }
+.highlighttable .code .highlight pre { margin: 0; border: none;
+  border-radius: 0; }
+</style><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="sd">&quot;&quot;&quot;Clean votacao_secao (section-level election results) for 2020 and 2024.</span>
+<a id="L-2" name="L-2"></a>
+<a id="L-3" name="L-3"></a><span class="sd">Reads per-UF zips from DATA_DIR/TSE/{year}/votacao_secao/, joins</span>
+<a id="L-4" name="L-4"></a><span class="sd">politico_id from candidato.csv via SQ_CANDIDATO, and writes one</span>
+<a id="L-5" name="L-5"></a><span class="sd">compact parquet per year to build/clean/.</span>
+<a id="L-6" name="L-6"></a>
+<a id="L-7" name="L-7"></a><span class="sd">Output columns</span>
+<a id="L-8" name="L-8"></a><span class="sd">--------------</span>
+<a id="L-9" name="L-9"></a><span class="sd">year, round, estado, municipio_id, zona, secao, local_votacao,</span>
+<a id="L-10" name="L-10"></a><span class="sd">office, nr_votavel, politico_id, party, votos</span>
+<a id="L-11" name="L-11"></a><span class="sd">&quot;&quot;&quot;</span>
+<a id="L-12" name="L-12"></a>
+<a id="L-13" name="L-13"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<a id="L-14" name="L-14"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<a id="L-15" name="L-15"></a><span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
+<a id="L-16" name="L-16"></a><span class="kn">from</span><span class="w"> </span><span class="nn">glob</span><span class="w"> </span><span class="kn">import</span> <span class="n">glob</span>
+<a id="L-17" name="L-17"></a>
+<a id="L-18" name="L-18"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="L-19" name="L-19"></a>
+<a id="L-20" name="L-20"></a><span class="kn">import</span><span class="w"> </span><span class="nn">path</span>
+<a id="L-21" name="L-21"></a>
+<a id="L-22" name="L-22"></a><span class="n">YEARS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">2024</span><span class="p">]</span>
+<a id="L-23" name="L-23"></a>
+<a id="L-24" name="L-24"></a><span class="c1"># -- column mapping (same schema both years) --------------------------------</span>
+<a id="L-25" name="L-25"></a><span class="n">KEEP_COLS</span> <span class="o">=</span> <span class="p">{</span>
+<a id="L-26" name="L-26"></a>    <span class="s2">&quot;ANO_ELEICAO&quot;</span><span class="p">:</span> <span class="s2">&quot;year&quot;</span><span class="p">,</span>
+<a id="L-27" name="L-27"></a>    <span class="s2">&quot;NR_TURNO&quot;</span><span class="p">:</span> <span class="s2">&quot;round&quot;</span><span class="p">,</span>
+<a id="L-28" name="L-28"></a>    <span class="s2">&quot;SG_UF&quot;</span><span class="p">:</span> <span class="s2">&quot;estado&quot;</span><span class="p">,</span>
+<a id="L-29" name="L-29"></a>    <span class="s2">&quot;CD_MUNICIPIO&quot;</span><span class="p">:</span> <span class="s2">&quot;municipio_id&quot;</span><span class="p">,</span>
+<a id="L-30" name="L-30"></a>    <span class="s2">&quot;NR_ZONA&quot;</span><span class="p">:</span> <span class="s2">&quot;zona&quot;</span><span class="p">,</span>
+<a id="L-31" name="L-31"></a>    <span class="s2">&quot;NR_SECAO&quot;</span><span class="p">:</span> <span class="s2">&quot;secao&quot;</span><span class="p">,</span>
+<a id="L-32" name="L-32"></a>    <span class="s2">&quot;NR_LOCAL_VOTACAO&quot;</span><span class="p">:</span> <span class="s2">&quot;local_votacao&quot;</span><span class="p">,</span>
+<a id="L-33" name="L-33"></a>    <span class="s2">&quot;CD_CARGO&quot;</span><span class="p">:</span> <span class="s2">&quot;office_cd&quot;</span><span class="p">,</span>
+<a id="L-34" name="L-34"></a>    <span class="s2">&quot;DS_CARGO&quot;</span><span class="p">:</span> <span class="s2">&quot;office&quot;</span><span class="p">,</span>
+<a id="L-35" name="L-35"></a>    <span class="s2">&quot;NR_VOTAVEL&quot;</span><span class="p">:</span> <span class="s2">&quot;nr_votavel&quot;</span><span class="p">,</span>
+<a id="L-36" name="L-36"></a>    <span class="s2">&quot;NM_VOTAVEL&quot;</span><span class="p">:</span> <span class="s2">&quot;nm_votavel&quot;</span><span class="p">,</span>
+<a id="L-37" name="L-37"></a>    <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">:</span> <span class="s2">&quot;sq_candidato&quot;</span><span class="p">,</span>
+<a id="L-38" name="L-38"></a>    <span class="s2">&quot;QT_VOTOS&quot;</span><span class="p">:</span> <span class="s2">&quot;votos&quot;</span><span class="p">,</span>
+<a id="L-39" name="L-39"></a><span class="p">}</span>
+<a id="L-40" name="L-40"></a>
+<a id="L-41" name="L-41"></a>
+<a id="L-42" name="L-42"></a><span class="k">def</span><span class="w"> </span><span class="nf">load_candidato_lookup</span><span class="p">():</span>
+<a id="L-43" name="L-43"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Load (year, SQ_CANDIDATO) -&gt; (politico_id, party) from candidato.csv.&quot;&quot;&quot;</span>
+<a id="L-44" name="L-44"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+<a id="L-45" name="L-45"></a>        <span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span> <span class="o">/</span> <span class="s2">&quot;candidato.csv&quot;</span><span class="p">,</span>
+<a id="L-46" name="L-46"></a>        <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">,</span> <span class="s2">&quot;politico_id&quot;</span><span class="p">,</span> <span class="s2">&quot;party&quot;</span><span class="p">],</span>
+<a id="L-47" name="L-47"></a>        <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;politico_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;party&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span>
+<a id="L-48" name="L-48"></a>    <span class="p">)</span>
+<a id="L-49" name="L-49"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;Int64&quot;</span><span class="p">)</span>
+<a id="L-50" name="L-50"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">:</span> <span class="s2">&quot;sq_candidato&quot;</span><span class="p">})</span>
+<a id="L-51" name="L-51"></a>    <span class="c1"># candidato.csv stores SQ as float → &quot;12345.0&quot;; strip the decimal</span>
+<a id="L-52" name="L-52"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;sq_candidato&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;sq_candidato&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\.0$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-53" name="L-53"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="s2">&quot;sq_candidato&quot;</span><span class="p">])</span>
+<a id="L-54" name="L-54"></a>    <span class="k">return</span> <span class="n">df</span>
+<a id="L-55" name="L-55"></a>
+<a id="L-56" name="L-56"></a>
+<a id="L-57" name="L-57"></a><span class="k">def</span><span class="w"> </span><span class="nf">read_zip</span><span class="p">(</span><span class="n">zippath</span><span class="p">):</span>
+<a id="L-58" name="L-58"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read the single CSV inside a votacao_secao zip.&quot;&quot;&quot;</span>
+<a id="L-59" name="L-59"></a>    <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">zippath</span><span class="p">)</span> <span class="k">as</span> <span class="n">z</span><span class="p">:</span>
+<a id="L-60" name="L-60"></a>        <span class="n">csv_name</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">namelist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<a id="L-61" name="L-61"></a>        <span class="k">with</span> <span class="n">z</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">csv_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="L-62" name="L-62"></a>            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+<a id="L-63" name="L-63"></a>                <span class="n">f</span><span class="p">,</span>
+<a id="L-64" name="L-64"></a>                <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;latin-1&quot;</span><span class="p">,</span>
+<a id="L-65" name="L-65"></a>                <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">,</span>
+<a id="L-66" name="L-66"></a>                <span class="n">usecols</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">KEEP_COLS</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+<a id="L-67" name="L-67"></a>                <span class="n">dtype</span><span class="o">=</span><span class="p">{</span>
+<a id="L-68" name="L-68"></a>                    <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-69" name="L-69"></a>                    <span class="s2">&quot;NR_VOTAVEL&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-70" name="L-70"></a>                    <span class="s2">&quot;CD_MUNICIPIO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-71" name="L-71"></a>                    <span class="s2">&quot;NR_ZONA&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-72" name="L-72"></a>                    <span class="s2">&quot;NR_SECAO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-73" name="L-73"></a>                    <span class="s2">&quot;NR_LOCAL_VOTACAO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-74" name="L-74"></a>                    <span class="s2">&quot;CD_CARGO&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-75" name="L-75"></a>                <span class="p">},</span>
+<a id="L-76" name="L-76"></a>            <span class="p">)</span>
+<a id="L-77" name="L-77"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">KEEP_COLS</span><span class="p">)</span>
+<a id="L-78" name="L-78"></a>    <span class="k">return</span> <span class="n">df</span>
+<a id="L-79" name="L-79"></a>
+<a id="L-80" name="L-80"></a>
+<a id="L-81" name="L-81"></a><span class="k">def</span><span class="w"> </span><span class="nf">clean_year</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">cand_lookup</span><span class="p">):</span>
+<a id="L-82" name="L-82"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read all UF zips for one year, join politico_id, write parquet.&quot;&quot;&quot;</span>
+<a id="L-83" name="L-83"></a>    <span class="n">pattern</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+<a id="L-84" name="L-84"></a>        <span class="n">path</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="s2">&quot;TSE&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">),</span> <span class="s2">&quot;votacao_secao&quot;</span><span class="p">,</span>
+<a id="L-85" name="L-85"></a>        <span class="sa">f</span><span class="s2">&quot;votacao_secao_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">_*.zip&quot;</span><span class="p">,</span>
+<a id="L-86" name="L-86"></a>    <span class="p">)</span>
+<a id="L-87" name="L-87"></a>    <span class="n">zips</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">))</span>
+<a id="L-88" name="L-88"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">zips</span><span class="p">:</span>
+<a id="L-89" name="L-89"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  No files found for </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">, skipping&quot;</span><span class="p">)</span>
+<a id="L-90" name="L-90"></a>        <span class="k">return</span>
+<a id="L-91" name="L-91"></a>
+<a id="L-92" name="L-92"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Reading </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zips</span><span class="p">)</span><span class="si">}</span><span class="s2"> UF zips for </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+<a id="L-93" name="L-93"></a>    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-94" name="L-94"></a>    <span class="k">for</span> <span class="n">zp</span> <span class="ow">in</span> <span class="n">zips</span><span class="p">:</span>
+<a id="L-95" name="L-95"></a>        <span class="n">uf</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;_([A-Z]</span><span class="si">{2}</span><span class="s2">)\.zip$&quot;</span><span class="p">,</span> <span class="n">zp</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="L-96" name="L-96"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">uf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-97" name="L-97"></a>        <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">read_zip</span><span class="p">(</span><span class="n">zp</span><span class="p">))</span>
+<a id="L-98" name="L-98"></a>    <span class="nb">print</span><span class="p">()</span>
+<a id="L-99" name="L-99"></a>
+<a id="L-100" name="L-100"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-101" name="L-101"></a>    <span class="k">del</span> <span class="n">chunks</span>
+<a id="L-102" name="L-102"></a>
+<a id="L-103" name="L-103"></a>    <span class="c1"># Coerce types</span>
+<a id="L-104" name="L-104"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">year</span>  <span class="c1"># constant within file, written as parquet metadata</span>
+<a id="L-105" name="L-105"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;round&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;round&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;Int8&quot;</span><span class="p">)</span>
+<a id="L-106" name="L-106"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;votos&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;votos&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;Int16&quot;</span><span class="p">)</span>
+<a id="L-107" name="L-107"></a>
+<a id="L-108" name="L-108"></a>    <span class="c1"># Numeric location IDs (smaller than string categoricals)</span>
+<a id="L-109" name="L-109"></a>    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;municipio_id&quot;</span><span class="p">,</span> <span class="s2">&quot;zona&quot;</span><span class="p">,</span> <span class="s2">&quot;secao&quot;</span><span class="p">,</span> <span class="s2">&quot;local_votacao&quot;</span><span class="p">]:</span>
+<a id="L-110" name="L-110"></a>        <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;UInt32&quot;</span><span class="p">)</span>
+<a id="L-111" name="L-111"></a>
+<a id="L-112" name="L-112"></a>    <span class="c1"># Normalize office text</span>
+<a id="L-113" name="L-113"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;office&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;office&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+<a id="L-114" name="L-114"></a>
+<a id="L-115" name="L-115"></a>    <span class="c1"># Join politico_id + party from candidato.csv</span>
+<a id="L-116" name="L-116"></a>    <span class="c1"># sq_candidato = &quot;-1&quot; or &quot;-3&quot; for special entries (branco/nulo/legenda)</span>
+<a id="L-117" name="L-117"></a>    <span class="n">year_cand</span> <span class="o">=</span> <span class="n">cand_lookup</span><span class="p">[</span><span class="n">cand_lookup</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">year</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s2">&quot;year&quot;</span><span class="p">)</span>
+<a id="L-118" name="L-118"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">year_cand</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;sq_candidato&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<a id="L-119" name="L-119"></a>
+<a id="L-120" name="L-120"></a>    <span class="c1"># Drop columns redundant after join</span>
+<a id="L-121" name="L-121"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;office_cd&quot;</span><span class="p">,</span> <span class="s2">&quot;nm_votavel&quot;</span><span class="p">,</span> <span class="s2">&quot;sq_candidato&quot;</span><span class="p">])</span>
+<a id="L-122" name="L-122"></a>
+<a id="L-123" name="L-123"></a>    <span class="c1"># Categoricals for compression</span>
+<a id="L-124" name="L-124"></a>    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;estado&quot;</span><span class="p">,</span> <span class="s2">&quot;office&quot;</span><span class="p">,</span> <span class="s2">&quot;nr_votavel&quot;</span><span class="p">,</span> <span class="s2">&quot;party&quot;</span><span class="p">]:</span>
+<a id="L-125" name="L-125"></a>        <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+<a id="L-126" name="L-126"></a>            <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
+<a id="L-127" name="L-127"></a>    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;politico_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;politico_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
+<a id="L-128" name="L-128"></a>
+<a id="L-129" name="L-129"></a>    <span class="n">outfile</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;votacao_secao_</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+<a id="L-130" name="L-130"></a>    <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyarrow&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="L-131" name="L-131"></a>                  <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">)</span>
+<a id="L-132" name="L-132"></a>    <span class="n">size_mb</span> <span class="o">=</span> <span class="n">outfile</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">/</span> <span class="mf">1e6</span>
+<a id="L-133" name="L-133"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Wrote </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> rows, </span><span class="si">{</span><span class="n">size_mb</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB)&quot;</span><span class="p">)</span>
+<a id="L-134" name="L-134"></a>
+<a id="L-135" name="L-135"></a>
+<a id="L-136" name="L-136"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<a id="L-137" name="L-137"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading candidato lookup...&quot;</span><span class="p">)</span>
+<a id="L-138" name="L-138"></a>    <span class="n">cand_lookup</span> <span class="o">=</span> <span class="n">load_candidato_lookup</span><span class="p">()</span>
+<a id="L-139" name="L-139"></a>    <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="n">YEARS</span><span class="p">:</span>
+<a id="L-140" name="L-140"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+<a id="L-141" name="L-141"></a>        <span class="n">clean_year</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">cand_lookup</span><span class="p">)</span>
+<a id="L-142" name="L-142"></a>
+<a id="L-143" name="L-143"></a>
+<a id="L-144" name="L-144"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<a id="L-145" name="L-145"></a>    <span class="n">main</span><span class="p">()</span>
+</pre></div></td></tr></table></div>
+
+</div>
+</main>
+
+<footer>Generated by <code>sitekit</code></footer>
+<script>
+/* Mermaid diagrams: render ```mermaid fenced code blocks as diagrams.
+   Guarded + lazy — the CDN library loads ONLY on pages that contain one, so
+   doc pages without a diagram are completely unaffected. */
+(function () {
+  var blocks = document.querySelectorAll("pre > code.language-mermaid");
+  if (!blocks.length) return;
+  blocks.forEach(function (code) {
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;   // entity-decoded source
+    code.closest("pre").replaceWith(div);
+  });
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload = function () { mermaid.initialize({ startOnLoad: false }); mermaid.run(); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

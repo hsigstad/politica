@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>source/clean/proposta_governo.py — politica</title>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+  main { padding: 1.5rem 2rem 3rem; max-width: 42rem; margin: 0 auto; }
+  .md-body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.06rem; line-height: 1.78; color: var(--fg);
+  }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .md-body h1 { font-size: 1.5rem; font-weight: 600; margin: 1.8rem 0 .8rem;
+    padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  .md-body h2 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 .6rem;
+    padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.05rem; font-weight: 600; margin: 1.3rem 0 .5rem; }
+  .md-body h4 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  .md-body h5, .md-body h6 { font-size: .88rem; font-weight: 600; margin: 1rem 0 .4rem; }
+  .md-body h1:first-child { margin-top: 0; }
+  .md-body strong { font-weight: 600; }
+  .md-body ul li { list-style: disc; }
+  .md-body li > ul, .md-body li > ol { margin-top: .25rem; margin-bottom: 0; }
+  .md-body li input[type="checkbox"] {
+    margin-right: .4rem; vertical-align: middle; position: relative; top: -1px;
+  }
+  .md-body p { margin: 0 0 .8rem; }
+  .md-body ul, .md-body ol { margin: 0 0 .8rem; padding-left: 1.8rem; }
+  .md-body li { margin-bottom: .25rem; }
+  .md-body a { color: var(--accent); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    margin: 0 0 .8rem; padding: .4rem 1rem;
+    border-left: 4px solid var(--accent); background: #f5f3ee;
+    color: #555;
+  }
+  .md-body blockquote.verdict-callout {
+    border-left-width: 6px;
+    background: #fffefa;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: .7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    color: var(--fg);
+    margin: 1rem 0 1.2rem;
+  }
+  .md-body blockquote.verdict-callout > p:first-child > strong:first-child {
+    color: #111;
+  }
+  .md-body blockquote.verdict-callout.verdict-refuted   { border-left-color: #dc3545; }
+  .md-body blockquote.verdict-callout.verdict-confirmed { border-left-color: #198754; }
+  .md-body blockquote.verdict-callout.verdict-mixed     { border-left-color: #d39e00; }
+  .md-body blockquote.verdict-callout.verdict-pending   { border-left-color: #6b7280; }
+  .md-body blockquote.verdict-callout.verdict-neutral   { border-left-color: var(--accent); }
+
+  /* Analysis page: headline (one-paragraph plain-English finding) */
+  .an-headline {
+    font-size: 1.05rem; line-height: 1.55; font-weight: 500;
+    color: #1f2328; background: #f6f8fa;
+    border-left: 4px solid var(--accent);
+    padding: .8rem 1rem; margin: 0 0 1.2rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Analysis info panel (rendered from .md frontmatter) — three tiers:
+     top (hypothesis/confidence), Design block, provenance footer. */
+  .an-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1.5rem;
+    font-size: .85rem;
+  }
+  .an-meta {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .2rem 1rem; margin: 0;
+  }
+  .an-row { display: contents; }
+  .an-meta dt { color: var(--muted); font-weight: 600; }
+  .an-meta dd { margin: 0; }
+  .an-meta code { font-size: .82em; }
+  .an-meta-top { font-size: .95rem; gap: .35rem 1rem; }
+  .an-meta-top dt { font-weight: 700; }
+  .an-meta-prov {
+    font-size: .75rem; gap: .15rem 1rem;
+    margin-top: .65rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .an-meta-prov dt { font-weight: 500; }
+  .an-meta-prov dd { color: var(--muted); }
+  .an-meta-prov code { color: var(--muted); }
+  .an-panel-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    margin: .65rem 0 .3rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+  }
+  .conf-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; text-transform: capitalize;
+  }
+  .conf-green   { background: #d4edda; color: #155724; }
+  .conf-yellow  { background: #fff3cd; color: #856404; }
+  .conf-red     { background: #f8d7da; color: #721c24; }
+  .conf-pending { background: #e9ecef; color: #495057; }
+  .md-body code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: .85em; background: #f0ede6; padding: .15rem .35rem;
+    border-radius: 4px;
+  }
+  .md-body pre {
+    margin: 0 0 .8rem; padding: .9rem 1rem;
+    background: #f5f3ee; border: 1px solid var(--border);
+    border-radius: 6px; overflow-x: auto;
+  }
+  .md-body pre code { background: none; padding: 0; }
+  .md-body table {
+    width: 100%; border-collapse: collapse; margin: 0 0 .8rem; font-size: .9rem;
+  }
+  .md-body th, .md-body td {
+    padding: .45rem .7rem; border: 1px solid var(--border); text-align: left;
+  }
+  .md-body th { background: #f5f3ee; font-weight: 600; }
+  .md-body tr:nth-child(even) td { background: var(--bg); }
+  .md-body img { max-width: 100%; }
+  .md-body li:target { background: #fff8c4; scroll-margin-top: 4rem; }
+  .md-body a.cite-ref, .md-body a.anec-ref, .md-body a.concept-ref {
+    color: var(--fg); text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  .md-body a.cite-ref:hover, .md-body a.anec-ref:hover,
+  .md-body a.concept-ref:hover { border-bottom-style: solid; }
+  /* Legal citations (`LE.33.IV`, `CPC.144.§3`): tan chip with a
+     browser-native title-tooltip carrying the verbatim statutory text,
+     linking out to the brazil-institutions law page. Rendered by
+     sitekit.links_extra.link_legal_refs when enable_legal_refs=True
+     and the workspace's artigos.db is reachable. */
+  .md-body code.legal-cite, .md-body a.legal-cite {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .85em; background: #fdf8e8; border: 1px solid #e5d48b;
+    padding: .15rem .35rem; border-radius: 4px; cursor: help;
+  }
+  .md-body a.legal-cite { color: var(--fg); text-decoration: none; }
+  .md-body a.legal-cite:hover { text-decoration: underline; }
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../../index.html" class="nav-brand">politica</a>
+  <a href="../../index.html" class="nav-link">Home</a>
+  <a href="../../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../../docs/summary.html">Pipeline Summary</a>
+    <a href="../../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../../docs/decisions.html">Key Decisions</a>
+    <a href="../../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../../docs/todo.html">Active Tasks</a>
+    <a href="../../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header"><h1>source/clean/proposta_governo.py</h1></div>
+
+<main>
+<div class="md-body">
+<p>Source: <code>source/clean/proposta_governo.py</code> (<a href="../../index.html">back to index</a>)</p><style>
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f8f8f8; }
+.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #9C6500 } /* Comment.Preproc */
+.highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #E40000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #008400 } /* Generic.Inserted */
+.highlight .go { color: #717171 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #687822 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+.highlight .no { color: #800 } /* Name.Constant */
+.highlight .nd { color: #A2F } /* Name.Decorator */
+.highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #00F } /* Name.Function */
+.highlight .nl { color: #767600 } /* Name.Label */
+.highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666 } /* Literal.Number.Float */
+.highlight .mh { color: #666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #00F } /* Name.Function.Magic */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
+.highlight .il { color: #666 } /* Literal.Number.Integer.Long */
+.code-meta { font-size: .8rem; color: var(--muted); margin-bottom: .9rem; }
+.code-refs { font-size: .85rem; margin: 0 0 1.1rem; padding-left: 1.3rem; }
+.code-refs li { margin-bottom: .15rem; }
+.highlighttable { display: table; width: 100%; margin: 0 0 .8rem;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  font-size: .82rem; }
+.highlighttable td { border: none; padding: 0; vertical-align: top; }
+.highlighttable tr:nth-child(even) td { background: none; }
+.highlighttable .linenos { width: 1%; white-space: nowrap; background: #f0f2f4;
+  -webkit-user-select: none; user-select: none; }
+.highlighttable .linenos pre { color: #aab0b8; padding: .9rem .55rem;
+  background: none; border: none; }
+.highlighttable .code .highlight pre { margin: 0; border: none;
+  border-radius: 0; }
+</style><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span>
+<span class="normal"><a href="#L-146">146</a></span>
+<span class="normal"><a href="#L-147">147</a></span>
+<span class="normal"><a href="#L-148">148</a></span>
+<span class="normal"><a href="#L-149">149</a></span>
+<span class="normal"><a href="#L-150">150</a></span>
+<span class="normal"><a href="#L-151">151</a></span>
+<span class="normal"><a href="#L-152">152</a></span>
+<span class="normal"><a href="#L-153">153</a></span>
+<span class="normal"><a href="#L-154">154</a></span>
+<span class="normal"><a href="#L-155">155</a></span>
+<span class="normal"><a href="#L-156">156</a></span>
+<span class="normal"><a href="#L-157">157</a></span>
+<span class="normal"><a href="#L-158">158</a></span>
+<span class="normal"><a href="#L-159">159</a></span>
+<span class="normal"><a href="#L-160">160</a></span>
+<span class="normal"><a href="#L-161">161</a></span>
+<span class="normal"><a href="#L-162">162</a></span>
+<span class="normal"><a href="#L-163">163</a></span>
+<span class="normal"><a href="#L-164">164</a></span>
+<span class="normal"><a href="#L-165">165</a></span>
+<span class="normal"><a href="#L-166">166</a></span>
+<span class="normal"><a href="#L-167">167</a></span>
+<span class="normal"><a href="#L-168">168</a></span>
+<span class="normal"><a href="#L-169">169</a></span>
+<span class="normal"><a href="#L-170">170</a></span>
+<span class="normal"><a href="#L-171">171</a></span>
+<span class="normal"><a href="#L-172">172</a></span>
+<span class="normal"><a href="#L-173">173</a></span>
+<span class="normal"><a href="#L-174">174</a></span>
+<span class="normal"><a href="#L-175">175</a></span>
+<span class="normal"><a href="#L-176">176</a></span>
+<span class="normal"><a href="#L-177">177</a></span>
+<span class="normal"><a href="#L-178">178</a></span>
+<span class="normal"><a href="#L-179">179</a></span>
+<span class="normal"><a href="#L-180">180</a></span>
+<span class="normal"><a href="#L-181">181</a></span>
+<span class="normal"><a href="#L-182">182</a></span>
+<span class="normal"><a href="#L-183">183</a></span>
+<span class="normal"><a href="#L-184">184</a></span>
+<span class="normal"><a href="#L-185">185</a></span>
+<span class="normal"><a href="#L-186">186</a></span>
+<span class="normal"><a href="#L-187">187</a></span>
+<span class="normal"><a href="#L-188">188</a></span>
+<span class="normal"><a href="#L-189">189</a></span>
+<span class="normal"><a href="#L-190">190</a></span>
+<span class="normal"><a href="#L-191">191</a></span>
+<span class="normal"><a href="#L-192">192</a></span>
+<span class="normal"><a href="#L-193">193</a></span>
+<span class="normal"><a href="#L-194">194</a></span>
+<span class="normal"><a href="#L-195">195</a></span>
+<span class="normal"><a href="#L-196">196</a></span>
+<span class="normal"><a href="#L-197">197</a></span>
+<span class="normal"><a href="#L-198">198</a></span>
+<span class="normal"><a href="#L-199">199</a></span>
+<span class="normal"><a href="#L-200">200</a></span>
+<span class="normal"><a href="#L-201">201</a></span>
+<span class="normal"><a href="#L-202">202</a></span>
+<span class="normal"><a href="#L-203">203</a></span>
+<span class="normal"><a href="#L-204">204</a></span>
+<span class="normal"><a href="#L-205">205</a></span>
+<span class="normal"><a href="#L-206">206</a></span>
+<span class="normal"><a href="#L-207">207</a></span>
+<span class="normal"><a href="#L-208">208</a></span>
+<span class="normal"><a href="#L-209">209</a></span>
+<span class="normal"><a href="#L-210">210</a></span>
+<span class="normal"><a href="#L-211">211</a></span>
+<span class="normal"><a href="#L-212">212</a></span>
+<span class="normal"><a href="#L-213">213</a></span>
+<span class="normal"><a href="#L-214">214</a></span>
+<span class="normal"><a href="#L-215">215</a></span>
+<span class="normal"><a href="#L-216">216</a></span>
+<span class="normal"><a href="#L-217">217</a></span>
+<span class="normal"><a href="#L-218">218</a></span>
+<span class="normal"><a href="#L-219">219</a></span>
+<span class="normal"><a href="#L-220">220</a></span>
+<span class="normal"><a href="#L-221">221</a></span>
+<span class="normal"><a href="#L-222">222</a></span>
+<span class="normal"><a href="#L-223">223</a></span>
+<span class="normal"><a href="#L-224">224</a></span>
+<span class="normal"><a href="#L-225">225</a></span>
+<span class="normal"><a href="#L-226">226</a></span>
+<span class="normal"><a href="#L-227">227</a></span>
+<span class="normal"><a href="#L-228">228</a></span>
+<span class="normal"><a href="#L-229">229</a></span>
+<span class="normal"><a href="#L-230">230</a></span>
+<span class="normal"><a href="#L-231">231</a></span>
+<span class="normal"><a href="#L-232">232</a></span>
+<span class="normal"><a href="#L-233">233</a></span>
+<span class="normal"><a href="#L-234">234</a></span>
+<span class="normal"><a href="#L-235">235</a></span>
+<span class="normal"><a href="#L-236">236</a></span>
+<span class="normal"><a href="#L-237">237</a></span>
+<span class="normal"><a href="#L-238">238</a></span>
+<span class="normal"><a href="#L-239">239</a></span>
+<span class="normal"><a href="#L-240">240</a></span>
+<span class="normal"><a href="#L-241">241</a></span>
+<span class="normal"><a href="#L-242">242</a></span>
+<span class="normal"><a href="#L-243">243</a></span>
+<span class="normal"><a href="#L-244">244</a></span>
+<span class="normal"><a href="#L-245">245</a></span>
+<span class="normal"><a href="#L-246">246</a></span>
+<span class="normal"><a href="#L-247">247</a></span>
+<span class="normal"><a href="#L-248">248</a></span>
+<span class="normal"><a href="#L-249">249</a></span>
+<span class="normal"><a href="#L-250">250</a></span>
+<span class="normal"><a href="#L-251">251</a></span>
+<span class="normal"><a href="#L-252">252</a></span>
+<span class="normal"><a href="#L-253">253</a></span>
+<span class="normal"><a href="#L-254">254</a></span>
+<span class="normal"><a href="#L-255">255</a></span>
+<span class="normal"><a href="#L-256">256</a></span>
+<span class="normal"><a href="#L-257">257</a></span>
+<span class="normal"><a href="#L-258">258</a></span>
+<span class="normal"><a href="#L-259">259</a></span>
+<span class="normal"><a href="#L-260">260</a></span>
+<span class="normal"><a href="#L-261">261</a></span>
+<span class="normal"><a href="#L-262">262</a></span>
+<span class="normal"><a href="#L-263">263</a></span>
+<span class="normal"><a href="#L-264">264</a></span>
+<span class="normal"><a href="#L-265">265</a></span>
+<span class="normal"><a href="#L-266">266</a></span>
+<span class="normal"><a href="#L-267">267</a></span>
+<span class="normal"><a href="#L-268">268</a></span>
+<span class="normal"><a href="#L-269">269</a></span>
+<span class="normal"><a href="#L-270">270</a></span>
+<span class="normal"><a href="#L-271">271</a></span>
+<span class="normal"><a href="#L-272">272</a></span>
+<span class="normal"><a href="#L-273">273</a></span>
+<span class="normal"><a href="#L-274">274</a></span>
+<span class="normal"><a href="#L-275">275</a></span>
+<span class="normal"><a href="#L-276">276</a></span>
+<span class="normal"><a href="#L-277">277</a></span>
+<span class="normal"><a href="#L-278">278</a></span>
+<span class="normal"><a href="#L-279">279</a></span>
+<span class="normal"><a href="#L-280">280</a></span>
+<span class="normal"><a href="#L-281">281</a></span>
+<span class="normal"><a href="#L-282">282</a></span>
+<span class="normal"><a href="#L-283">283</a></span>
+<span class="normal"><a href="#L-284">284</a></span>
+<span class="normal"><a href="#L-285">285</a></span>
+<span class="normal"><a href="#L-286">286</a></span>
+<span class="normal"><a href="#L-287">287</a></span>
+<span class="normal"><a href="#L-288">288</a></span>
+<span class="normal"><a href="#L-289">289</a></span>
+<span class="normal"><a href="#L-290">290</a></span>
+<span class="normal"><a href="#L-291">291</a></span>
+<span class="normal"><a href="#L-292">292</a></span>
+<span class="normal"><a href="#L-293">293</a></span>
+<span class="normal"><a href="#L-294">294</a></span>
+<span class="normal"><a href="#L-295">295</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="sd">&quot;&quot;&quot;Clean: candidate government-plan (proposta de governo) text, 2020-.</span>
+<a id="L-2" name="L-2"></a>
+<a id="L-3" name="L-3"></a><span class="sd">INTENT. One typed table with the full text of every mayoral candidate&#39;s</span>
+<a id="L-4" name="L-4"></a><span class="sd">`proposta de governo` (the legally-mandated government plan / manifesto</span>
+<a id="L-5" name="L-5"></a><span class="sd">filed with the candidacy registration), keyed so it joins straight to</span>
+<a id="L-6" name="L-6"></a><span class="sd">`candidato.csv` on `SQ_CANDIDATO`. This is the reusable manifesto-text</span>
+<a id="L-7" name="L-7"></a><span class="sd">primitive: downstream analyses can attach what a candidate *promised* to</span>
+<a id="L-8" name="L-8"></a><span class="sd">who they were and what they did.</span>
+<a id="L-9" name="L-9"></a>
+<a id="L-10" name="L-10"></a><span class="sd">REASONING. Only majoritarian candidates file a proposta, and among</span>
+<a id="L-11" name="L-11"></a><span class="sd">municipal offices that is prefeito only (Lei 9.504/1997 art. 11 sec.1 IX),</span>
+<a id="L-12" name="L-12"></a><span class="sd">so this table is implicitly mayor-only -- we do not filter on office, the</span>
+<a id="L-13" name="L-13"></a><span class="sd">source already does. TSE ships one zip per (year, UF) of raw PDFs named</span>
+<a id="L-14" name="L-14"></a><span class="sd">`{YEAR}{UF}{SQ_CANDIDATO}.pdf`; the filename *is* the join key, so we do</span>
+<a id="L-15" name="L-15"></a><span class="sd">not parse anything out of the PDF to link a plan to a candidate. Text is</span>
+<a id="L-16" name="L-16"></a><span class="sd">extracted with PyMuPDF (`fitz`) from the in-zip bytes -- no unpack to</span>
+<a id="L-17" name="L-17"></a><span class="sd">disk, native page count. Plans filed as scanned images carry ~no embedded</span>
+<a id="L-18" name="L-18"></a><span class="sd">text; those we OCR in-process (render page -&gt; tesseract `por`). OCR is the</span>
+<a id="L-19" name="L-19"></a><span class="sd">one expensive step, and a plan&#39;s PDF never changes once filed, so OCR text</span>
+<a id="L-20" name="L-20"></a><span class="sd">is cached to disk keyed by the (stable) filename -- a re-run reuses the</span>
+<a id="L-21" name="L-21"></a><span class="sd">cache and only OCRs plans it has not seen. `text_source` records where</span>
+<a id="L-22" name="L-22"></a><span class="sd">each row&#39;s final text came from.</span>
+<a id="L-23" name="L-23"></a>
+<a id="L-24" name="L-24"></a><span class="sd">ASSUMES.</span>
+<a id="L-25" name="L-25"></a><span class="sd">  - Raw zips staged at data/proposta_governo/proposta_governo_{YEAR}_{UF}.zip</span>
+<a id="L-26" name="L-26"></a><span class="sd">    (gitignored; move to $DATA_DIR later -- override the dir with</span>
+<a id="L-27" name="L-27"></a><span class="sd">    PROPOSTA_GOVERNO_RAW). Each zip holds `{UF}/{YEAR}{UF}{SQ}.pdf` plus a</span>
+<a id="L-28" name="L-28"></a><span class="sd">    `LEIAME.pdf` readme we skip. 26 UFs per year (no DF -- Brasília has no</span>
+<a id="L-29" name="L-29"></a><span class="sd">    prefeitura).</span>
+<a id="L-30" name="L-30"></a><span class="sd">  - `SQ_CANDIDATO` from the filename matches `candidato.csv` `SQ_CANDIDATO`</span>
+<a id="L-31" name="L-31"></a><span class="sd">    for the same year. Note candidato.csv stores it as float (e.g.</span>
+<a id="L-32" name="L-32"></a><span class="sd">    `10000854328.0`); this table keeps it as nullable Int64, so cast one</span>
+<a id="L-33" name="L-33"></a><span class="sd">    side before merging: candidato[&#39;SQ_CANDIDATO&#39;].astype(&#39;Int64&#39;).</span>
+<a id="L-34" name="L-34"></a><span class="sd">  - Portuguese OCR needs `por.traineddata`. Staged at data/tessdata/</span>
+<a id="L-35" name="L-35"></a><span class="sd">    (gitignored; override the dir with TESSDATA_PREFIX). If absent and a</span>
+<a id="L-36" name="L-36"></a><span class="sd">    plan needs OCR, the row keeps whatever sparse embedded text it had and</span>
+<a id="L-37" name="L-37"></a><span class="sd">    text_source=&#39;error&#39;.</span>
+<a id="L-38" name="L-38"></a><span class="sd">  - OCR cache at data/proposta_governo_ocr_cache/{basename}.txt (gitignored;</span>
+<a id="L-39" name="L-39"></a><span class="sd">    override with PROPOSTA_GOVERNO_OCR_CACHE). Safe to delete -- it only</span>
+<a id="L-40" name="L-40"></a><span class="sd">    forces re-OCR. `--refresh-ocr` rewrites it.</span>
+<a id="L-41" name="L-41"></a><span class="sd">&quot;&quot;&quot;</span>
+<a id="L-42" name="L-42"></a><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<a id="L-43" name="L-43"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<a id="L-44" name="L-44"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<a id="L-45" name="L-45"></a><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<a id="L-46" name="L-46"></a><span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
+<a id="L-47" name="L-47"></a><span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
+<a id="L-48" name="L-48"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="L-49" name="L-49"></a>
+<a id="L-50" name="L-50"></a><span class="kn">import</span><span class="w"> </span><span class="nn">fitz</span>  <span class="c1"># PyMuPDF</span>
+<a id="L-51" name="L-51"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="L-52" name="L-52"></a>
+<a id="L-53" name="L-53"></a><span class="kn">import</span><span class="w"> </span><span class="nn">path</span>
+<a id="L-54" name="L-54"></a>
+<a id="L-55" name="L-55"></a><span class="c1"># Malformed PDFs (common in scan-layer files) make MuPDF spew recoverable</span>
+<a id="L-56" name="L-56"></a><span class="c1"># &quot;syntax error&quot; lines to stderr; fitz still extracts. Silence the noise.</span>
+<a id="L-57" name="L-57"></a><span class="n">fitz</span><span class="o">.</span><span class="n">TOOLS</span><span class="o">.</span><span class="n">mupdf_display_errors</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<a id="L-58" name="L-58"></a>
+<a id="L-59" name="L-59"></a><span class="n">RAW_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+<a id="L-60" name="L-60"></a>    <span class="s2">&quot;PROPOSTA_GOVERNO_RAW&quot;</span><span class="p">,</span>
+<a id="L-61" name="L-61"></a>    <span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;proposta_governo&quot;</span><span class="p">))</span>
+<a id="L-62" name="L-62"></a>
+<a id="L-63" name="L-63"></a><span class="c1"># OCR cache lives beside the raw data, not under build/: it is expensive to</span>
+<a id="L-64" name="L-64"></a><span class="c1"># recompute and independent of the clean logic, so it should survive a</span>
+<a id="L-65" name="L-65"></a><span class="c1"># `build/` wipe.</span>
+<a id="L-66" name="L-66"></a><span class="n">OCR_CACHE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+<a id="L-67" name="L-67"></a>    <span class="s2">&quot;PROPOSTA_GOVERNO_OCR_CACHE&quot;</span><span class="p">,</span>
+<a id="L-68" name="L-68"></a>    <span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;proposta_governo_ocr_cache&quot;</span><span class="p">))</span>
+<a id="L-69" name="L-69"></a>
+<a id="L-70" name="L-70"></a><span class="c1"># Point tesseract at the locally-staged por.traineddata unless the caller</span>
+<a id="L-71" name="L-71"></a><span class="c1"># already set TESSDATA_PREFIX. Forked workers inherit this env.</span>
+<a id="L-72" name="L-72"></a><span class="n">_LOCAL_TESSDATA</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;tessdata&quot;</span>
+<a id="L-73" name="L-73"></a><span class="k">if</span> <span class="s2">&quot;TESSDATA_PREFIX&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span> <span class="ow">and</span> <span class="n">_LOCAL_TESSDATA</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+<a id="L-74" name="L-74"></a>    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TESSDATA_PREFIX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_LOCAL_TESSDATA</span><span class="p">)</span>
+<a id="L-75" name="L-75"></a>
+<a id="L-76" name="L-76"></a><span class="c1"># A page with fewer than this many embedded chars is treated as image-only</span>
+<a id="L-77" name="L-77"></a><span class="c1"># and sent to OCR.</span>
+<a id="L-78" name="L-78"></a><span class="n">MIN_CHARS_PER_PAGE</span> <span class="o">=</span> <span class="mi">100</span>
+<a id="L-79" name="L-79"></a><span class="n">OCR_DPI</span> <span class="o">=</span> <span class="mi">300</span>
+<a id="L-80" name="L-80"></a><span class="c1"># Cap the OCR render so a single huge embedded scan can&#39;t blow up memory/time.</span>
+<a id="L-81" name="L-81"></a><span class="n">MAX_OCR_PIXELS</span> <span class="o">=</span> <span class="mi">30_000_000</span>
+<a id="L-82" name="L-82"></a>
+<a id="L-83" name="L-83"></a><span class="c1"># `{YEAR}{UF}{SQ_CANDIDATO}.pdf` (2020) or with a document-sequence suffix</span>
+<a id="L-84" name="L-84"></a><span class="c1"># `{YEAR}{UF}{SQ}_{NN}.pdf` (2024, e.g. 2024AC10001885334_01.pdf). A few</span>
+<a id="L-85" name="L-85"></a><span class="c1"># candidates split their plan across parts _01, _02, ...; we reassemble.</span>
+<a id="L-86" name="L-86"></a><span class="n">NAME_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+<a id="L-87" name="L-87"></a>    <span class="sa">r</span><span class="s2">&quot;^(?P&lt;year&gt;\d</span><span class="si">{4}</span><span class="s2">)(?P&lt;uf&gt;[A-Z]</span><span class="si">{2}</span><span class="s2">)(?P&lt;sq&gt;\d+)(?:_(?P&lt;seq&gt;\d+))?\.pdf$&quot;</span><span class="p">)</span>
+<a id="L-88" name="L-88"></a>
+<a id="L-89" name="L-89"></a>
+<a id="L-90" name="L-90"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_member_name</span><span class="p">(</span><span class="n">member</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-91" name="L-91"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pull (year, uf, sq, doc_seq) out of a zip member path, or None.&quot;&quot;&quot;</span>
+<a id="L-92" name="L-92"></a>    <span class="n">m</span> <span class="o">=</span> <span class="n">NAME_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">member</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="L-93" name="L-93"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+<a id="L-94" name="L-94"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-95" name="L-95"></a>    <span class="k">return</span> <span class="p">{</span>
+<a id="L-96" name="L-96"></a>        <span class="s2">&quot;year&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;year&quot;</span><span class="p">)),</span>
+<a id="L-97" name="L-97"></a>        <span class="s2">&quot;estado&quot;</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;uf&quot;</span><span class="p">),</span>
+<a id="L-98" name="L-98"></a>        <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;sq&quot;</span><span class="p">)),</span>
+<a id="L-99" name="L-99"></a>        <span class="c1"># Sort key for reassembling multi-part plans; single-doc -&gt; &quot;00&quot;.</span>
+<a id="L-100" name="L-100"></a>        <span class="s2">&quot;doc_seq&quot;</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;seq&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;00&quot;</span><span class="p">,</span>
+<a id="L-101" name="L-101"></a>    <span class="p">}</span>
+<a id="L-102" name="L-102"></a>
+<a id="L-103" name="L-103"></a>
+<a id="L-104" name="L-104"></a><span class="k">def</span><span class="w"> </span><span class="nf">_ocr_pdf</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="L-105" name="L-105"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;OCR every page of a PDF (bytes) with tesseract `por`.</span>
+<a id="L-106" name="L-106"></a>
+<a id="L-107" name="L-107"></a><span class="sd">    Renders at OCR_DPI but caps the pixmap at MAX_OCR_PIXELS: some scanned</span>
+<a id="L-108" name="L-108"></a><span class="sd">    plans embed a single enormous image (seen: 150 MP) that at 300 dpi</span>
+<a id="L-109" name="L-109"></a><span class="sd">    produces a gigantic bitmap — slow to OCR and tripping PIL&#39;s</span>
+<a id="L-110" name="L-110"></a><span class="sd">    decompression-bomb guard. For such pages we scale the dpi down so the</span>
+<a id="L-111" name="L-111"></a><span class="sd">    render stays bounded; text quality is unaffected at these sizes.</span>
+<a id="L-112" name="L-112"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-113" name="L-113"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">pytesseract</span>
+<a id="L-114" name="L-114"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<a id="L-115" name="L-115"></a>    <span class="n">Image</span><span class="o">.</span><span class="n">MAX_IMAGE_PIXELS</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># we bound render size ourselves</span>
+<a id="L-116" name="L-116"></a>    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-117" name="L-117"></a>    <span class="k">with</span> <span class="n">fitz</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">doc</span><span class="p">:</span>
+<a id="L-118" name="L-118"></a>        <span class="k">for</span> <span class="n">pg</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">:</span>
+<a id="L-119" name="L-119"></a>            <span class="n">r</span> <span class="o">=</span> <span class="n">pg</span><span class="o">.</span><span class="n">rect</span>
+<a id="L-120" name="L-120"></a>            <span class="n">px</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">width</span> <span class="o">/</span> <span class="mi">72</span> <span class="o">*</span> <span class="n">OCR_DPI</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">height</span> <span class="o">/</span> <span class="mi">72</span> <span class="o">*</span> <span class="n">OCR_DPI</span><span class="p">)</span>
+<a id="L-121" name="L-121"></a>            <span class="n">dpi</span> <span class="o">=</span> <span class="n">OCR_DPI</span> <span class="k">if</span> <span class="n">px</span> <span class="o">&lt;=</span> <span class="n">MAX_OCR_PIXELS</span> <span class="ow">or</span> <span class="n">px</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">max</span><span class="p">(</span>
+<a id="L-122" name="L-122"></a>                <span class="mi">72</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">OCR_DPI</span> <span class="o">*</span> <span class="p">(</span><span class="n">MAX_OCR_PIXELS</span> <span class="o">/</span> <span class="n">px</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">))</span>
+<a id="L-123" name="L-123"></a>            <span class="n">pix</span> <span class="o">=</span> <span class="n">pg</span><span class="o">.</span><span class="n">get_pixmap</span><span class="p">(</span><span class="n">dpi</span><span class="o">=</span><span class="n">dpi</span><span class="p">)</span>
+<a id="L-124" name="L-124"></a>            <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">pix</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(</span><span class="s2">&quot;png&quot;</span><span class="p">)))</span>
+<a id="L-125" name="L-125"></a>            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pytesseract</span><span class="o">.</span><span class="n">image_to_string</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">lang</span><span class="o">=</span><span class="s2">&quot;por&quot;</span><span class="p">))</span>
+<a id="L-126" name="L-126"></a>    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+<a id="L-127" name="L-127"></a>
+<a id="L-128" name="L-128"></a>
+<a id="L-129" name="L-129"></a><span class="k">def</span><span class="w"> </span><span class="nf">_cache_read</span><span class="p">(</span><span class="n">cache_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-130" name="L-130"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-131" name="L-131"></a>        <span class="k">return</span> <span class="n">cache_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+<a id="L-132" name="L-132"></a>    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+<a id="L-133" name="L-133"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-134" name="L-134"></a>
+<a id="L-135" name="L-135"></a>
+<a id="L-136" name="L-136"></a><span class="k">def</span><span class="w"> </span><span class="nf">_cache_write</span><span class="p">(</span><span class="n">cache_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-137" name="L-137"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomic write so a crashed run never leaves a half-OCR&#39;d cache file.&quot;&quot;&quot;</span>
+<a id="L-138" name="L-138"></a>    <span class="n">cache_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-139" name="L-139"></a>    <span class="n">tmp</span> <span class="o">=</span> <span class="n">cache_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="n">cache_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;.tmp</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="L-140" name="L-140"></a>    <span class="n">tmp</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+<a id="L-141" name="L-141"></a>    <span class="n">tmp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+<a id="L-142" name="L-142"></a>
+<a id="L-143" name="L-143"></a>
+<a id="L-144" name="L-144"></a><span class="k">def</span><span class="w"> </span><span class="nf">extract_one</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<a id="L-145" name="L-145"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract text + stats for one PDF member of one zip.</span>
+<a id="L-146" name="L-146"></a>
+<a id="L-147" name="L-147"></a><span class="sd">    Runs in a worker process: it re-opens the zip and reads only its own</span>
+<a id="L-148" name="L-148"></a><span class="sd">    member, so no large payloads cross the process boundary. Uses embedded</span>
+<a id="L-149" name="L-149"></a><span class="sd">    text when present; falls back to OCR (cached) for image-only scans.</span>
+<a id="L-150" name="L-150"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-151" name="L-151"></a>    <span class="n">zip_path</span><span class="p">,</span> <span class="n">member</span><span class="p">,</span> <span class="n">ocr_enabled</span><span class="p">,</span> <span class="n">cache_dir</span><span class="p">,</span> <span class="n">refresh_ocr</span> <span class="o">=</span> <span class="n">task</span>
+<a id="L-152" name="L-152"></a>    <span class="n">rec</span> <span class="o">=</span> <span class="n">parse_member_name</span><span class="p">(</span><span class="n">member</span><span class="p">)</span>  <span class="c1"># listing guarantees this is non-None</span>
+<a id="L-153" name="L-153"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;source_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">member</span>
+<a id="L-154" name="L-154"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<a id="L-155" name="L-155"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;n_pages&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-156" name="L-156"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;error&quot;</span>
+<a id="L-157" name="L-157"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;extract_error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<a id="L-158" name="L-158"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-159" name="L-159"></a>        <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">zip_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
+<a id="L-160" name="L-160"></a>            <span class="n">data</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">member</span><span class="p">)</span>
+<a id="L-161" name="L-161"></a>        <span class="k">with</span> <span class="n">fitz</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">filetype</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">doc</span><span class="p">:</span>
+<a id="L-162" name="L-162"></a>            <span class="k">if</span> <span class="n">doc</span><span class="o">.</span><span class="n">is_encrypted</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">doc</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<a id="L-163" name="L-163"></a>                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;encrypted&quot;</span><span class="p">)</span>
+<a id="L-164" name="L-164"></a>            <span class="n">embedded</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pg</span><span class="o">.</span><span class="n">get_text</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">pg</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">)</span>
+<a id="L-165" name="L-165"></a>            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;n_pages&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">page_count</span>
+<a id="L-166" name="L-166"></a>
+<a id="L-167" name="L-167"></a>        <span class="n">needs_ocr</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedded</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">MIN_CHARS_PER_PAGE</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;n_pages&quot;</span><span class="p">])</span>
+<a id="L-168" name="L-168"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">needs_ocr</span><span class="p">:</span>
+<a id="L-169" name="L-169"></a>            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedded</span>
+<a id="L-170" name="L-170"></a>            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;embedded&quot;</span>
+<a id="L-171" name="L-171"></a>        <span class="k">elif</span> <span class="n">ocr_enabled</span><span class="p">:</span>
+<a id="L-172" name="L-172"></a>            <span class="n">cache_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">member</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span> <span class="o">+</span> <span class="s2">&quot;.txt&quot;</span><span class="p">)</span>
+<a id="L-173" name="L-173"></a>            <span class="n">cached</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">refresh_ocr</span> <span class="k">else</span> <span class="n">_cache_read</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+<a id="L-174" name="L-174"></a>            <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-175" name="L-175"></a>                <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cached</span>
+<a id="L-176" name="L-176"></a>                <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ocr_cache&quot;</span>
+<a id="L-177" name="L-177"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="L-178" name="L-178"></a>                <span class="n">ocr</span> <span class="o">=</span> <span class="n">_ocr_pdf</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<a id="L-179" name="L-179"></a>                <span class="c1"># Keep whichever is richer; OCR normally wins on a scan.</span>
+<a id="L-180" name="L-180"></a>                <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ocr</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ocr</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedded</span><span class="p">)</span> <span class="k">else</span> <span class="n">embedded</span>
+<a id="L-181" name="L-181"></a>                <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ocr&quot;</span>
+<a id="L-182" name="L-182"></a>                <span class="n">_cache_write</span><span class="p">(</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
+<a id="L-183" name="L-183"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="L-184" name="L-184"></a>            <span class="c1"># OCR disabled: keep the sparse embedded text, flag it.</span>
+<a id="L-185" name="L-185"></a>            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedded</span>
+<a id="L-186" name="L-186"></a>            <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;embedded_sparse&quot;</span>
+<a id="L-187" name="L-187"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># corrupt / truncated / encrypted / OCR failure</span>
+<a id="L-188" name="L-188"></a>        <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;extract_error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">[:</span><span class="mi">200</span><span class="p">]</span>
+<a id="L-189" name="L-189"></a>    <span class="n">rec</span><span class="p">[</span><span class="s2">&quot;n_chars&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
+<a id="L-190" name="L-190"></a>    <span class="k">return</span> <span class="n">rec</span>
+<a id="L-191" name="L-191"></a>
+<a id="L-192" name="L-192"></a>
+<a id="L-193" name="L-193"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_members</span><span class="p">(</span><span class="n">zip_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">task_cfg</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<a id="L-194" name="L-194"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a worker task for every candidate PDF in the zip.</span>
+<a id="L-195" name="L-195"></a>
+<a id="L-196" name="L-196"></a><span class="sd">    Skips non-candidate entries -- each TSE zip ships a `LEIAME.pdf`</span>
+<a id="L-197" name="L-197"></a><span class="sd">    readme whose name does not match the `{YEAR}{UF}{SQ}.pdf` pattern.</span>
+<a id="L-198" name="L-198"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-199" name="L-199"></a>    <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">zip_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
+<a id="L-200" name="L-200"></a>        <span class="k">return</span> <span class="p">[(</span><span class="nb">str</span><span class="p">(</span><span class="n">zip_path</span><span class="p">),</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">task_cfg</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">zf</span><span class="o">.</span><span class="n">namelist</span><span class="p">()</span>
+<a id="L-201" name="L-201"></a>                <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pdf&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">parse_member_name</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+<a id="L-202" name="L-202"></a>
+<a id="L-203" name="L-203"></a>
+<a id="L-204" name="L-204"></a><span class="k">def</span><span class="w"> </span><span class="nf">find_zips</span><span class="p">(</span><span class="n">uf</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">year</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<a id="L-205" name="L-205"></a>    <span class="n">pat</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;proposta_governo_</span><span class="si">{</span><span class="n">year</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="p">(</span><span class="n">uf</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">.zip&quot;</span>
+<a id="L-206" name="L-206"></a>    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">RAW_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pat</span><span class="p">))</span>
+<a id="L-207" name="L-207"></a>
+<a id="L-208" name="L-208"></a>
+<a id="L-209" name="L-209"></a><span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="n">uf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ocr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="L-210" name="L-210"></a>          <span class="n">refresh_ocr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="L-211" name="L-211"></a>    <span class="n">zips</span> <span class="o">=</span> <span class="n">find_zips</span><span class="p">(</span><span class="n">uf</span><span class="p">,</span> <span class="n">year</span><span class="p">)</span>
+<a id="L-212" name="L-212"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">zips</span><span class="p">:</span>
+<a id="L-213" name="L-213"></a>        <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No proposta_governo zips found under </span><span class="si">{</span><span class="n">RAW_DIR</span><span class="si">}</span><span class="s2"> &quot;</span>
+<a id="L-214" name="L-214"></a>                         <span class="sa">f</span><span class="s2">&quot;(uf=</span><span class="si">{</span><span class="n">uf</span><span class="si">}</span><span class="s2">, year=</span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<a id="L-215" name="L-215"></a>    <span class="n">task_cfg</span> <span class="o">=</span> <span class="p">(</span><span class="n">ocr</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">OCR_CACHE_DIR</span><span class="p">),</span> <span class="n">refresh_ocr</span><span class="p">)</span>
+<a id="L-216" name="L-216"></a>    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-217" name="L-217"></a>    <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">zips</span><span class="p">:</span>
+<a id="L-218" name="L-218"></a>        <span class="n">tasks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">list_members</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">task_cfg</span><span class="p">))</span>
+<a id="L-219" name="L-219"></a>    <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+<a id="L-220" name="L-220"></a>        <span class="n">tasks</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+<a id="L-221" name="L-221"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zips</span><span class="p">)</span><span class="si">}</span><span class="s2"> zip(s), </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> PDF(s); &quot;</span>
+<a id="L-222" name="L-222"></a>          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">workers</span><span class="si">}</span><span class="s2"> worker(s); ocr=</span><span class="si">{</span><span class="s1">&#39;on&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">ocr</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;off&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="L-223" name="L-223"></a>          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39; (refresh)&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">refresh_ocr</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="L-224" name="L-224"></a>
+<a id="L-225" name="L-225"></a>    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-226" name="L-226"></a>    <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+<a id="L-227" name="L-227"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">extract_one</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-228" name="L-228"></a>            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+<a id="L-229" name="L-229"></a>            <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">500</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-230" name="L-230"></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="L-231" name="L-231"></a>
+<a id="L-232" name="L-232"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+<a id="L-233" name="L-233"></a>    <span class="k">return</span> <span class="n">aggregate_to_candidate</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<a id="L-234" name="L-234"></a>
+<a id="L-235" name="L-235"></a>
+<a id="L-236" name="L-236"></a><span class="k">def</span><span class="w"> </span><span class="nf">aggregate_to_candidate</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="L-237" name="L-237"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Collapse per-PDF rows to one row per (year, estado, SQ_CANDIDATO).</span>
+<a id="L-238" name="L-238"></a>
+<a id="L-239" name="L-239"></a><span class="sd">    A handful of 2024 candidates split their plan across parts _01, _02,</span>
+<a id="L-240" name="L-240"></a><span class="sd">    ...; we concatenate their text in sequence order so the output grain is</span>
+<a id="L-241" name="L-241"></a><span class="sd">    one plan per mayoral candidate, ready to join candidato.csv. Single-doc</span>
+<a id="L-242" name="L-242"></a><span class="sd">    candidates (all of 2020) pass through unchanged.</span>
+<a id="L-243" name="L-243"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="L-244" name="L-244"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="s2">&quot;estado&quot;</span><span class="p">,</span> <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">,</span> <span class="s2">&quot;doc_seq&quot;</span><span class="p">,</span>
+<a id="L-245" name="L-245"></a>                         <span class="s2">&quot;source_file&quot;</span><span class="p">])</span>
+<a id="L-246" name="L-246"></a>
+<a id="L-247" name="L-247"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">combine</span><span class="p">(</span><span class="n">g</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<a id="L-248" name="L-248"></a>        <span class="n">srcs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span> <span class="k">if</span> <span class="n">s</span><span class="p">)</span>
+<a id="L-249" name="L-249"></a>        <span class="n">errs</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;extract_error&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">e</span><span class="p">]</span>
+<a id="L-250" name="L-250"></a>        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span>
+<a id="L-251" name="L-251"></a>            <span class="s2">&quot;n_docs&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">),</span>
+<a id="L-252" name="L-252"></a>            <span class="s2">&quot;n_pages&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s2">&quot;n_pages&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+<a id="L-253" name="L-253"></a>            <span class="s2">&quot;text_source&quot;</span><span class="p">:</span> <span class="s2">&quot;+&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">srcs</span><span class="p">)</span> <span class="k">if</span> <span class="n">srcs</span> <span class="k">else</span> <span class="s2">&quot;error&quot;</span><span class="p">,</span>
+<a id="L-254" name="L-254"></a>            <span class="s2">&quot;extract_error&quot;</span><span class="p">:</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">errs</span><span class="p">),</span>
+<a id="L-255" name="L-255"></a>            <span class="s2">&quot;source_file&quot;</span><span class="p">:</span> <span class="s2">&quot;;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s2">&quot;source_file&quot;</span><span class="p">]),</span>
+<a id="L-256" name="L-256"></a>            <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">t</span><span class="p">),</span>
+<a id="L-257" name="L-257"></a>        <span class="p">})</span>
+<a id="L-258" name="L-258"></a>
+<a id="L-259" name="L-259"></a>    <span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="s2">&quot;estado&quot;</span><span class="p">,</span> <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">],</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-260" name="L-260"></a>             <span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">combine</span><span class="p">,</span> <span class="n">include_groups</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="L-261" name="L-261"></a>             <span class="o">.</span><span class="n">reset_index</span><span class="p">())</span>
+<a id="L-262" name="L-262"></a>    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;n_chars&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">len</span><span class="p">()</span>
+<a id="L-263" name="L-263"></a>    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;Int64&quot;</span><span class="p">)</span>
+<a id="L-264" name="L-264"></a>    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;year&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;Int64&quot;</span><span class="p">)</span>
+<a id="L-265" name="L-265"></a>    <span class="k">return</span> <span class="n">out</span><span class="p">[[</span>
+<a id="L-266" name="L-266"></a>        <span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="s2">&quot;estado&quot;</span><span class="p">,</span> <span class="s2">&quot;SQ_CANDIDATO&quot;</span><span class="p">,</span> <span class="s2">&quot;n_docs&quot;</span><span class="p">,</span> <span class="s2">&quot;n_pages&quot;</span><span class="p">,</span> <span class="s2">&quot;n_chars&quot;</span><span class="p">,</span>
+<a id="L-267" name="L-267"></a>        <span class="s2">&quot;text_source&quot;</span><span class="p">,</span> <span class="s2">&quot;extract_error&quot;</span><span class="p">,</span> <span class="s2">&quot;source_file&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<a id="L-268" name="L-268"></a>    <span class="p">]]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-269" name="L-269"></a>
+<a id="L-270" name="L-270"></a>
+<a id="L-271" name="L-271"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<a id="L-272" name="L-272"></a>    <span class="n">ap</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="p">)</span>
+<a id="L-273" name="L-273"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--uf&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;restrict to one UF (e.g. AC)&quot;</span><span class="p">)</span>
+<a id="L-274" name="L-274"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--year&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;restrict to one year (e.g. 2020)&quot;</span><span class="p">)</span>
+<a id="L-275" name="L-275"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--workers&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<a id="L-276" name="L-276"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--limit&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;cap #PDFs (smoke test)&quot;</span><span class="p">)</span>
+<a id="L-277" name="L-277"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--no-ocr&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;ocr&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+<a id="L-278" name="L-278"></a>                    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;skip OCR; keep only embedded text (fast pass)&quot;</span><span class="p">)</span>
+<a id="L-279" name="L-279"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--refresh-ocr&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+<a id="L-280" name="L-280"></a>                    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;re-OCR and overwrite the cache&quot;</span><span class="p">)</span>
+<a id="L-281" name="L-281"></a>    <span class="n">ap</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--out&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span>
+<a id="L-282" name="L-282"></a>                    <span class="n">default</span><span class="o">=</span><span class="n">path</span><span class="o">.</span><span class="n">build_clean_dir</span> <span class="o">/</span> <span class="s2">&quot;proposta_governo.parquet&quot;</span><span class="p">)</span>
+<a id="L-283" name="L-283"></a>    <span class="n">args</span> <span class="o">=</span> <span class="n">ap</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+<a id="L-284" name="L-284"></a>
+<a id="L-285" name="L-285"></a>    <span class="n">df</span> <span class="o">=</span> <span class="n">build</span><span class="p">(</span><span class="n">uf</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">uf</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workers</span><span class="p">,</span>
+<a id="L-286" name="L-286"></a>               <span class="n">limit</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">limit</span><span class="p">,</span> <span class="n">ocr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ocr</span><span class="p">,</span> <span class="n">refresh_ocr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">refresh_ocr</span><span class="p">)</span>
+<a id="L-287" name="L-287"></a>
+<a id="L-288" name="L-288"></a>    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<a id="L-289" name="L-289"></a>    <span class="n">src</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;text_source&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<a id="L-290" name="L-290"></a>    <span class="n">errs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;extract_error&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<a id="L-291" name="L-291"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> propostas | text_source=</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="n">errs</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> errors&quot;</span><span class="p">)</span>
+<a id="L-292" name="L-292"></a>
+<a id="L-293" name="L-293"></a>    <span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-294" name="L-294"></a>    <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyarrow&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">)</span>
+<a id="L-295" name="L-295"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrote </span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> rows to </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">out</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+
+</div>
+</main>
+
+<footer>Generated by <code>sitekit</code></footer>
+<script>
+/* Mermaid diagrams: render ```mermaid fenced code blocks as diagrams.
+   Guarded + lazy — the CDN library loads ONLY on pages that contain one, so
+   doc pages without a diagram are completely unaffected. */
+(function () {
+  var blocks = document.querySelectorAll("pre > code.language-mermaid");
+  if (!blocks.length) return;
+  blocks.forEach(function (code) {
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;   // entity-decoded source
+    code.closest("pre").replaceWith(div);
+  });
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload = function () { mermaid.initialize({ startOnLoad: false }); mermaid.run(); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

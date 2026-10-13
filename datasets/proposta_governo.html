@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>proposta_governo — mayoral government plans</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>proposta_governo — mayoral government plans</h1>
+  <p>Full text of every mayoral candidate's proposta de governo (manifesto), legally required at candidacy registration. One row per (year, estado, SQ_CANDIDATO); joins candidato on (year, estado, SQ_CANDIDATO). Covers 2012, 2016, 2020, 2024 (~65k plans); ~9,300 are image-only scans awaiting OCR (text_source).</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {"id":"proposta_governo","name":"proposta_governo — mayoral government plans","description":"Full text of every mayoral candidate's proposta de governo (manifesto), legally required at candidacy registration. One row per (year, estado, SQ_CANDIDATO); joins candidato on (year, estado, SQ_CANDIDATO). Covers 2012, 2016, 2020, 2024 (~65k plans); ~9,300 are image-only scans awaiting OCR (text_source).","grain":"One row per (year, estado, SQ_CANDIDATO).","notes":"","category":"Sanctions & manifestos","layer":"clean","source_script":"source/clean/proposta_governo.py","file_size":425414648,"row_count":65271,"col_count":10,"columns":[{"name":"year","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"2020"},{"name":"estado","dtype":"str","null_count":0,"null_pct":0.0,"example":"PB"},{"name":"SQ_CANDIDATO","dtype":"Int64","null_count":0,"null_pct":0.0,"example":"150000722948"},{"name":"n_docs","dtype":"int64","null_count":0,"null_pct":0.0,"example":"1"},{"name":"n_pages","dtype":"int64","null_count":0,"null_pct":0.0,"example":"10"},{"name":"n_chars","dtype":"int64","null_count":0,"null_pct":0.0,"example":"12875"},{"name":"text_source","dtype":"str","null_count":0,"null_pct":0.0,"example":"embedded"},{"name":"extract_error","dtype":"str","null_count":0,"null_pct":0.0,"example":""},{"name":"source_file","dtype":"str","null_count":0,"null_pct":0.0,"example":"PB/2020PB150000722948.pdf"},{"name":"text","dtype":"str","null_count":0,"null_pct":0.0,"example":" \n \n \n\n \n \n \nPROGRAMA DE GOVERNO  \nGESTÃO 2021 – 2024 \n \nINTRODUÇÃO \n \nCientes da atual conjunta, com uma pandemia que obrigou a \neconomia brasileira a parar, provocando previsões de retração inédita…"}],"binary":{},"categorical":{"estado":{"labels":["SP","MG","RS","BA","PR","SC","GO","MA","PB","PE","PI","CE","PA","RJ","MT","TO","RN","AL","ES","AM"],"values":[9029,7654,5113,4952,4801,3252,3124,2826,2294,2250,2224,2203,2199,1871,1683,1577,1320,1199,1174,1005]},"year":{"labels":["2012","2020","2024","2016"],"values":[17608,17432,15560,14671]},"text_source":{"labels":["embedded","embedded_sparse","error","embedded+embedded_sparse","embedded+error"],"values":[55974,9232,39,25,1]},"n_docs":{"labels":["1","2","3","4","8","5","9","6","10","20","18","11","12"],"values":[65120,115,16,5,5,2,2,1,1,1,1,1,1]}},"temporal":{"year":{"min":"2012","max":"2024","by_year":{"labels":[2012,2016,2020,2024],"values":[17608,14671,17432,15560]}}},"sample_columns":["year","estado","SQ_CANDIDATO","n_docs","n_pages","n_chars","text_source","extract_error","source_file","text"],"sample":[["2020","PB","150000722948","1","10","12875","embedded","","PB/2020PB150000722948.pdf"," \n \n \n\n \n \n \nPROGRAMA DE GOVERNO  \nGESTÃO 2021 – 2024 \n \nINTRODUÇÃO \n \nCientes da atual conjunta, com uma pandemia que obrigou a \neconomia brasileira a parar, provocando previsões de retração inédita…"],["2020","RO","220001051415","1","8","7","embedded_sparse","","RO/2020RO220001051415.pdf","\n\n\n\n\n\n\n"],["2020","MG","130000638950","1","10","15055","embedded","","MG/2020MG130000638950.pdf","PLANO DE GOVERNO - PARTIDO LIBERAL – PL – DELFINÓPOLIS \n \nTítulo:   \n \nPLANEJAMENTO – AÇÃO – RESULTADO \nObjetivo:  \n \nCUIDAR DAS PESSOAS E CUIDAR DA CIDADE \nPrioridades: \n \nTURISMO – AGRONEGÓCIO – IN…"],["2024","MG","130001936523","1","3","4328","embedded","","MG/2024MG130001936523_01.pdf","Plano de GOVERNO – COELHO – PDT – ELEIÇÕES 2024 \n \nEDUCAÇÃO \n1.Entregar cidadãos mais qualificados e preparados para o futuro \n2.Ter o melhor IDEB da região e estar entre os melhores de Minas \n3.Prop…"],["2016","PA","140000009895","1","15","20802","embedded","","PA/2016PA140000009895.pdf","1\nCOLIGAÇÃO “JUNTOS POR LIMOEIRO”\nPSDB, PDT, PSD, PMN, PMDB, PPS, PP, PHS, PSC, PSDC e PEN\nAmarildo\nPrefeito\nZé Pereira\nVice - Prefeito\n\n2\nSUMÁRIO\nIntrodução\nO Município Democrático\nPorque a Mudança…"],["2024","PR","160002332039","1","17","20907","embedded","","PR/2024PR160002332039_01.pdf","1 \n \n \n \nNova Esperança do Sudoeste 2025 - 2028 \n \n \nColigação Honestidade, trabalho e o compromisso \ncontinua. \n \nPartidos:  MDB, PSD, PRD, PL E PSB \nPLANO DE GOVERNO \n \n \nPrefeito: Jaime da Silva S…"],["2012","SC","240000008056","1","15","47864","embedded","","SC/2012SC240000008056.pdf","PROPOSTA DE GOVERNO DA COLIGAÇÃO PSDB/PP/ \nPSD/ PSB/ DEM “POR UM GOVERNO RESPONSÁVEL, \nHONESTO E POPULAR” \n \n                                                 APRESENTAÇÃO: \n \n \nO Partido da Social De…"],["2012","PB","150000002209","1","1","0","embedded_sparse","","PB/2012PB150000002209.pdf",""],["2020","MG","130000916494","1","7","11630","embedded","","MG/2020MG130000916494.pdf","• \nResponder pela defesa sanitária vegetal e animal, o melhoramento genético e planejar, \ncoordenar, organizar, controlar, executar, dirigir e normatizar as atividades inerentes \nao desenvolvimento r…"],["2020","RS","210000665136","1","3","4090","embedded","","RS/2020RS210000665136.pdf","Apresentação\nO Podemos de União da Serra, busca elaborar um plano de\ngoverno eficaz, humanizando a cidade e cuidando das pessoas,\nvalorizando as sugestões de propostas e visando entender a atual\nreal…"],["2024","RS","210002327612","1","10","17545","embedded","","RS/2024RS210002327612_01.pdf","Principais pontos do \nprograma de Governo 2025 a 2028:\nHabitação\n- Construção de 100 casas populares;\nAgricultura \n- Implementação de uma Patrulha Agrícola com: 01 patrola, 01 Caminhão,\n01 Retroescav…"],["2012","SP","250000062549","1","1","0","embedded_sparse","","SP/2012SP250000062549.pdf",""],["2024","MG","130002046044","1","6","13215","embedded","","MG/2024MG130002046044_01.pdf"," \n \n\nINTRODUÇÃO  \n \nEste documento é um instrumento em que se apresenta o Plano de Governo para o \nMunicípio de Santo Antônio do Rio Abaixo/MG, onde estabelece as diretrizes e as medidas \nque serão t…"],["2012","AL","20000003565","1","12","15789","embedded","","AL/2012AL20000003565.pdf"," \n ELEIÇÕES 2012 \n \nLegislatura: 2013-2016 \n \n \nPROPOSTA DE GOVERNO  \nSÃO JOSÉ DA LAJE - AL \n  \n \n\n \n2 \n \nELEIÇÕES 2012 \n(PROGRAMA DE GOVERNO 2013 – 2016) \n \nMUNICÍPIO: São José da Laje/AL \nCANDIDATO…"],["2016","SP","250000083928","1","5","10429","embedded","","SP/2016SP250000083928.pdf","0 \n \nEleições Municipais 2016 \nAlvinlândia-SP \n \nColigações:  \nAlvinlândia em boas mãos; \nUnidos por Alvinlândia em boas mãos \n \n \nPlano de Governo \n \n Secretaria Municipal de Educação \n \no Viabiliza…"],["2024","RJ","190002209156","1","10","13169","embedded","","RJ/2024RJ190002209156_01.pdf","- 1 -\n \n \n \n  \n \n \n \n \n \n \n \nFÁBIO SPERENDIO \nCANDIDATO A PREFEITO QUEIMADOS \n \nPLANO DE \nGOVERNO \n2025/2028 \n \n \n \n \n \n \n \n \n\n- 2 -\n \n \n \n  \n \n \nPROPOSTA DE GOVERNO \nMUNICIPAL \n \n“SAÚDE E SEGURANÇA…"],["2012","PB","150000014651","1","3","2","embedded_sparse","","PB/2012PB150000014651.pdf","\n\n"],["2012","PA","140000006006","1","17","24976","embedded","","PA/2012PA140000006006.pdf"," \nPROGRAMA DE GOVERNO \nCANDIDATO: ROBERTO ADAIL PAES RODRIGUES \nAPRESENTAÇÃO: \nO presente documento visa diretrizes do Programa de Governo, onde quer se dar \numa visão macro sobre todas as propostas…"],["2024","SC","240002359106","1","8","14191","embedded","","SC/2024SC240002359106_01.pdf","PROPOSTA DE GOVERNO PT -   2025   A  2028  \nANGELINA NÃO PODE PARAR ! \nTRABALHO, COMPROMISSO E HONESTIDADE ! \nA ROSE FEZ !    A ROSE FARÁ ! \nO povo de Angelina merece um governo que tenha capacidade…"],["2016","BA","50000026666","1","6","16008","embedded","","BA/2016BA50000026666.pdf"," \n \n \nPLANO DE GOVERNO - 2017 A 2021 \n“JUNTOS O PROGRESSO CONTINUA” \nURANDI-BAHIA \n \n \n \n \n \nDORIVAL BARBOSA DO CARMO  \nPREFEITO \n \nÁUREA LÍDIA BOTELHO ROCHA  \nVICE - PREFEITA \n \n \n \n \n \n \n \n \n \n \nCo…"],["2016","SP","250000091306","1","8","26310","embedded","","SP/2016SP250000091306.pdf","1 \n \nCOLIGAÇÃO “ RENOVA RIBEIRA”  - GESTÃO 2017 - 2020 \nPROPOSTA DE GOVERNO DO TRINCÃO PARA O MUNICÍPIO DE RIBEIRA \nUma visão inovadora de gestão pública para garantir mais qualidade de vida à nossa…"],["2012","MG","130000083588","1","4","7081","embedded","","MG/2012MG130000083588.pdf","SAÚDE \n \nReformar e adaptar as dependências do Hospital Municipal Raimundo Campos, para \nmelhor atendimento a população de acordo com as normas do ministério da saúde. \n \nImplantar o atendimento cl…"],["2024","SC","240002274189","1","29","43848","embedded","","SC/2024SC240002274189_01.pdf"," \n \nPLANO DE GOVERNO \n \nEste plano de governo foi concebido com o compromisso de trazer um novo \nolhar para os desafios e problemas enfrentados por Campos Novos. Nossa proposta \né clara: cuidar das p…"],["2012","CE","60000002460","1","15","20990","embedded","","CE/2012CE60000002460.pdf"," \n \n \n \nPropostas de Gestão \n \nCandidato: JOÃO PAULO LINS FERREIRA \nE CÍCERO VIANA ALENCAR \n \nMunicípio de Umari/CE \n \n \n \n \n \n \n \n \n\nAPRESENTAÇÃO \n \n  \nDepois de meses de discussões e debates com vá…"],["2020","PI","180000744298","1","7","11888","embedded","","PI/2020PI180000744298.pdf"," \n \n1 \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nPLANO DE GOVERNO MUNICIPAL 2021-2024 \n \nCOLIGAÇÃO O NOVO COM A FORÇA DO POVO \n \n \nPartidos: PP, PL, PT. \n \n2020 \n\n \n \n2 \n \n \n \nELEIÇÕES MUNICIPAIS…"],["2024","ES","80002052669","1","11","25857","embedded","","ES/2024ES80002052669_01.pdf","1 \n \nPLANO DE GOVERNO  \nPREFEITO RODRIGO BORGES \nGUARAPARI \n2025/2029 \nRENOVAÇÃO PARA CUIDAR \n \nÍNDICE \n \nIntrodução...................................................................................…"],["2024","MT","110002325790","1","17","25352","embedded","","MT/2024MT110002325790_01.pdf","Govern\nPlano de\nMARCOS TOMAZINI\n& DONA DARCI\nColigação:\nUNIDOS POR PARANATINGA\n\n \n2 \nAGOSTO DE 2024 – COLIGAÇÃO “UNIDOS POR PARANATINGA” \n \nA coligação “UNIDOS POR PARANATINGA”, que \nnasceu da união…"],["2016","SC","240000008600","1","5","6091","embedded","","SC/2016SC240000008600.pdf","COLIGAÇÃO POR UMA NOVA GARUVA \n15 AÇÕES ESSENCIAIS VISANDO UMA NOVA GARUVA: \nNOVA GARUVA SAUDÁVEL \nAumento do número de médicos (clínica geral) e consequentemente de \nconsultas, com sistema moderno d…"],["2016","RJ","190000018866","1","6","13392","embedded","","RJ/2016RJ190000018866.pdf","1 \n \nPrograma para a candidatura de Alessandro Molon e Roberto Anderson – Coligação Todo Rio \n (Rede – PV – PPL) \n \nApresentamos aqui linhas gerais de um programa que tem como compromisso ser um \ndoc…"],["2012","SP","250000062497","1","1","2636","embedded","","SP/2012SP250000062497.pdf","Educação: valorização do corpo docente; melhorias na infra-estrutura das escolas; ampliação \ndo número de vagas; transporte escolar; melhora na qualidade da merenda escolar; \nTurismo: Fortalecimento…"],["2016","AL","20000003448","1","6","8935","embedded","","AL/2016AL20000003448.pdf"," \nNo intuito de fortalecer o compromisso com a transparência da \nadministração municipal, venho fazer minha prestação de contas \nreferente aos pouco mais de dois anos de gestão! Mesmo com \npoucos rec…"],["2012","PA","140000001651","1","1","0","embedded_sparse","","PA/2012PA140000001651.pdf",""],["2012","TO","270000000615","1","4","7947","embedded","","TO/2012TO270000000615.pdf","PROPOSTAS: \n \nCandidato a prefeito: Reginaldo Martins Rodrigues (PSD). \n \nSAÚDE PUBLICA: \n \nManter o programa de saúde bucal com atendimento preventivo e curativo a \ntodas as crianças da rede public…"],["2012","SP","250000086821","1","12","10178","embedded","","SP/2012SP250000086821.pdf","PREFÁCIO \nA idéia central deste projeto inovador de governar um município é fazer a prefeitura atender as \nnecessidades de cada um dos munícipes, mas em coletividade. \nA democracia brasileira nos per…"],["2016","PA","140000006858","1","14","18054","embedded","","PA/2016PA140000006858.pdf"," \n \n \n \n \n \n \nPROPOSTA DA MELHORIA DE SÃO \nGERALDO DO ARAGUAIA - PA \nFAZENDO O QUE É PRA FAZER! \n \n \n \n \n\n \n \n1. SAÚDE \nSaúde acolhedora, humanizada, inclusiva e para todos. \nA melhoria nos serviços…"],["2020","MG","130000978258","1","10","15335","embedded","","MG/2020MG130000978258.pdf"," \n \n \n \n \n \n \n \n \n \n \n \n \nColigação: Juntos para uma cidade cada vez melhor  \nPartidos: PSDB,MDB, AVANTE, REPUBLICANOS \n \n \n \n \n \n \n \n PLANO DE GOVERNO MUNICIPAL – 2021-2024 \nSANTA RITA DE MINAS \nADE…"],["2012","MG","130000049165","1","11","14765","embedded","","MG/2012MG130000049165.pdf"," \n \n\u0000\u0002\u0001\u0004\u0003\u0006\u0005\b\u0007\n\t\f\u000b\n\r\u000f\u000e\u0011\u0010\u0013\u0012\n\u0007\u0015\u0014\u0017\u0016\u0018\u0014\u0004\u0019\u001b\u001a\u001d\u001c\u001b\u001e\u0018\u001f \u000b\n\u000e!\u000e\"\u000e#\u000e!\u000e\"\u000e#\u000e\"\u000e\"\u000e!\u000e$\u000e!\u000e\"\u000e#\u000e!\u000e\"\u000e\"\u000e#\u000e\"\u000e\"\u000e#\u000e\"\u000e!\u000e#\u000e\"\u000e\"\u000e!\u000e$\u000e\"\u000e!\u000e\"\u000e#\u000e!\u000e\"\u000e$\u000e\n%\n\u000e'&\n\t(\u0007)\u0014*\u001a+\u0007,\t.-/\u0014\u001b\u0016102\u0005\u0017\u00163\t54\u0018\u001c6\u0016\n&\n\u000b\n78\u000b69 \u0014\u000f\u0007:\u0019 \u000b\n\u000e\"\u000e#\u000e\"\u000e\"\u000e!\u000e$\u000e\"\u000e!\u000e#\u000e\"\u000e!\u000e\n\u0000;\u0014…"],["2012","RS","210000006637","1","3","4245","embedded","","RS/2012RS210000006637.pdf","UNIDOS POR ALMIRANTE TAMANDARÉ DO SUL \nColigação formada por PMDB, PT, PP e PDT \n \nPLANO DE GOVERNO 2013/2016 \n \n \n1) PLANEJAMENTO \n Elaboração do Plano Diretor; \n Ser uma administração transparent…"],["2020","AM","40000742724","1","21","29959","embedded","","AM/2020AM40000742724.pdf","\nEste Programa de Governo apresenta as principais propostas do candidato a prefeito Abmael\nSantana, juntamente com José Carlos “NEGO”, candidato a vice-prefeito, da Coligação “BERURI TEM\nJEITO!\nRECON…"],["2016","TO","270000005109","1","10","12813","embedded","","TO/2016TO270000005109.pdf","PLANO DE GOVERNO \nCANDIDATO A PREFEITO: DEUSIMAR PEREIRA DE AMORIM \nCANDIDATO A VICE PREFEITO: SERGIO FELICISSIMO DE CASTRO NETO \n \n \n \n \n \n \n \n• \nConstruir uma Creche para o atendimento das crianças…"],["2012","MG","130000006241","1","11","19737","embedded","","MG/2012MG130000006241.pdf","PROGRAMA DE GOVERNO \nColigação: Nossa Gente + Feliz! (PRB-PT-PMDB-DEM-PMN) \n \n \n \n33 \n1 \n \nPROJETO: Nossa Gente + Feliz! \n \nCaro Eleitor, \nA apresentação das Metas de Trabalho para o quadriênio 2013-…"],["2016","BA","50000001951","1","30","44399","embedded","","BA/2016BA50000001951.pdf"," \n \nPágina 1 \n \n \n \n \nPROJETO DE GOVERNO \n \n \n \n \n \n \n“A mudança que o povo quer, começa agora’’ \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nColigação “Unidos com o povo pela mudança”. \nPTB, PSL, PDT, PCdoB, PRB, D…"],["2024","MG","130002260329","1","12","34686","embedded","","MG/2024MG130002260329_01.pdf","Plano de Governo - Coligação Araguari Não Pode Parar\nRenato Carvalho (Republicanos) e Wesley Lucas (PRD) - 10\n“Cuidando da Cidade e da Nossa Gente”\n1. Erradicação da Pobreza\n- **Objetivo:** Erradicar…"],["2024","PR","160001917319","1","25","63055","embedded","","PR/2024PR160001917319_01.pdf","Miller Borba e Dr. Dalmen (2024) Miller Borba e Dr. Dalmen (2024) Miller Borba e Dr. Dalmen (2024) \n  Coligação \"Viva a Vida\" Coligação \"Viva a Vida\" Coligação \"Viva a Vida\" Coligação \"Viva a Vida\"…"],["2012","PA","140000000112","1","5","9974","embedded","","PA/2012PA140000000112.pdf"," \n \n \n \nColigação “Desenvolve Salvaterra, com a força do Povo”. \nColigação “Desenvolve Salvaterra, com a força do Povo”. \nColigação “Desenvolve Salvaterra, com a força do Povo”. \nColigação “Desenvolv…"],["2020","PR","160001105952","1","25","40942","embedded","","PR/2020PR160001105952.pdf"," \n \n \n1 \n \n \n \nDEM  - REP – PODE \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nPLANO DE GOVERNO \nEleições 2020 \nPrefeito  \nPrefeito  \n         \n         Vice Adelar NACONESKI \nVice Adelar NACONESKI \n\n \n \n \n2 \nÍNDIC…"],["2024","PI","180002328528","1","14","25216","embedded","","PI/2024PI180002328528_01.pdf"," \n \n \nSão Gonçalo do Piauí - Piauí \n \n \n \n \n \n ELEIÇÕES MUNICIPAIS \n  \n \n - 2024 - \n \n \n \n \nPLANO MUNICIPAL DE GOVERNO \n- 2025/2028 – \n \n \n \n \n \n \n \n \n \nCOLIGAÇÃO: “PRA SÃO GONÇALO SEGUIR EM FRENTE”…"],["2024","PE","170002243148","1","31","45624","embedded","","PE/2024PE170002243148_01.pdf","1 \n \n\n2 \n \nApresentação \n \n \nO Plano de Governo Municipal é um instrumento norteador de uma \ngestão eficiente e eficaz na governança municipal, estabelecendo diretrizes e \nmedidas que vão beneficiar…"],["2016","PE","170000005493","1","10","16819","embedded","","PE/2016PE170000005493.pdf","PROJETO POLÍTICO \nPLANO DE GOVERNO \n \nMUNICÍPIO: Jupi(PE) \nPERÍODO: 2017 a 2020 \nCANDIDATOS: Marcos Patriota (Prefeito) \n                          Rivanda Freire (vice prefeita) \nTEMA DE GESTÃO: “JUN…"],["2024","PA","140002259493","1","9","19365","embedded","","PA/2024PA140002259493_01.pdf"," \n \n \nPLANO DE GOVERNO 2025/2028 \n \n \nCOLIGAÇÃO: O NOVO GOVERNO! \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nPrefeito: Clidean Ferreira Chaves. \nVice-prefeito: Samuel José da Silva. \nColigação: União Brasil, Partid…"]],"grain_check":{"key_columns":["year","estado","SQ_CANDIDATO"],"n_rows":65271,"n_unique_keys":65271,"n_duplicate_rows":0,"n_null_keys":0,"is_unique":true},"pseudocode":null};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

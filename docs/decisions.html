@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key Decisions — politica</title>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.5;
+  }
+  main { padding: 1.5rem 2rem 3rem; max-width: 42rem; margin: 0 auto; }
+  .md-body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.06rem; line-height: 1.78; color: var(--fg);
+  }
+  .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .md-body h1 { font-size: 1.5rem; font-weight: 600; margin: 1.8rem 0 .8rem;
+    padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  .md-body h2 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 .6rem;
+    padding-bottom: .25rem; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.05rem; font-weight: 600; margin: 1.3rem 0 .5rem; }
+  .md-body h4 { font-size: .95rem; font-weight: 600; margin: 1.1rem 0 .4rem; }
+  .md-body h5, .md-body h6 { font-size: .88rem; font-weight: 600; margin: 1rem 0 .4rem; }
+  .md-body h1:first-child { margin-top: 0; }
+  .md-body strong { font-weight: 600; }
+  .md-body ul li { list-style: disc; }
+  .md-body li > ul, .md-body li > ol { margin-top: .25rem; margin-bottom: 0; }
+  .md-body li input[type="checkbox"] {
+    margin-right: .4rem; vertical-align: middle; position: relative; top: -1px;
+  }
+  .md-body p { margin: 0 0 .8rem; }
+  .md-body ul, .md-body ol { margin: 0 0 .8rem; padding-left: 1.8rem; }
+  .md-body li { margin-bottom: .25rem; }
+  .md-body a { color: var(--accent); text-decoration: none; }
+  .md-body a:hover { text-decoration: underline; }
+  .md-body blockquote {
+    margin: 0 0 .8rem; padding: .4rem 1rem;
+    border-left: 4px solid var(--accent); background: #f5f3ee;
+    color: #555;
+  }
+  .md-body blockquote.verdict-callout {
+    border-left-width: 6px;
+    background: #fffefa;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: .7rem 1rem;
+    border-radius: 0 4px 4px 0;
+    color: var(--fg);
+    margin: 1rem 0 1.2rem;
+  }
+  .md-body blockquote.verdict-callout > p:first-child > strong:first-child {
+    color: #111;
+  }
+  .md-body blockquote.verdict-callout.verdict-refuted   { border-left-color: #dc3545; }
+  .md-body blockquote.verdict-callout.verdict-confirmed { border-left-color: #198754; }
+  .md-body blockquote.verdict-callout.verdict-mixed     { border-left-color: #d39e00; }
+  .md-body blockquote.verdict-callout.verdict-pending   { border-left-color: #6b7280; }
+  .md-body blockquote.verdict-callout.verdict-neutral   { border-left-color: var(--accent); }
+
+  /* Analysis page: headline (one-paragraph plain-English finding) */
+  .an-headline {
+    font-size: 1.05rem; line-height: 1.55; font-weight: 500;
+    color: #1f2328; background: #f6f8fa;
+    border-left: 4px solid var(--accent);
+    padding: .8rem 1rem; margin: 0 0 1.2rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Analysis info panel (rendered from .md frontmatter) — three tiers:
+     top (hypothesis/confidence), Design block, provenance footer. */
+  .an-panel {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: .7rem 1rem; margin-bottom: 1.5rem;
+    font-size: .85rem;
+  }
+  .an-meta {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: .2rem 1rem; margin: 0;
+  }
+  .an-row { display: contents; }
+  .an-meta dt { color: var(--muted); font-weight: 600; }
+  .an-meta dd { margin: 0; }
+  .an-meta code { font-size: .82em; }
+  .an-meta-top { font-size: .95rem; gap: .35rem 1rem; }
+  .an-meta-top dt { font-weight: 700; }
+  .an-meta-prov {
+    font-size: .75rem; gap: .15rem 1rem;
+    margin-top: .65rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .an-meta-prov dt { font-weight: 500; }
+  .an-meta-prov dd { color: var(--muted); }
+  .an-meta-prov code { color: var(--muted); }
+  .an-panel-label {
+    font-size: .68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted);
+    margin: .65rem 0 .3rem; padding-top: .55rem;
+    border-top: 1px solid var(--border);
+  }
+  .conf-chip {
+    display: inline-block; padding: .05rem .5rem; border-radius: 10px;
+    font-size: .75rem; font-weight: 600; text-transform: capitalize;
+  }
+  .conf-green   { background: #d4edda; color: #155724; }
+  .conf-yellow  { background: #fff3cd; color: #856404; }
+  .conf-red     { background: #f8d7da; color: #721c24; }
+  .conf-pending { background: #e9ecef; color: #495057; }
+  .md-body code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: .85em; background: #f0ede6; padding: .15rem .35rem;
+    border-radius: 4px;
+  }
+  .md-body pre {
+    margin: 0 0 .8rem; padding: .9rem 1rem;
+    background: #f5f3ee; border: 1px solid var(--border);
+    border-radius: 6px; overflow-x: auto;
+  }
+  .md-body pre code { background: none; padding: 0; }
+  .md-body table {
+    width: 100%; border-collapse: collapse; margin: 0 0 .8rem; font-size: .9rem;
+  }
+  .md-body th, .md-body td {
+    padding: .45rem .7rem; border: 1px solid var(--border); text-align: left;
+  }
+  .md-body th { background: #f5f3ee; font-weight: 600; }
+  .md-body tr:nth-child(even) td { background: var(--bg); }
+  .md-body img { max-width: 100%; }
+  .md-body li:target { background: #fff8c4; scroll-margin-top: 4rem; }
+  .md-body a.cite-ref, .md-body a.anec-ref, .md-body a.concept-ref {
+    color: var(--fg); text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  .md-body a.cite-ref:hover, .md-body a.anec-ref:hover,
+  .md-body a.concept-ref:hover { border-bottom-style: solid; }
+  /* Legal citations (`LE.33.IV`, `CPC.144.§3`): tan chip with a
+     browser-native title-tooltip carrying the verbatim statutory text,
+     linking out to the brazil-institutions law page. Rendered by
+     sitekit.links_extra.link_legal_refs when enable_legal_refs=True
+     and the workspace's artigos.db is reachable. */
+  .md-body code.legal-cite, .md-body a.legal-cite {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: .85em; background: #fdf8e8; border: 1px solid #e5d48b;
+    padding: .15rem .35rem; border-radius: 4px; cursor: help;
+  }
+  .md-body a.legal-cite { color: var(--fg); text-decoration: none; }
+  .md-body a.legal-cite:hover { text-decoration: underline; }
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link active">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header"><h1>Key Decisions</h1></div>
+
+<main>
+<div class="md-body">
+<h1>Decisions</h1>
+<h2 id="2026-05-28-poll-pipeline-scrape-llm-extract-clean-consolidated-here">2026-05-28 — Poll pipeline (scrape + LLM extract + clean) consolidated here</h2>
+<p><strong>Decision:</strong> The TSE poll acquisition + cleaning chain lives here in
+<code>source/{scrape,llm,clean}/</code>. Project-specific assembly steps (e.g.
+muni-day panels) stay in the downstream analysis repositories.</p>
+<p><strong>Why:</strong> More than one downstream analysis needs the cleaned poll
+table. Cleaned polls are project-neutral political data — same shape
+as candidato.csv, processo.csv, etc., already here — so they belong in
+shared pipeline infrastructure.</p>
+<p><strong>Touched files:</strong></p>
+<ul>
+<li><code>source/scrape/tse_relatorio.py</code> — new (moved). Reads TSE poll
+registration CSVs from <code>path.tse_polls_2024_dir</code> (currently
+<code>build/scrape/tse_polls_2024/</code>); writes PDFs to
+<code>build/scrape/tse_relatorio/{year}/</code>.</li>
+<li><code>source/llm/poll_extract.py</code> — new (moved). Reads PDFs from
+<code>path.build_scrape_dir</code>; writes per-protocol JSON + combined
+parquet to <code>path.build_llm_dir</code>.</li>
+<li><code>source/clean/poll_response_2024.py</code> — new (moved; renamed from
+<code>poll_2024.py</code> 2026-06-17 to reflect candidate-scenario grain).
+Reads LLM extractions + TSE registration CSVs; writes
+<code>build/clean/poll_response_2024.parquet</code>.</li>
+<li><code>path.py</code> — added <code>BUILD_DIR</code>, <code>build_scrape_dir</code>, <code>build_llm_dir</code>,
+<code>build_clean_dir</code>, <code>tse_polls_2024_dir</code> (so consumers don't have
+to hard-code paths).</li>
+</ul>
+<p><strong>Open caveat (intentional, time-bounded):</strong> the 2024 poll
+registration CSVs and PDFs are staged under <code>build/scrape/</code> rather than
+the canonical <code>$DATA_DIR</code>. This is workspace-local staging for
+convenience. Migrate to <code>$DATA_DIR</code> once the SP-slice pilot is stable —
+one-line edit to <code>path.tse_polls_2024_dir</code>.</p>
+<h2 id="2026-05-27-recover-2024-candidate-status-from-consulta-cand-complementar">2026-05-27 — Recover 2024 candidate status from <code>consulta_cand_complementar</code></h2>
+<p><strong>Decision:</strong> When <code>DS_DETALHE_SITUACAO_CAND</code> is missing or all-<code>#NE</code> in
+the main <code>consulta_cand</code> file (2024 onwards), read <code>DS_SITUACAO_JULGAMENTO</code>
+from the companion <code>consulta_cand_complementar</code> file and join on
+<code>SQ_CANDIDATO</code>. The complementar file only exists for 2024; the guard is
+a no-op for earlier years. Implemented in
+<code>candidato_politico.py:get_candidates()</code>, lines 393–419.</p>
+<p><strong>Reason:</strong> TSE split several columns out of the main <code>consulta_cand</code>
+file in 2024. <code>DS_DETALHE_SITUACAO_CAND</code> (deferido / indeferido / ...)
+was removed entirely, while <code>DS_SITUACAO_CANDIDATURA</code> was redacted to
+<code>#NE</code>. The replacement column <code>DS_SITUACAO_JULGAMENTO</code> lives in
+<code>consulta_cand_complementar_2024_&lt;state&gt;.csv</code>, with 100% SQ_CANDIDATO
+join coverage.</p>
+<p><strong>Verified results (2026-05-27):</strong> 2024 status coverage = 100.0% (up from
+0.0%). 2020 status coverage remains 100.0% (no regression). Status
+vocabulary is compatible with 2020 — the top values are DEFERIDO (454,806),
+INDEFERIDO (10,381), RENUNCIA (9,167), consistent with prior years.</p>
+<p><strong>Vocabulary changes in 2024</strong> (noted for downstream consumers):</p>
+<ul>
+<li><code>INDEFERIDO EM PRAZO RECURSAL OU COM RECURSO</code> (522) replaces 2022's
+<code>INDEFERIDO COM RECURSO</code>. Functionally equivalent — downstream
+consumers that set-match on <code>INDEFERIDO COM RECURSO</code> should add the
+new form.</li>
+<li><code>AGUARDANDO JULGAMENTO</code> (16) — new, functionally equivalent to
+<code>PENDENTE DE JULGAMENTO</code>. Downstream consumers that match on the
+latter should add this form.</li>
+<li><code>PEDIDO NAO CONHECIDO EM PRAZO RECURSAL OU COM RECURSO</code> (7) — new,
+analogous to <code>PEDIDO NAO CONHECIDO</code>.</li>
+<li><code>FALECIMENTO</code> (162) replaces <code>FALECIDO</code>. Neither appears in typical
+eligibility sets (dead candidates do not re-run).</li>
+</ul>
+<h2 id="2026-05-26-row-level-cpf-recovery-for-2024-bug-1-in-candidato-politico-py">2026-05-26 — Row-level CPF recovery for 2024 (Bug 1 in <code>candidato_politico.py</code>)</h2>
+<p><strong>Decision:</strong> Replace the state-level <code>.all()</code> guard on the 2024 titulo→CPF
+recovery in <code>get_candidates()</code> with a row-level coalesce: attempt recovery
+on any state file containing at least one sentinel CPF, and only overwrite
+the rows whose CPF is in <code>{-1, -4, -5, '', 'nan', '0'}</code>. Idempotent for
+pre-2024 years (sentinel mask is empty).</p>
+<p><strong>Reason:</strong> Audit of the built <code>candidato.csv</code> showed 2024 CPF coverage
+of only 11.8% (vs ~100% in 2008-2020). Per-state breakdown revealed
+recovery fired only for SP/MG/RJ/BA (where the raw <code>NR_CPF_CANDIDATO</code>
+column was uniformly sentinel) and silently skipped the other 23 states
+because at least one non-sentinel value in their raw column caused the
+prior <code>cpf_col.isin(['-1','-4','-5']).all()</code> guard to return False.
+Titulo crosswalk match potential in those skipped states was 20-50%.</p>
+<p>A second bug (Bug 1b) was discovered during verification: <code>get_candidates()</code>
+reads the raw CSV without <code>dtype=str</code>, so pandas casts
+<code>NR_TITULO_ELEITORAL_CANDIDATO</code> to <code>int64</code>, stripping leading zeros. The
+crosswalk was built with <code>dtype=str</code>, preserving them. The titulo join
+silently failed for any titulo starting with zero — which is most titulos
+outside SP/MG/RJ/BA. Fix: <code>.str.zfill(12)</code> applied to both the crosswalk
+build (line 30) and the titulo key in <code>get_candidates()</code> (line 384).</p>
+<p><strong>Verified results (2026-05-26):</strong> 2024 CPF coverage = 49.6% (up from 11.8%
+pre-fix). 2020-elected → 2024 match = 79.0% (up from 17.8%). 2020 CPF
+coverage remains 100.0% (no regression). Both metrics exceed the original
+targets (37% / 62%).</p>
+<p><strong>Outstanding issues</strong> (logged in todo.md):</p>
+<ul>
+<li>2024 <code>status</code> column is 100% empty — TSE either renamed or also
+redacted <code>DS_DETALHE_SITUACAO_CAND</code>.</li>
+</ul>
+<h2 id="2026-05-26-defer-retiring-the-legacy-tre-di-rios-processo-cleaning-path">2026-05-26 — Defer retiring the legacy TRE-diários processo cleaning path</h2>
+<p><strong>Decision:</strong> Keep the legacy TRE-diários <code>processo</code> cleaning path alive
+for 2020 work, even though this pipeline's <code>source/clean/processo.py</code> now
+covers the same TSE bulk processo data (and additionally covers 2024).
+Use <code>processo.csv</code> for 2024+ work only; do not repoint the legacy
+consumer to it until the schema-translation work below is done and
+verified.</p>
+<p><strong>Reason:</strong> The two cleaning paths produce non-equivalent outputs, so a
+drop-in repoint would break downstream tables. Three material
+differences between the legacy <code>tse_proc_instancia.csv</code> (2020) and this
+pipeline's <code>processo.csv</code> (2020 slice):</p>
+<ol>
+<li><strong><code>classe</code> values.</strong> The legacy path applies <code>clean_classe</code> +
+<code>diarios.clean.transform</code> on <code>DS_CLASSE</code> to produce sigla form
+preserving case (<code>Pet</code>, <code>Rp</code>, <code>AIJE</code>, <code>PC</code>, ...), plus manual
+overrides (&quot;PRESTACAO DE CONTAS ELEITORAIS&quot; → &quot;PC&quot;, &quot;REPRESENTACAO
+ESPECIAL&quot; → &quot;Rp&quot;, &quot;PETICAO CIVEL&quot; → &quot;Pet&quot;). This pipeline keeps
+<code>classe_sigla</code> (raw <code>SG_CLASSE</code>, all-caps: <code>PETCIV</code>, <code>RP</code>, <code>AIJE</code>)
+plus the full <code>classe</code> (DS_CLASSE post <code>clean_text_columns</code>, all-caps
+no accents). Downstream tables filtering on
+<code>classe_inicial.isin([&quot;AIJE&quot;,&quot;Rp&quot;,&quot;AIME&quot;])</code> would break on case
+alone, and the manual overrides are absent.</li>
+<li><strong><code>assunto1..4</code> is unrecoverable from this pipeline's output.</strong> The
+legacy path splits <code>DS_ASSUNTO_PRINCIPAL</code> on &quot; - &quot; into four
+case-preserving columns. This pipeline concatenates the string and
+runs it through <code>clean_text_columns</code>, destroying the &quot; - &quot; separator.
+Rebuilding the split is impossible.</li>
+<li><strong>11-row count gap.</strong> The legacy path applies
+<code>drop_duplicates(['number','instancia'])</code> removing 11 rows it
+documents as &quot;looks like errors&quot;. This pipeline does not dedupe.</li>
+</ol>
+<p>Plus minor differences in <code>tribunal</code> (<code>TRE-MA</code> vs <code>TREMA</code>),
+<code>tipo_distribuicao</code> (<code>Por sorteio</code> vs <code>POR SORTEIO</code>), and <code>judge_title</code>
+case.</p>
+<p><strong>Reason for keeping the duplication:</strong> A downstream paper build is at a
+sensitive stage and reproduces byte-for-byte against a fixed commit. A
+repoint risks regressing those outputs for no near-term gain. The
+duplication is one extra legacy script per publication year, tolerable.</p>
+<p><strong>To unlock the migration later:</strong></p>
+<ul>
+<li>Change <code>processo.py</code> to exclude <code>assunto</code> from <code>clean_text_columns</code>
+(preserve case + &quot; - &quot; separator); add a dedup pass matching the
+legacy path's. This also forces a sweep of the <code>cassacao</code>/<code>proc</code>
+keyword constants that currently match the cleaned uppercase form.</li>
+<li>Add a sigla-transform step in the consumer mirroring the legacy
+<code>clean_classe</code> + <code>diarios.clean.transform(&quot;classe&quot;,&quot;classe_sigla&quot;)</code>,
+with the manual overrides.</li>
+<li>Rebuild the downstream tables, byte-diff the merged processo output
+and all generated tables against the commit at migration time. Only
+proceed if identical.</li>
+<li>Then delete the legacy cleaning script and its build outputs.</li>
+</ul>
+<p><strong>Alternatives considered:</strong></p>
+<ul>
+<li>Repoint now with on-the-fly classe transform — rejected: doesn't
+address the <code>assunto1..4</code> loss and risks subtle row-count drift.</li>
+<li>Modify <code>processo.py</code> immediately to preserve assunto structure —
+rejected: breaks the existing keyword logic and requires a coordinated
+update; not session-sized.</li>
+</ul>
+
+</div>
+</main>
+
+<footer>Generated by <code>sitekit</code></footer>
+<script>
+/* Mermaid diagrams: render ```mermaid fenced code blocks as diagrams.
+   Guarded + lazy — the CDN library loads ONLY on pages that contain one, so
+   doc pages without a diagram are completely unaffected. */
+(function () {
+  var blocks = document.querySelectorAll("pre > code.language-mermaid");
+  if (!blocks.length) return;
+  blocks.forEach(function (code) {
+    var div = document.createElement("div");
+    div.className = "mermaid";
+    div.textContent = code.textContent;   // entity-decoded source
+    code.closest("pre").replaceWith(div);
+  });
+  var s = document.createElement("script");
+  s.src = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload = function () { mermaid.initialize({ startOnLoad: false }); mermaid.run(); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

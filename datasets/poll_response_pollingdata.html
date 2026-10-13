@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>poll_response_pollingdata — president/governor polls</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Pseudocode block — readable summary of how this dataset is built,
+     with [name] tokens linked to other dataset pages. */
+  .pseudocode { background: var(--card); border: 1px solid var(--border);
+                border-radius: 6px; padding: .9rem 1.1rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: .82rem; line-height: 1.55;
+                white-space: pre; overflow-x: auto; margin: 0 0 1rem; }
+  .pseudocode a { color: var(--accent); text-decoration: none;
+                  background: #f0ede6; padding: 0 .25em; border-radius: 2px; }
+  .pseudocode a:hover { text-decoration: underline; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* column info table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .col-table th, .col-table td {
+    padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .col-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .col-table .null-bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--accent3); }
+
+  /* data table */
+  .table-wrap { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .data-table th, .data-table td {
+    padding: .4rem .5rem; border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .data-table th { position: sticky; top: 0; background: #f5f3ee; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f0ede6; }
+
+  .search-bar { margin-bottom: .8rem; }
+  .search-bar input {
+    font-size: .85rem; padding: .4rem .7rem; border: 1px solid var(--border);
+    border-radius: 4px; width: 100%; max-width: 400px;
+  }
+  .count-label { font-size: .8rem; color: var(--muted); margin-left: .8rem; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>poll_response_pollingdata — president/governor polls</h1>
+  <p>President/governor/senate vote intentions from the pollingdata.com.br archive (2018, 2022): one row per (election, poll, scenario, candidate), joinable to the TSE poll registry on protocolo.</p>
+  <p class="meta" id="grain-check-meta"></p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- Schema constraints: PK uniqueness (badge above) + FK references -->
+<div id="fk-section"></div>
+
+<!-- Pseudocode (how this dataset is built) -->
+<div id="pseudocode-section"></div>
+
+<main>
+
+<!-- Data source notes -->
+<div id="source-notes-section"></div>
+
+<!-- Column info -->
+<h2 class="section-title">Column Information</h2>
+<div class="card full">
+  <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+    <table class="col-table" id="col-table"></table>
+  </div>
+</div>
+
+<!-- Binary columns -->
+<div id="binary-section"></div>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Sample data -->
+<h2 class="section-title">Sample Data (50 rows)</h2>
+<div class="card full">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search across all columns...">
+    <span class="count-label" id="row-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+// Embedded data — replaced by build pipeline
+const DATA = /* INJECT_DATA */ {"id":"poll_response_pollingdata","name":"poll_response_pollingdata — president/governor polls","description":"President/governor/senate vote intentions from the pollingdata.com.br archive (2018, 2022): one row per (election, poll, scenario, candidate), joinable to the TSE poll registry on protocolo.","grain":"One row per (election, poll, cenario, candidate).","notes":"","category":"Opinion polls","layer":"clean","source_script":"source/clean/poll_response_pollingdata.py","file_size":303657,"row_count":39986,"col_count":19,"columns":[{"name":"year","dtype":"str","null_count":0,"null_pct":0.0,"example":"2022"},{"name":"office","dtype":"str","null_count":0,"null_pct":0.0,"example":"governador"},{"name":"uf","dtype":"str","null_count":0,"null_pct":0.0,"example":"PI"},{"name":"turno","dtype":"string","null_count":0,"null_pct":0.0,"example":"1"},{"name":"protocolo","dtype":"str","null_count":5527,"null_pct":13.8,"example":"BR-08584/2022"},{"name":"poll_date","dtype":"datetime64[us]","null_count":0,"null_pct":0.0,"example":"2022-05-29 00:00:00"},{"name":"institute","dtype":"string","null_count":5527,"null_pct":13.8,"example":"BRASMARKET INTELIGÊNCIA"},{"name":"institute_raw","dtype":"str","null_count":5527,"null_pct":13.8,"example":"Brasmarket Inteligência"},{"name":"mode","dtype":"str","null_count":0,"null_pct":0.0,"example":"Presencial"},{"name":"sample_size","dtype":"int64","null_count":0,"null_pct":0.0,"example":"400"},{"name":"cenario","dtype":"float64","null_count":3273,"null_pct":8.2,"example":"2.0"},{"name":"candidate","dtype":"str","null_count":0,"null_pct":0.0,"example":"Geraldo Carvalho"},{"name":"party","dtype":"str","null_count":4885,"null_pct":12.2,"example":"PSTU"},{"name":"pct","dtype":"float64","null_count":11540,"null_pct":28.9,"example":"0.1"},{"name":"is_aggregate","dtype":"bool","null_count":0,"null_pct":0.0,"example":"False"},{"name":"sum_real_pct","dtype":"float64","null_count":109,"null_pct":0.3,"example":"131.35"},{"name":"pct_on_real","dtype":"float64","null_count":16406,"null_pct":41.0,"example":"41.66666666666667"},{"name":"cargo_raw","dtype":"str","null_count":0,"null_pct":0.0,"example":"Governador PI-Brasil"},{"name":"url","dtype":"str","null_count":0,"null_pct":0.0,"example":"https://www.pollingdata.com.br/2022/governador/pi/t1"}],"binary":{"is_aggregate":{"mean":0.1222,"na_pct":0.0,"true_label":"True"}},"categorical":{"office":{"labels":["presidente","governador","senador"],"values":[22994,9592,7400]},"uf":{"labels":["BR","RJ","RN","SP","PI","GO","DF","MG","BA","AL","AM","PR","SE","TO","ES","MA","CE","MS","SC","RS"],"values":[15542,2174,2091,1760,1568,1451,1259,1189,1127,994,850,846,832,815,782,772,702,689,576,562]},"turno":{"labels":["1","2"],"values":[36158,3828]},"institute":{"labels":["<NA>","IPEC","QUAEST","PARANÁ PESQUISAS","REAL TIME BIG DATA","IPESPE","FSB PESQUISA","DATAFOLHA","DATAPODER360","FUTURA","IDEIA BIG DATA","VERITA","ATLAS INTELLIGENCE","GERP","RANKING","BRASMARKET INTELIGÊNCIA","INSTITUTO DATAMAX","INSTITUTO SETA","MDA","INSTITUTO ITEM"],"values":[5527,3704,3132,3046,2626,1731,1392,1366,1323,1133,1079,832,791,462,449,350,337,313,309,301]},"cargo_raw":{"labels":["Presidente BRASIL-Brasil","Senador RJ-Brasil","Governador RJ-Brasil","Senador SP-Brasil","Senador RN-Brasil","Governador RN-Brasil","Governador PI-Brasil","Governador MG-Brasil","Presidente (Estado) RN-Brasil","Governador DF-Brasil","Governador GO-Brasil","Presidente (Estado) SP-Brasil","Governador MA-Brasil","Presidente (Estado) MG-Brasil","Governador SE-Brasil","Senador GO-Brasil","Governador AM-Brasil","Presidente (Estado) PI-Brasil","Governador AL-Brasil","Presidente (Estado) PE-Brasil"],"values":[15542,945,812,754,732,722,676,673,637,615,605,594,538,516,490,462,460,451,445,443]}},"temporal":{"poll_date":{"min":"2017-04-07","max":"2022-10-29","by_year":{"labels":[2017,2018,2019,2020,2021,2022],"values":[115,2256,57,303,2796,34459]}},"year":{"min":"2018","max":"2022","by_year":{"labels":[2018,2022],"values":[2371,37615]}}},"sample_columns":["year","office","uf","turno","protocolo","poll_date","institute","institute_raw","mode","sample_size","cenario","candidate","party","pct","is_aggregate","sum_real_pct","pct_on_real","cargo_raw","url"],"sample":[["2022","governador","PI","1","PI-02299/2022","2022-05-29 00:00:00","INSTITUTO CREDIBILIDADE","Instituto Credibilidade","Presencial","400","1.0","Geraldo Carvalho","PSTU","","False","82.35","","Governador PI-Brasil","https://www.pollingdata.com.br/2022/governador/pi/t1"],["2022","governador","RJ","1","RJ-03260/2022","2022-09-29 00:00:00","DATAFOLHA","Datafolha","Presencial","1500","1.0","Serra","PCB","2.0","False","82.1","2.43605359317905","Governador RJ-Brasil","https://www.pollingdata.com.br/2022/governador/rj/t1"],["2022","presidente","BR","1","BR-09408/2022","2022-07-05 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","2020","3.0","Soraya","UNIAO","","False","84.3","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-previsao/br/t1"],["2022","senador","BA","1","BA-01582/2022","2022-03-26 00:00:00","SÉCULUS","Séculus","Presencial","1526","1.0","Dra Raíssa","PL","9.1","False","38.28","23.772204806687565","Senador BA-Brasil","https://www.pollingdata.com.br/2022/senador/ba/t1"],["2022","presidente","BR","1","BR-08065/2022","2022-04-05 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","2020","1.0","Eymael","DC","","False","78.8","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","presidente","BR","1","BR-04371/2022","2022-09-27 00:00:00","QUAEST","Quaest","Presencial","2000","1.0","Ciro","PDT","6.0","False","91.6","6.550218340611353","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-presencial/br/t1"],["2022","governador","PI","1","PI-08363/2022","2022-08-29 00:00:00","INSTITUTO OPINAR","Instituto Opinar","Presencial","1082","1.0","Madalena Nunes","PSOL","0.4","False","89.1","0.44893378226711567","Governador PI-Brasil","https://www.pollingdata.com.br/2022/governador/pi/t1"],["2022","presidente","BR","1","","2021-12-16 00:00:00","","","Telefonica","1000","1.0","Soraya","UNIAO","","False","6696.2","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","senador","AM","1","AM-06508/2022","2022-09-02 00:00:00","PONTUAL PESQUISAS","Pontual Pesquisas","Presencial","2318","1.0","Menezes","PL","12.1","False","75.3","16.06905710491368","Senador AM-Brasil","https://www.pollingdata.com.br/2022/senador/am/t1"],["2022","presidente","RO","1","BR-00532/2022","2022-09-29 00:00:00","IPEC","Ipec","Presencial","800","1.0","Soraya","UNIAO","1.0","False","94.3","1.0604453870625663","Presidente (Estado) RO-Brasil","https://www.pollingdata.com.br/2022/presidente/ro/t1"],["2022","presidente","BR","1","BR-05015/2022","2022-02-23 00:00:00","IPESPE","Ipespe","Telefonica","1000","1.0","Pericles","UP","","False","78.0","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","senador","MA","1","MA-06939/2022","2022-09-12 00:00:00","INSTITUTO DATAILHA","Instituto Datailha","Presencial","2000","1.0","Roberto Rocha","PTB","23.4","False","84.9","27.561837455830386","Senador MA-Brasil","https://www.pollingdata.com.br/2022/senador/ma/t1"],["2022","governador","PR","1","PR-06745/2022","2022-07-20 00:00:00","REAL TIME BIG DATA","Real Time Big Data","Presencial","1500","1.0","Não Válido","","32.0","True","60.1","","Governador PR-Brasil","https://www.pollingdata.com.br/2022/governador/pr/t1"],["2022","presidente","BR","1","BR-00585/2022","2022-08-28 00:00:00","QUAEST","Quaest","Presencial","2000","1.0","Tebet","MDB","3.0","False","88.5","3.389830508474576","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","senador","MS","1","MS-02015/2022","2022-08-21 00:00:00","NOVA IBRAPE","Nova Ibrape","Presencial","2000","1.0","Não Válido","","31.5","True","48.7","","Senador MS-Brasil","https://www.pollingdata.com.br/2022/senador/ms/t1"],["2022","presidente","BR","1","BR-01979/2022","2022-08-29 00:00:00","IPEC","IPEC","Presencial","2000","1.0","Vera Lúcia","PSTU","","False","87.0","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","governador","CE","1","CE-05755/2022","2022-08-12 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","1540","1.0","Malta","PCB","0.5","False","81.0","0.6172839506172839","Governador CE-Brasil","https://www.pollingdata.com.br/2022/governador/ce/t1"],["2022","governador","AP","1","AP-05843/2022","2022-09-29 00:00:00","IPEC","Ipec","Presencial","800","1.0","Jairo Paleta","PCO","1.0","False","94.0","1.0638297872340425","Governador AP-Brasil","https://www.pollingdata.com.br/2022/governador/ap/t1"],["2022","senador","SP","1","SP-06273/2022","2022-08-02 00:00:00","REAL TIME BIG DATA","Real Time Big Data","Presencial","2000","1.0","Não Válido","","37.0","True","54.0","","Senador SP-Brasil","https://www.pollingdata.com.br/2022/senador/sp/t1"],["2022","governador","RN","1","RN-02342/2022","2022-09-28 00:00:00","INSTITUTO AGORA SEI","Instituto Agora Sei","Telefonica","1200","1.0","Bento","PRTB","0.3","False","84.4","0.35545023696682465","Governador RN-Brasil","https://www.pollingdata.com.br/2022/governador/rn/t1"],["2022","senador","ES","1","ES-09325/2022","2022-08-24 00:00:00","REAL TIME BIG DATA","Real Time Big Data","Presencial","1500","1.0","Não Válido","","37.0","True","63.2","","Senador ES-Brasil","https://www.pollingdata.com.br/2022/senador/es/t1"],["2018","presidente","BR","2","","2018-10-18 00:00:00","","","Indefinido","9128","2.0","Não Válido","","15.0","True","258.5","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2018/presidente/br/bra-t2"],["2022","senador","GO","1","GO-02114/2022","2022-06-22 00:00:00","REAL TIME BIG DATA","Real Time Big Data","Telefonica","1500","1.0","Antonio Carlos da Paixao","PCO","","False","66.2","","Senador GO-Brasil","https://www.pollingdata.com.br/2022/senador/go/t1"],["2022","presidente","BR","1","BR-08028/2022","2022-08-07 00:00:00","FSB PESQUISA","FSB Pesquisa","Telefonica","2000","1.0","Manzano","PCB","0.1","False","86.4","0.11574074074074073","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","presidente","BR","2","BR-09241/2022","2022-10-11 00:00:00","DATAPODER360","Datapoder360","Telefonica","5000","","Lula","PT","48.0","False","92.0","52.17391304347826","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-telefonica/br/t2-bolsonaro-lula"],["2022","presidente","BR","1","BR-06580/2022","2022-09-23 00:00:00","VERITA","Verita","Presencial","11000","1.0","Não Válido","","3.3","True","96.80000000000001","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","presidente","BR","1","","2021-03-11 00:00:00","","","Telefonica","800","1.0","Manzano","PCB","","False","6696.2","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","governador","AM","1","AM-06436/2022","2022-04-08 00:00:00","REAL TIME BIG DATA","Real Time Big Data","Telefonica","1200","2.0","Não Válido","","25.0","True","61.0","","Governador AM-Brasil","https://www.pollingdata.com.br/2022/governador/am/t1"],["2022","presidente","BR","1","BR-06693/2022","2022-03-13 00:00:00","QUAEST","Quaest","Presencial","2000","1.0","Não Válido","","13.0","True","78.1","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","presidente","BR","1","BR-03460/2022","2022-01-13 00:00:00","IDEIA BIG DATA","Ideia Big Data","Telefonica","1500","1.0","Manzano","PCB","","False","72.3","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-previsao/br/t1"],["2022","senador","RS","1","RS-05915/2022","2022-05-20 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","1540","2.0","Settineri","PCO","","False","42.4","","Senador RS-Brasil","https://www.pollingdata.com.br/2022/senador/rs/t1"],["2022","presidente","BR","1","BR-08220/2022","2022-07-22 00:00:00","IPESPE","Ipespe","Telefonica","2000","1.0","Soraya","UNIAO","","False","93.4","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-telefonica/br/t1"],["2022","presidente","MT","1","MT-09252/2022","2022-03-21 00:00:00","INSTITUTO MAIS","Instituto Mais","Telefonica","700","1.0","Eymael","DC","","False","79.0","","Presidente (Estado) MT-Brasil","https://www.pollingdata.com.br/2022/presidente/mt/t1"],["2022","senador","RJ","1","RJ-08610/2022","2022-07-21 00:00:00","IPEC","Ipec","Presencial","1008","2.0","Sinedino","PSTU","","False","63.0","","Senador RJ-Brasil","https://www.pollingdata.com.br/2022/senador/rj/t1"],["2022","governador","CE","1","CE-05334/2022","2022-07-01 00:00:00","QUAEST","Quaest","Presencial","1500","3.0","Freitas","PT","","False","55.0","","Governador CE-Brasil","https://www.pollingdata.com.br/2022/governador/ce/t1"],["2022","presidente","AM","1","AM-08346/2022","2022-06-01 00:00:00","ICEPAM","Icepam","Presencial","1928","1.0","Lula","PT","48.4","False","85.5","56.60818713450292","Presidente (Estado) AM-Brasil","https://www.pollingdata.com.br/2022/presidente/am/t1"],["2022","presidente","RJ","1","RJ-04222/2022","2022-08-18 00:00:00","GERP","Gerp","Telefonica","1500","1.0","Avila","NOVO","0.1","False","84.6","0.11820330969267141","Presidente (Estado) RJ-Brasil","https://www.pollingdata.com.br/2022/presidente/rj/t1"],["2022","governador","PI","1","PI-00324/2022","2022-09-25 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","1380","1.0","Rafael Fonteles","PT","34.0","False","86.6","39.260969976905315","Governador PI-Brasil","https://www.pollingdata.com.br/2022/governador/pi/t1"],["2022","governador","SE","1","SE-08643/2022","2022-05-14 00:00:00","OPINIÃO PESQUISAS","Opinião Pesquisas","Presencial","1573","1.0","Fábio Mitidieri","PSD","14.0","False","61.9","22.617124394184167","Governador SE-Brasil","https://www.pollingdata.com.br/2022/governador/se/t1"],["2022","presidente","BR","1","","2021-10-22 00:00:00","","","Telefonica","2000","2.0","Soraya","UNIAO","","False","3395.4","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","presidente","BR","1","BR-00835/2022","2022-03-15 00:00:00","DATAPODER360","Datapoder360","Telefonica","3000","1.0","Bolsonaro","PL","30.0","False","79.1","37.926675094816694","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-telefonica/br/t1"],["2022","presidente","BR","1","BR-04099/2022","2022-09-15 00:00:00","DATAFOLHA","Datafolha","Presencial","5926","1.0","Manzano","PCB","0.1","False","93.6","0.10683760683760685","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t1"],["2022","presidente","CE","1","BR-03072/2022","2022-09-12 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","1540","1.0","Avila","NOVO","0.3","False","89.5","0.33519553072625696","Presidente (Estado) CE-Brasil","https://www.pollingdata.com.br/2022/presidente/ce/t1"],["2022","senador","TO","1","TO-03066/2022","2022-08-02 00:00:00","JORNAL GIRASSOL","Jornal Girassol","Presencial","1000","1.0","Viana","PSOL","","False","56.4","","Senador TO-Brasil","https://www.pollingdata.com.br/2022/senador/to/t1"],["2022","presidente","BR","1","BR-00950/2022","2022-08-28 00:00:00","MDA","Mda","Presencial","2002","1.0","Vera Lúcia","PSTU","0.1","False","86.6","0.11547344110854506","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-previsao/br/t1"],["2022","governador","AM","1","AM-08091/2022","2022-09-19 00:00:00","PERSPECTIVA","Perspectiva","Telefonica","1500","1.0","Ricardo Nicolau","SD","5.1","False","88.6","5.756207674943567","Governador AM-Brasil","https://www.pollingdata.com.br/2022/governador/am/t1"],["2022","presidente","BR","1","BR-04099/2022","2022-09-15 00:00:00","DATAFOLHA","Datafolha","Presencial","5926","1.0","Eymael","DC","0.1","False","93.6","0.10683760683760685","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-volatil/br/t1"],["2022","governador","RJ","1","RJ-00607/2022","2022-09-21 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","1540","1.0","Garcia","PSTU","1.9","False","79.0","2.4050632911392404","Governador RJ-Brasil","https://www.pollingdata.com.br/2022/governador/rj/t1"],["2022","presidente","BR","1","BR-08065/2022","2022-04-05 00:00:00","PARANÁ PESQUISAS","Paraná Pesquisas","Presencial","2020","2.0","Soraya","UNIAO","","False","78.80000000000001","","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente-presencial/br/t1"],["2022","presidente","BR","2","BR-05514/2022","2022-10-16 00:00:00","MDA","MDA","Presencial","2002","","Bolsonaro","PL","41.8","False","89.9","46.49610678531702","Presidente BRASIL-Brasil","https://www.pollingdata.com.br/2022/presidente/br/t2-bolsonaro-lula"]],"grain_check":null,"pseudocode":null};
+
+// Helpers
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Data source notes
+(function() {
+  if (!DATA.source_notes) return;
+  var section = document.getElementById('source-notes-section');
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'About This Dataset';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  card.innerHTML = '<p style="font-size:.9rem;line-height:1.7;color:#333">' + DATA.source_notes + '</p>';
+  section.appendChild(card);
+})();
+
+// Grain check — render DATA.grain_check (from compute.py verify_grain)
+// as a tri-state badge (green ✓ unique / yellow ! null keys / red ✗ dups).
+(function() {
+  var meta = document.getElementById('grain-check-meta');
+  if (!meta) return;
+  var g = DATA.grain_check;
+  if (!g) return;
+  var keyStr = '(' + (g.key_columns || []).join(', ') + ')';
+  if (g.error) {
+    meta.innerHTML = '<span style="background:#dc2626;color:#fff;'
+      + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+      + '✗ Grain check failed: ' + g.error + '</span>';
+    return;
+  }
+  // A holding key is always green. pk_status only softens a VIOLATION: "gap" means we
+  // declare the grain but don't enforce uniqueness (item-level sources repeat legitimately),
+  // so a violation renders neutral; "ok" means we CLAIM uniqueness, so a violation is a defect.
+  var isGap = (DATA.pk_status === 'gap');
+  var violated = (g.n_duplicate_rows > 0 || g.n_null_keys > 0);
+  var bg, mark, text;
+  if (!violated) {
+    bg = '#198754'; mark = '✓'; text = 'Unique on ' + keyStr;
+  } else if (isGap) {
+    bg = '#6c757d'; mark = '≈'; text = 'Declared grain ' + keyStr + ' — not enforced-unique';
+  } else if (g.n_duplicate_rows > 0) {
+    bg = '#dc2626'; mark = '✗'; text = 'Grain broken on ' + keyStr;
+  } else {
+    bg = '#fd7e14'; mark = '!'; text = 'Unique but null keys on ' + keyStr;
+  }
+  meta.innerHTML = '<span style="background:' + bg + ';color:#fff;'
+    + 'padding:.1rem .55rem;border-radius:3px;font-size:.78rem">'
+    + mark + ' ' + text + '</span>'
+    + ' &nbsp; <span style="color:var(--muted);font-size:.82rem">'
+    + g.n_rows.toLocaleString() + ' rows, '
+    + g.n_unique_keys.toLocaleString() + ' unique keys, '
+    + g.n_duplicate_rows.toLocaleString() + ' duplicate rows, '
+    + g.n_null_keys.toLocaleString() + ' null keys'
+    + (g.scanned_only ? ' — sampled; full PK check is the build validator' : '')
+    + '</span>';
+})();
+
+// Foreign keys — render DATA.fk ({col: "parent.col"}) as a References card,
+// each parent linked to its data page. The declared FK map is the schema's
+// (source/schema/schema.yaml); integrity (orphan %) is enforced by the build validator.
+(function() {
+  var fk = DATA.fk;
+  if (!fk || !Object.keys(fk).length) return;
+  var section = document.getElementById('fk-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Schema constraints — foreign keys';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var rows = Object.keys(fk).map(function(col) {
+    var parent = String(fk[col]).split('.')[0];
+    var pcol = String(fk[col]).split('.').slice(1).join('.') || '';
+    var ext = (parent === 'empresa');   // empresa is external (pipelines/cnpj), no local page
+    var link = ext
+      ? '<span title="external RFB register (pipelines/cnpj)">' + parent + (pcol ? '.' + pcol : '') + ' (external)</span>'
+      : '<a href="' + parent + '.html">' + parent + (pcol ? '.' + pcol : '') + '</a>';
+    return '<tr><td style="padding:.25rem .8rem"><code>' + col + '</code></td>'
+      + '<td style="padding:.25rem .8rem">&rarr; ' + link + '</td></tr>';
+  }).join('');
+  card.innerHTML = '<table style="font-size:.9rem"><thead><tr>'
+    + '<th style="text-align:left;padding:.25rem .8rem">column</th>'
+    + '<th style="text-align:left;padding:.25rem .8rem">references</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<p class="meta" style="margin-top:.6rem">Declared in the '
+    + '<a href="../docs/reference/schema.html">schema</a>; FK integrity (orphan share) is enforced by the '
+    + 'build-time <code>validate_schema</code> gate.</p>';
+  section.appendChild(card);
+})();
+
+// Pseudocode — render DATA.pseudocode as a <pre> with [name] tokens
+// rewritten to hyperlinks to data/<name>.html.
+(function() {
+  if (!DATA.pseudocode) return;
+  var section = document.getElementById('pseudocode-section');
+  if (!section) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'How this dataset is built';
+  section.appendChild(h2);
+  var pre = document.createElement('pre');
+  pre.className = 'pseudocode';
+  var esc = function(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  pre.innerHTML = esc(DATA.pseudocode).replace(
+    /\[([A-Za-z][A-Za-z0-9_-]*)\]/g,
+    function(_, name) {
+      return '<a href="' + name + '.html">' + name + '</a>';
+    }
+  );
+  section.appendChild(pre);
+})();
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Rows', fmtNum(DATA.row_count)],
+    ['Columns', fmtNum(DATA.col_count)],
+    ['File Size', fmtSize(DATA.file_size)],
+  ];
+  Object.entries(DATA.temporal || {}).forEach(function(entry) {
+    var col = entry[0], t = entry[1];
+    items.push(['Date Range (' + col + ')', t.min + ' to ' + t.max]);
+  });
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Column info table
+(function() {
+  var table = document.getElementById('col-table');
+  var html = '<thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nulls</th><th>Null %</th><th>Example</th></tr></thead><tbody>';
+  DATA.columns.forEach(function(c, i) {
+    var barW = Math.min(c.null_pct, 100);
+    var ex = c.example == null ? '' : String(c.example);
+    html += '<tr><td>' + (i + 1) + '</td><td><strong>' + c.name + '</strong></td>'
+      + '<td>' + c.dtype + '</td>'
+      + '<td>' + fmtNum(c.null_count) + '</td>'
+      + '<td><span class="null-bar" style="width:' + barW + 'px"></span> ' + c.null_pct + '%</td>'
+      + '<td><code style="font-size:.82em">' + ex + '</code></td></tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+
+// Binary columns — one horizontal bar per column showing share of
+// "true" (1 / "S" / "Y" / etc.) among non-NA rows. NA share is shown
+// alongside the column label so a high-NA binary doesn't look mid-mean.
+(function() {
+  if (typeof Chart === 'undefined') return;
+  var section = document.getElementById('binary-section');
+  var bins = Object.entries(DATA.binary || {});
+  if (bins.length === 0) return;
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Binary columns (share = 1 / S / Y)';
+  section.appendChild(h2);
+  var card = document.createElement('div');
+  card.className = 'card full';
+  var height = Math.max(160, bins.length * 28 + 60);
+  card.innerHTML = '<div class="chart-wrap" style="height:' + height + 'px">'
+    + '<canvas id="chart-binary"></canvas></div>';
+  section.appendChild(card);
+  var labels = bins.map(function(e) {
+    var na = e[1].na_pct;
+    var naStr = na > 0 ? '  (NA ' + na + '%)' : '';
+    return e[0] + '  [' + e[1].true_label + ']' + naStr;
+  });
+  var values = bins.map(function(e) { return e[1].mean; });
+  new Chart(document.getElementById('chart-binary'), {
+    type: 'bar',
+    data: { labels: labels,
+            datasets: [{ data: values, backgroundColor: pal[0] }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: function(ctx) {
+            return 'share = ' + (ctx.parsed.x * 100).toFixed(1) + '%';
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero: true, max: 1,
+             ticks: { callback: function(v) { return (v * 100) + '%'; } } }
+      }
+    }
+  });
+})();
+
+// Categorical distribution charts
+(function() {
+  var section = document.getElementById('dist-section');
+  var cats = Object.entries(DATA.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts
+(function() {
+  var section = document.getElementById('temporal-section');
+  var temps = Object.entries(DATA.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Sample data table
+var allRows = DATA.sample || [];
+var sampleCols = DATA.sample_columns || [];
+
+(function() {
+  document.getElementById('thead').innerHTML = '<tr>' + sampleCols.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr>';
+  var searchEl = document.getElementById('search');
+  var countEl = document.getElementById('row-count');
+  var tbody = document.getElementById('tbody');
+
+  function render() {
+    var q = searchEl.value.toLowerCase();
+    var rows = q ? allRows.filter(function(r) { return r.some(function(v) { return String(v).toLowerCase().includes(q); }); }) : allRows;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' + r.map(function(v) { return '<td>' + v + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    countEl.textContent = rows.length + ' of ' + allRows.length + ' rows';
+  }
+  searchEl.addEventListener('input', render);
+  render();
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>

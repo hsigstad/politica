@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candidates, people & results</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #faf9f6; --card: #fffefa; --fg: #374151; --muted: #6b7280;
+    --border: #e5e2db; --accent: #2563eb; --accent2: #198754;
+    --accent3: #dc2626; --accent4: #fd7e14;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+
+  .stats-bar {
+    display: flex; gap: .8rem; padding: 1rem 2rem; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: .75rem 1rem; flex: 1; min-width: 120px;
+    text-align: center;
+  }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  main { padding: 0 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  h2.section-title {
+    font-size: 1.15rem; margin: 1.6rem 0 .8rem; padding-bottom: .3rem;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.2rem 1.4rem;
+  }
+  .card h3 { font-size: .95rem; margin-bottom: .8rem; color: var(--fg); }
+  .card.full { grid-column: 1 / -1; }
+
+  .chart-wrap { position: relative; width: 100%; }
+  .chart-wrap.bar { height: 300px; }
+  .chart-wrap.hbar { height: 380px; }
+
+  /* dataset table */
+  .ds-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .ds-table th, .ds-table td {
+    padding: .5rem .7rem; border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .ds-table th { background: #f5f3ee; font-weight: 600; position: sticky; top: 0; }
+  .ds-table tbody tr:hover { background: #f0ede6; }
+  .ds-table .ds-name { font-weight: 600; }
+  .ds-table .ds-desc { color: var(--muted); font-size: .8rem; }
+  .ds-table .view-link {
+    color: var(--accent); text-decoration: none; font-weight: 600; font-size: .82rem;
+  }
+  .ds-table .view-link:hover { text-decoration: underline; }
+  .ds-table .cat-row td {
+    background: #ece8de; font-weight: 700; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .04em; color: #4b5563;
+    padding: .45rem .7rem;
+  }
+  .num { text-align: right; }
+
+  footer {
+    text-align: center; padding: 1.5rem; font-size: .8rem; color: var(--muted);
+    border-top: 1px solid var(--border); margin-top: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<style>
+  .site-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: #212529; display: flex; align-items: center;
+    padding: 0 2rem; height: 3rem;
+  }
+  .site-nav .nav-brand {
+    color: #fff; text-decoration: none; font-weight: 600; font-size: 1rem;
+    margin-right: auto;
+  }
+  .site-nav .nav-brand:hover { color: #e9ecef; }
+  .site-nav .nav-link {
+    color: #adb5bd; text-decoration: none; font-size: .85rem;
+    padding: 0 .75rem; height: 3rem; display: flex; align-items: center;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  .site-nav .nav-link:hover, .site-nav .nav-link.active { color: #fff; }
+  .nav-dropdown { position: relative; }
+  .dropdown-menu {
+    display: none; position: absolute; top: 3rem; right: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 220px;
+    padding: .4rem 0; z-index: 200; max-height: 80vh; overflow-y: auto;
+  }
+  .nav-dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu a {
+    display: block; padding: .3rem 1rem; color: var(--fg);
+    text-decoration: none; font-size: .82rem;
+  }
+  .dropdown-menu a:hover { background: #f5f3ee; }
+  .dropdown-group-label {
+    padding: .4rem 1rem .15rem; font-size: .68rem; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dropdown-divider { border-top: 1px solid var(--border); margin: .3rem 0; }
+  .page-header {
+    padding: .8rem 2rem; border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .page-header h1 { font-size: 1.3rem; font-weight: 600; }
+  .page-header p { color: var(--muted); font-size: .85rem; margin-top: .15rem; }
+.md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+<nav class="site-nav">
+  <a href="../index.html" class="nav-brand">politica</a>
+  <a href="../index.html" class="nav-link">Home</a>
+  <a href="../paper/index.html" class="nav-link">Paper</a>
+  <div class="nav-dropdown">
+    <button class="nav-link">Docs &#9662;</button>
+    <div class="dropdown-menu">
+    <div class="dropdown-group-label">Overview</div>
+    <a href="../docs/summary.html">Pipeline Summary</a>
+    <a href="../docs/data.html">Data (state of play)</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Reference</div>
+    <a href="../docs/reference/poll_relatorio_2024.html">2024 Poll Relatório</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Working notes</div>
+    <a href="../docs/decisions.html">Key Decisions</a>
+    <a href="../docs/thinking.html">Open Questions</a>
+    <div class="dropdown-divider"></div>
+    <div class="dropdown-group-label">Tasks</div>
+    <a href="../docs/todo.html">Active Tasks</a>
+    <a href="../docs/done.html">Completed Tasks</a>
+    </div>
+  </div>
+</nav>
+<script>
+document.querySelectorAll('.nav-dropdown > .nav-link').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var dd = btn.parentElement;
+    var wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', function() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+</script>
+
+<div class="page-header">
+  <h1>Candidates, people & results</h1>
+  <p>The electoral spine: every candidacy (candidato), the deduplicated person registry (politico), aggregated election results (eleicao), and geocoded polling places (local_votacao). Built from the TSE consulta_cand, votacao and local-votacao bulk datasets, 1998–2024.</p>
+</div>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<main>
+
+<!-- Distribution charts -->
+<div id="dist-section"></div>
+
+<!-- Temporal charts -->
+<div id="temporal-section"></div>
+
+<!-- Dataset listing -->
+<h2 class="section-title">Datasets</h2>
+<div class="card full">
+  <table class="ds-table" id="ds-table"></table>
+</div>
+
+</main>
+
+<footer>
+  Generated by <code>python3 -m source.site.build_all</code>
+</footer>
+
+<script>
+const DATA = /* INJECT_DATA */ {"id":"electoral","name":"Candidates, people & results","description":"The electoral spine: every candidacy (candidato), the deduplicated person registry (politico), aggregated election results (eleicao), and geocoded polling places (local_votacao). Built from the TSE consulta_cand, votacao and local-votacao bulk datasets, 1998–2024.","total_rows":6454423,"total_file_size":1163558779,"dataset_count":4,"temporal_range":{"min":"1691-04-06","max":"2193-02-02"},"datasets":[{"id":"candidato","name":"candidato — candidacy panel","description":"One row per candidate-election appearance across every TSE cycle 1998–2024 (all offices, both rounds). Carries the person key (politico_id), party/coalition, office, geography (municipio_id, estado, ibge7), electoral outcome (votes, elected, margin), and candidate attributes (education, occupation, marital_status). This is politica's single biggest external dependency — ficha's cand table and the whole electoral spine are built from it.","category":"Candidates & people","row_count":3332444,"col_count":27,"file_size":883677384},{"id":"politico","name":"politico — deduplicated person registry","description":"One row per person (politico_id), deduplicated across all cycles keeping the first occurrence. Carries birthplace (birth_municipio, birth_estado), demographics (gender, race, nationality, birthdate), and the titulo/CPF basis of the person key. politico_id is CPF when available, else 'T' + titulo eleitoral (see docs/data.md).","category":"Candidates & people","row_count":2047385,"col_count":12,"file_size":250028930},{"id":"local_votacao","name":"local_votacao — geocoded polling places","description":"Polling-place registry with address and geocoordinates: one row per polling location per election year, carrying município, zona, address, CEP, latitude/longitude and the geocode provenance (coord_source).","category":"Elections & results","row_count":944687,"col_count":15,"file_size":14498960},{"id":"eleicao","name":"eleicao — aggregated election results","description":"Municipality/election-level turnout and vote totals: eligible voters (aptos), turnout (comparecimento), abstentions, and nominal/legend/blank/null vote counts per (year, round, office, electoral unit).","category":"Elections & results","row_count":129907,"col_count":23,"file_size":15353505}],"featured":{"categorical":{"office":{"labels":["VEREADOR","PREFEITO","VICEPREFEITO","DEPUTADO ESTADUAL","DEPUTADO FEDERAL","DEPUTADO DISTRITAL","SENADOR","GOVERNADOR","VICEGOVERNADOR","2O SUPLENTE SENADOR","1O SUPLENTE SENADOR","2O SUPLENTE","1O SUPLENTE"],"values":[2953819,116370,102814,100044,45461,5441,1769,1487,1401,1052,1032,885,869]},"party":{"labels":["PSDB","PT","PMDB","PP","PDT","PSB","PTB","PSD","PL","DEM","PPS","PV","MDB","PSC","PFL","PR","PSL","REPUBLICANOS","PC do B","PODE"],"values":[249622,243140,240964,200732,189468,172804,165345,148285,117119,109620,101904,92403,92300,88417,84413,70588,67211,64368,58402,46689]},"estado":{"labels":["SP","MG","BA","PR","RS","RJ","GO","PA","MA","SC","PE","CE","PB","MT","ES","PI","RN","AM","TO","AL"],"values":[563055,507575,244146,219584,202288,157151,140712,128631,125603,124915,120765,99401,80685,73395,69869,68133,60599,58685,52676,50962]},"round":{"labels":["1.0","<NA>","2.0"],"values":[3011738,319982,724]},"status":{"labels":["DEFERIDO","NE","INDEFERIDO","RENUNCIA","INDEFERIDO COM RECURSO","DEFERIDO COM RECURSO","CANCELADO","SUB JUDICE","NAO CONHECIMENTO DO PEDIDO","FALECIDO","INDEFERIDO EM PRAZO RECURSAL OU COM RECURSO","CASSADO","INELEGIVEL","PEDIDO NAO CONHECIDO","FALECIMENTO","SUBSTITUTO PENDENTE DE JULGAMENTO","CASSADO COM RECURSO","PENDENTE DE JULGAMENTO","SUBSTITUTO MAJORITARIO PENDENTE DE JULGAMENTO","AGUARDANDO JULGAMENTO"],"values":[2736814,400734,97761,69691,9354,6573,3867,2860,902,715,541,502,489,463,330,253,221,213,74,60]},"elected":{"labels":["DEPUTY","NOT ELECTED","ELECTED","<NA>","SECOND ROUND"],"values":[1948954,618336,444065,320307,782]},"electeddummy":{"labels":["0.0","1.0","<NA>"],"values":[2568072,444065,320307]},"education":{"labels":["ENSINO MEDIO COMPLETO","SUPERIOR COMPLETO","ENSINO FUNDAMENTAL INCOMPLETO","ENSINO FUNDAMENTAL COMPLETO","SUPERIOR INCOMPLETO","ENSINO MEDIO INCOMPLETO","MEDIO COMPLETO","LE E ESCREVE","1O GRAU INCOMPLETO","FUNDAMENTAL INCOMPLETO","2O GRAU COMPLETO","1O GRAU COMPLETO","FUNDAMENTAL COMPLETO","2O GRAU INCOMPLETO","MEDIO INCOMPLETO","NAO INFORMADO","NAO DIVULGAVEL","ANALFABETO"],"values":[904626,731954,364159,320868,168209,125608,112980,111777,101280,99353,93848,60700,56900,32773,30043,15614,1314,438]},"marital_status":{"labels":["CASADOA","SOLTEIROA","DIVORCIADOA","SEPARADOA JUDICIALMENTE","VIUVOA","NAO INFORMADO","NAO DIVULGAVEL"],"values":[1939221,1023869,222185,67228,66210,12417,1314]},"occupation":{"labels":["OUTROS","AGRICULTOR","SERVIDOR PUBLICO MUNICIPAL","COMERCIANTE","EMPRESARIO","VEREADOR","DONA DE CASA","APOSENTADO EXCETO SERVIDOR PUBLICO","ADVOGADO","PROFESSOR DE ENSINO FUNDAMENTAL","SERVIDOR PUBLICO ESTADUAL","TRABALHADOR AGRICOLA","PROFESSOR DE ENSINO MEDIO","ESTUDANTE BOLSISTA ESTAGIARIO E ASSEMELHADOS","PROFESSOR DE ENSINO DE PRIMEIRO E SEGUNDO GRAUS","ADMINISTRADOR","MOTORISTA DE VEICULOS DE TRANSPORTE COLETIVO DE PASSAGEIROS","TRABALHADOR RURAL","NAO INFORMADA","MOTORISTA DE VEICULOS DE TRANSPORTE DE CARGA"],"values":[562621,240334,211867,204091,149743,120813,113541,92058,69911,61693,58654,50138,49510,46418,45430,41214,41174,40461,39651,36905]},"suplementar":{"labels":["0.0","<NA>"],"values":[3012462,319982]}},"temporal":{"year":{"min":"1998","max":"2024","by_year":{"labels":[1998,2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[15016,385718,18065,402059,19267,382019,22537,483641,26213,498276,29083,557563,29260,463727]}}}}};
+
+const pal = ['#2563eb','#198754','#dc2626','#fd7e14','#6f42c1','#20c997',
+             '#0dcaf0','#d63384','#ffc107','#6610f2','#adb5bd','#e85d04',
+             '#2b9348','#4361ee','#f72585'];
+function fmtNum(n) { return n.toLocaleString('en'); }
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  return (bytes / 1073741824).toFixed(1) + ' GB';
+}
+
+// Stats bar
+(function() {
+  var bar = document.getElementById('stats-bar');
+  var items = [
+    ['Total Rows', fmtNum(DATA.total_rows)],
+    ['Datasets', DATA.dataset_count],
+    ['Total Size', fmtSize(DATA.total_file_size)],
+  ];
+  if (DATA.temporal_range && DATA.temporal_range.min) {
+    items.push(['Temporal Range', DATA.temporal_range.min + ' \u2013 ' + DATA.temporal_range.max]);
+  }
+  items.forEach(function(item) {
+    var d = document.createElement('div');
+    d.className = 'stat-card';
+    d.innerHTML = '<div class="value">' + item[1] + '</div><div class="label">' + item[0] + '</div>';
+    bar.appendChild(d);
+  });
+})();
+
+// Categorical distribution charts (from featured dataset)
+(function() {
+  var section = document.getElementById('dist-section');
+  var featured = DATA.featured || {};
+  var cats = Object.entries(featured.categorical || {});
+  if (cats.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Categorical Distributions (Top 15)';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  cats.forEach(function(entry, idx) {
+    var col = entry[0], d = entry[1];
+    var card = document.createElement('div');
+    card.className = 'card';
+    var labels = d.labels.map(function(s) { return String(s).length > 40 ? String(s).slice(0, 38) + '\u2026' : String(s); });
+    card.innerHTML = '<h3>' + col + '</h3><div class="chart-wrap hbar"><canvas id="cat-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('cat-' + idx), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: d.values, backgroundColor: pal[idx % pal.length] }] },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Temporal charts (from featured dataset)
+(function() {
+  var section = document.getElementById('temporal-section');
+  var featured = DATA.featured || {};
+  var temps = Object.entries(featured.temporal || {});
+  if (temps.length === 0) return;
+
+  var h2 = document.createElement('h2');
+  h2.className = 'section-title';
+  h2.textContent = 'Temporal Distribution';
+  section.appendChild(h2);
+
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  section.appendChild(grid);
+
+  // Drop obvious parse-error year buckets (e.g. 1710 in TJSP distribuição
+   // dates). Everything pre-2000 is filtered out of the chart only — the
+   // underlying cache JSON is untouched.
+  var MIN_YEAR = 2000;
+  temps.forEach(function(entry, idx) {
+    var col = entry[0], t = entry[1];
+    var labels = [], values = [];
+    (t.by_year.labels || []).forEach(function(y, i) {
+      if (Number(y) >= MIN_YEAR) {
+        labels.push(y);
+        values.push(t.by_year.values[i]);
+      }
+    });
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h3>' + col + ' by year</h3><div class="chart-wrap bar"><canvas id="temp-' + idx + '"></canvas></div>';
+    grid.appendChild(card);
+    setTimeout(function() {
+      new Chart(document.getElementById('temp-' + idx), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Count', data: values, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }, 0);
+  });
+})();
+
+// Dataset table \u2014 grouped by category when there are multiple categories
+(function() {
+  var table = document.getElementById('ds-table');
+  var groups = {};
+  var order = [];
+  DATA.datasets.forEach(function(ds) {
+    var cat = ds.category || '';
+    if (!(cat in groups)) { groups[cat] = []; order.push(cat); }
+    groups[cat].push(ds);
+  });
+
+  var html = '<thead><tr><th>Dataset</th><th class="num">Rows</th><th class="num">Columns</th><th class="num">Size</th><th></th></tr></thead><tbody>';
+  var showGroups = order.length > 1 || (order.length === 1 && order[0] !== '');
+  order.forEach(function(cat) {
+    if (showGroups) {
+      html += '<tr class="cat-row"><td colspan="5">' + (cat || '(uncategorised)') + '</td></tr>';
+    }
+    groups[cat].forEach(function(ds) {
+      html += '<tr>'
+        + '<td><div class="ds-name">' + ds.name + '</div><div class="ds-desc">' + ds.description + '</div></td>'
+        + '<td class="num">' + fmtNum(ds.row_count) + '</td>'
+        + '<td class="num">' + ds.col_count + '</td>'
+        + '<td class="num">' + fmtSize(ds.file_size) + '</td>'
+        + '<td><a class="view-link" href="../datasets/' + ds.id + '.html">View \u2192</a></td>'
+        + '</tr>';
+    });
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+})();
+</script>
+<script src="../../../../build/browser/workspace_nav.js" onerror=""></script>
+</body>
+</html>
