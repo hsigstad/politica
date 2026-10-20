@@ -329,6 +329,28 @@ def _save_state(s: dict):
 
 # ── Build phase ─────────────────────────────────────────────────────
 
+def _cache_is_current(task: TaskSpec, key: str) -> bool:
+    """True if a cached entry exists AND was produced by the CURRENT schema
+    version and system prompt. llmkit's cache key is (doc_id, text, model,
+    schema_name) — version-blind — so a raw get()-exists skip would serve a
+    STALE v1 result after a schema/prompt change. We compare the stored meta
+    (schema_version + prompt_hash, which llmkit records) against the task's
+    current values; a changed task re-extracts, an unchanged one (frozen
+    coverage) is reused. Entries predating versioned meta (empty fields) are
+    treated as current so we never force a re-run of already-scaled work."""
+    entry = task.cache.get(key)
+    if entry is None:
+        return False
+    meta = entry.meta or {}
+    sv = meta.get("schema_version")
+    ph = meta.get("prompt_hash")
+    if sv and sv != task.schema.schema_version:
+        return False
+    if ph and ph != task.system_prompt_hash:
+        return False
+    return True
+
+
 def _build_request(task: TaskSpec, row: pd.Series) -> dict | None:
     text = task.build_text(row, task.max_chars)
     if len(text.strip()) < task.min_chars:
@@ -336,8 +358,8 @@ def _build_request(task: TaskSpec, row: pd.Series) -> dict | None:
     doc_id = task.build_doc_id(row)
     t_hash = text_hash(text)
     key = task.cache.key(doc_id, t_hash, MODEL, schema_name=task.schema.schema_name)
-    # Already cached → skip
-    if task.cache.get(key) is not None:
+    # Already cached by the CURRENT schema version + prompt → skip
+    if _cache_is_current(task, key):
         return None
     user_prompt = task.build_user_prompt(row, text, task.user_template)
     response_format = type_to_response_format_param(task.schema)
@@ -432,7 +454,7 @@ def cmd_build(n: int | None, seed: int, max_mb: float) -> int:
                 doc_id = task.build_doc_id(row)
                 t_hash = text_hash(text)
                 key = task.cache.key(doc_id, t_hash, MODEL, schema_name=task.schema.schema_name)
-                if task.cache.get(key) is not None:
+                if _cache_is_current(task, key):
                     n_cached += 1
                     continue
                 req = _build_request(task, row)
