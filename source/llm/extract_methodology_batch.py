@@ -306,12 +306,12 @@ TASKS = [
              build_text=_bairro_text,
              build_user_prompt=_bairro_user_prompt,
              build_doc_id=_protocol,
-             max_tokens_override=8000),
+             max_tokens_override=16000),
     TaskSpec("questionario", poll_questionario, PollQuestionario,
              build_text=_questionario_text,
              build_user_prompt=_questionario_user_prompt,
              build_doc_id=_protocol,
-             max_tokens_override=8000),
+             max_tokens_override=16000),
 ]
 
 

@@ -30,7 +30,7 @@ booleans that are trivially derivable downstream.
   `n_stages` (can carry info even when stage_descriptions is sparse).
 - **poll_weighting v1 → v2.** DROP `described` (= application != not_described).
 
-**Why:** asking the model for exact counts/sums is unreliable (the bairro
+**Reason:** asking the model for exact counts/sums is unreliable (the bairro
 n_units_total 80-vs-49 case) and redundant; derivable booleans invite drift.
 Audited by the poll-sponsor-bias session before the dev run. All three are
 unscaled, so this costs no re-extraction.
@@ -41,7 +41,7 @@ unscaled, so this costs no re-extraction.
 14,876 polls; `poll_relatorio`) are FROZEN — we will NOT re-run them for this
 paper.
 
-**Why:** re-running the universe is costly, and the known field-quality
+**Reason:** re-running the universe is costly, and the known field-quality
 issues in their schemas (LLM-counted totals, derivable booleans, the
 free-string relatório `scenario_type`) are NOT load-bearing — the fields the
 analyses actually consume are sound, so the gain from fixing them is cosmetic
@@ -83,7 +83,7 @@ transcribing one row per interview — still the raw allocation, not an
 inference. The prompt instructs ALWAYS capturing IBGE setor codes when
 printed (the deterministic urban/rural key downstream).
 
-**Why:** same extract-raw-derive-downstream principle as the questionnaire
+**Reason:** same extract-raw-derive-downstream principle as the questionnaire
 v2 rework. Coverage class and rural inclusion were inferred from bairro
 NAME STRINGS — subjective and hard to audit. They are better derived
 downstream, grounded in real geography: matched IBGE setor `situacao`
@@ -116,7 +116,7 @@ the crosswalk here and adopt a single canonical vocabulary only in (a)
 not-yet-scaled tasks going forward and (b) `poll_relatorio` *if and when*
 it is re-extracted for an independent reason.
 
-**Why:** The same concept (a vote-intention / approval / rejection
+**Reason:** The same concept (a vote-intention / approval / rejection
 scenario) is encoded three incompatible ways, which forces any
 cross-task consumer to hand-reconcile:
 
