@@ -1521,7 +1521,7 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
   &quot;correction_method&quot;: &quot;&quot;,
   &quot;text_truncated&quot;: false,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1404</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract the raw geographic allocation list from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing where the poll was actually conducted.
+}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1396</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract the raw geographic allocation list from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing where the poll was actually conducted.
 
 Extract exactly what the PDF lists — no more, no less. The output is ONE list, `units`: one entry per DISTINCT geographic allocation unit the PDF prints, each carrying whatever identifiers that row shows — a bairro name, an IBGE setor code, a distrito, an interview count. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from names here.
 
@@ -1536,13 +1536,12 @@ The PDFs come from many pollsters and follow different formats — all map onto 
 
 ### Extraction rules
 
-- **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and put the true count in `n_units_total`. NEVER exceed 80.
+- **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and set `units_truncated=true`. NEVER exceed 80.
 - **name**: bairro/localidade, verbatim (preserve capitalization). Null for setor-only rows.
 - **setor_code**: the 12-15 digit IBGE setor code, verbatim, whenever the PDF prints one. Capture it every time it appears — it is the deterministic urban/rural key downstream.
 - **distrito**: the distrito/região heading the row sits under, if any. Null for flat lists.
 - **n_entrevistas**: per-unit interview count if stated; null if not.
-- **n_units_total**: true count of distinct units even if `units` was capped at 80.
-- **total_interviews_distributed**: sum of n_entrevistas across all units if reported (should approximate QT_ENTREVISTADO). 0 if counts are not given.
+- **units_truncated**: true ONLY when you hit the 80-unit cap and omitted some. Do NOT count or sum the units — no total fields; downstream derives counts/sums from the rows.
 
 ### Output rules
 
@@ -1561,7 +1560,7 @@ Extract the raw allocation list per the schema. Remember:
 - PESQUISA NÃO REALIZADA → pesquisa_realized=false, units empty, counts 0, skip the rest.
 - Per-interview setor microdata → one unit per DISTINCT setor with its interview count, NOT one unit per interview.
 - Capture setor_code (12-15 digit IBGE) on every row that prints one.
-- HARD CAP 80 units; put the true count in n_units_total.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
+- HARD CAP 80 units; if more exist, set units_truncated=true. Do NOT count or sum the units.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
   &quot;$defs&quot;: {
     &quot;CoverageUnit&quot;: {
       &quot;description&quot;: &quot;One geographic allocation unit (a row) as printed in the PDF.\n\nCarries whatever identifiers the PDF gives that row — any of a bairro\nname, an IBGE setor code, a distrito — plus its interview count. One\nunified row grain across all PDF formats: name-tabular PDFs fill `name`;\nQUAEST/setor PDFs fill `setor_code`; some fill both. Downstream matches\non whichever identifier is present.&quot;,
@@ -1623,32 +1622,26 @@ Extract the raw allocation list per the schema. Remember:
       &quot;type&quot;: &quot;object&quot;
     }
   },
-  &quot;description&quot;: &quot;Raw geographic allocation list from the per-poll bairro/município PDF.\n\nv3: ONE faithful list of the rows as the PDF prints them (`units`), each\ncarrying whatever identifiers appear — bairro name, IBGE setor code,\ndistrito, interview count. No more / no less than the raw: v2&#x27;s split\nbairros-list + lossy 10-item setor_codes_sample is replaced by this\nsingle row grain, which preserves the name&lt;-&gt;setor&lt;-&gt;count linkage and\ndrops nothing. Coverage class / rural / regional-structure / distrito\nlists are NOT stored — all derivable downstream (matched IBGE setor\nsituacao + electorate ratio; set of unit distritos). See docs/decisions.md.&quot;,
+  &quot;description&quot;: &quot;Raw geographic allocation list from the per-poll bairro/município PDF.\n\nv4: ONE faithful list of the rows as the PDF prints them (`units`), each\ncarrying whatever identifiers appear — bairro name, IBGE setor code,\ndistrito, interview count. No more / no less than the raw. The LLM does\nNOT count or sum: v3&#x27;s n_units_total and total_interviews_distributed are\ndropped (asking the model for exact aggregates is unreliable and they are\nderivable downstream — len(units), sum of n_entrevistas). The only\nnon-row signal is a reliable `units_truncated` boolean. Coverage class /\nrural / regional-structure / distrito lists are NOT stored — all derivable\ndownstream (matched IBGE setor situacao + electorate ratio; set of unit\ndistritos). See docs/decisions.md.&quot;,
   &quot;properties&quot;: {
     &quot;pesquisa_realized&quot;: {
-      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is the &#x27;PESQUISA NÃO REALIZADA&#x27; stamp (poll was cancelled). When false, all other fields default to empty/zero.&quot;,
+      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is the &#x27;PESQUISA NÃO REALIZADA&#x27; stamp (poll was cancelled). When false, all other fields default to empty.&quot;,
       &quot;title&quot;: &quot;Pesquisa Realized&quot;,
       &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;units&quot;: {
-      &quot;description&quot;: &quot;Every DISTINCT geographic allocation unit the PDF lists, in printed order, each with the identifiers that row carries (name / setor_code / distrito / n_entrevistas). Dedup to the finest printed unit: for per-interview setor microdata, emit one unit per distinct setor with its interview count (NOT one row per interview). HARD CAP 80 units (token budget); if more, keep the 80 with the largest n_entrevistas and record the true count in n_units_total. Empty only for a not-realized stamp.&quot;,
+      &quot;description&quot;: &quot;Every DISTINCT geographic allocation unit the PDF lists, in printed order, each with the identifiers that row carries (name / setor_code / distrito / n_entrevistas). Dedup to the finest printed unit: for per-interview setor microdata, emit one unit per distinct setor with its interview count (NOT one row per interview). HARD CAP 80 units (token budget); if the PDF has more, keep the 80 with the largest n_entrevistas and set units_truncated=true. Empty only for a not-realized stamp.&quot;,
       &quot;items&quot;: {
         &quot;$ref&quot;: &quot;#/$defs/CoverageUnit&quot;
       },
       &quot;title&quot;: &quot;Units&quot;,
       &quot;type&quot;: &quot;array&quot;
     },
-    &quot;n_units_total&quot;: {
-      &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Total distinct allocation units in the PDF (may exceed len(units) if truncated). 0 when none are listed.&quot;,
-      &quot;title&quot;: &quot;N Units Total&quot;,
-      &quot;type&quot;: &quot;integer&quot;
-    },
-    &quot;total_interviews_distributed&quot;: {
-      &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Sum of n_entrevistas across all units if reported. 0 if interview counts are not given. Should match the poll&#x27;s QT_ENTREVISTADO when fully reported.&quot;,
-      &quot;title&quot;: &quot;Total Interviews Distributed&quot;,
-      &quot;type&quot;: &quot;integer&quot;
+    &quot;units_truncated&quot;: {
+      &quot;default&quot;: false,
+      &quot;description&quot;: &quot;True ONLY if the PDF lists MORE distinct units than the ones returned (i.e. the 80-unit cap was hit and some were omitted). False normally. This is a yes/no observation, not a count — do not try to total the units; downstream counts len(units).&quot;,
+      &quot;title&quot;: &quot;Units Truncated&quot;,
+      &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;extraction_notes&quot;: {
       &quot;default&quot;: &quot;&quot;,
@@ -2106,8 +2099,7 @@ DIVISÃO DAS AMOSTRAS EM ILHABELA - SP POR SETORES CENSITÁRIOS:
       &quot;n_entrevistas&quot;: 15
     }
   ],
-  &quot;n_units_total&quot;: 80,
-  &quot;total_interviews_distributed&quot;: 700,
+  &quot;units_truncated&quot;: false,
   &quot;extraction_notes&quot;: &quot;&quot;
 }</pre></div>
 </div>
