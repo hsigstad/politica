@@ -251,6 +251,55 @@ document.addEventListener('click', function() {
 <main>
 <div class="md-body">
 <h1>Decisions</h1>
+<h2 id="2026-10-20-pre-dev-run-schema-hygiene-across-the-unscaled-poll-extractors-no-llm-counts-no-derivable-booleans">2026-10-20 — Pre-dev-run schema hygiene across the unscaled poll extractors (no LLM counts, no derivable booleans)</h2>
+<p><strong>Decision:</strong> Apply the same extract-raw-derive-downstream principle used for
+bairro to the other unscaled extractors, before the dev run. The LLM extracts
+faithful rows/facts + reliable booleans; it does NOT count, total, or emit
+booleans that are trivially derivable downstream.</p>
+<ul>
+<li><strong>poll_questionario v2 → v3.</strong> DROP <code>n_vote_intention_scenarios</code>,
+<code>first_estimulada_position</code>, <code>headline_scenario_label</code> (top-level) and
+<code>QuestionnaireScenario.n_candidates_listed</code>, <code>includes_undecided_option</code> —
+all derivable from the ordered <code>scenarios</code> transcript (count of
+estimulada+espontanea; min position where type==estimulada, + its label;
+len(candidates_listed); string-check candidates_listed for Não sabe /
+Branco / Nulo / Nenhum). ADD <code>scenarios_truncated: bool</code> (analog of
+bairro's <code>units_truncated</code>). KEEP <code>name_rotation_documented</code>/<code>_evidence</code>,
+<code>candidate_order</code> {rotated,random}, <code>nonresponse_instruction_*</code> (printed
+INSTRUCTIONS, not derivable from the roster) and the verbatim per-block
+fields (position/label/question_type/question_text/candidates_listed/
+subject_candidates).</li>
+<li><strong>poll_sampling v1 → v2.</strong> DROP <code>is_quota_sample</code> (= quota_variables
+non-empty) and <code>is_probability_sample</code> (derive from sample_design_class /
+selection_within_cluster). KEEP <code>quota_variables</code> — it is NOT redundant
+with <code>quota_distributions</code> (which skips quota dimensions named without
+percentages), so it is the only place an income quota declared without
+printed bins survives; dropping it would blind the income lever. KEEP the
+borderline <code>declared_sample_size</code> (a text-stated n that can differ from the
+structured QT_ENTREVISTADO — a faithful fact, not a derivation) and
+<code>n_stages</code> (can carry info even when stage_descriptions is sparse).</li>
+<li><strong>poll_weighting v1 → v2.</strong> DROP <code>described</code> (= application != not_described).</li>
+</ul>
+<p><strong>Why:</strong> asking the model for exact counts/sums is unreliable (the bairro
+n_units_total 80-vs-49 case) and redundant; derivable booleans invite drift.
+Audited by the poll-sponsor-bias session before the dev run. All three are
+unscaled, so this costs no re-extraction.</p>
+<h2 id="frozen-extractor-fix-backlog-apply-only-if-when-a-frozen-extractor-is-re-run">Frozen-extractor fix backlog (apply ONLY if/when a frozen extractor is re-run)</h2>
+<p>These extractors already ran at universe scale, so their prompts are FROZEN
+(touching them would strand prior results + force a costly re-run). Record
+wanted fixes here so they are not lost; apply them only on a deliberate re-run.</p>
+<ul>
+<li><strong>poll_coverage</strong> (universe-scaled, 14,876): apply the no-LLM-counts /
+no-derivable-booleans principle to a future coverage v2 —
+<code>n_neighborhoods_or_districts</code> (= len(neighborhoods_listed)),
+<code>coverage_to_be_complemented</code> (≈ coverage_class==deferred_complement), and
+the overlap among <code>coverage_field_substantive</code> / <code>rural_included</code> /
+<code>rural_excluded_explicitly</code> are all derivable or redundant and should be
+dropped/consolidated.</li>
+<li><strong>poll_relatorio</strong> (universe-scaled; <code>build/llm/poll_relatorio_2024.parquet</code>):
+enum-ify the free-string <code>Scenario.scenario_type</code> against the canonical
+vocabulary (see the scenario-type crosswalk entry below).</li>
+</ul>
 <h2 id="2026-10-20-poll-bairro-detail-v2-v4-strip-inferred-coverage-rural-collapse-to-one-raw-units-row-list-drop-llm-computed-totals">2026-10-20 — poll_bairro_detail v2→v4: strip inferred coverage/rural, collapse to one raw <code>units</code> row list, drop LLM-computed totals</h2>
 <p><strong>Decision:</strong> Before the (unscaled) bairro universe run, (v2) drop the four
 LLM-inferred fields from <code>poll_bairro_detail</code> — <code>coverage_class_resolved</code>,

@@ -260,7 +260,7 @@ document.addEventListener('click', function() {
 .we-sec{margin-top:1.6rem;padding-top:.6rem;border-top:2px solid var(--border,#d0d7de)}
 @media (prefers-color-scheme:dark){.we-block{background:#161b22}}
 </style>
-<p>One real extraction run on TSE poll <code>SP076792024</code> (Ilhabela, SP — Instituto Paraná), showing exactly what each politica LLM extractor sends and gets back. For every extractor: the verbatim <b>system</b> and <b>user</b> messages, the <b>JSON schema</b> sent to the model, the <b>example input document</b>, and the <b>real output</b>. Model: <code>gpt-4o-mini</code> with Structured Outputs. Prompts are read live from <code>source/llm/prompts/</code>; the schema, input and output are pinned to this run.</p><ul class="link-list"><li><a href="#questionario">Questionnaire (questionario_pesquisa PDF)</a></li><li><a href="#sampling">Sampling design (DS_ registration fields)</a></li><li><a href="#weighting">Post-fielding weighting (DS_ registration fields)</a></li><li><a href="#bairro_detail">Bairro/coverage detail (bairro_municipio PDF)</a></li></ul><div class="we-sec" id="questionario"><h2>Questionnaire (questionario_pesquisa PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_questionario_pesquisa.pdf</code> &middot; schema <code>PollQuestionario</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_questionario_system.html">system</a> / <a href="../../source/llm/prompts/poll_questionario_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 2177</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured features from a Brazilian electoral-poll questionnaire PDF (`questionario_pesquisa`). These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° and contain the survey instrument: the printed questions, the candidate roster shown to respondents, and procedural notes for interviewers.
+<p>One real extraction run on TSE poll <code>SP076792024</code> (Ilhabela, SP — Instituto Paraná), showing exactly what each politica LLM extractor sends and gets back. For every extractor: the verbatim <b>system</b> and <b>user</b> messages, the <b>JSON schema</b> sent to the model, the <b>example input document</b>, and the <b>real output</b>. Model: <code>gpt-4o-mini</code> with Structured Outputs. Prompts are read live from <code>source/llm/prompts/</code>; the schema, input and output are pinned to this run.</p><ul class="link-list"><li><a href="#questionario">Questionnaire (questionario_pesquisa PDF)</a></li><li><a href="#sampling">Sampling design (DS_ registration fields)</a></li><li><a href="#weighting">Post-fielding weighting (DS_ registration fields)</a></li><li><a href="#bairro_detail">Bairro/coverage detail (bairro_municipio PDF)</a></li></ul><div class="we-sec" id="questionario"><h2>Questionnaire (questionario_pesquisa PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_questionario_pesquisa.pdf</code> &middot; schema <code>PollQuestionario</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_questionario_system.html">system</a> / <a href="../../source/llm/prompts/poll_questionario_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1695</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured features from a Brazilian electoral-poll questionnaire PDF (`questionario_pesquisa`). These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° and contain the survey instrument: the printed questions, the candidate roster shown to respondents, and procedural notes for interviewers.
 
 ### Your primary job: transcribe the instrument in order
 
@@ -284,7 +284,7 @@ A vote-intention block is `estimulada` or `espontanea`. If the SAME estimulada q
 
 ### Candidate roster vs. question subject
 
-- `candidates_listed` — VOTE-INTENTION ROSTER ONLY. The closed list shown in an `estimulada` block, in the exact printed order (up to 15). Include &quot;Não sabe&quot;, &quot;Branco/Nulo&quot;, &quot;Outro/Outros&quot; as entries when they appear inline, and set includes_undecided_option=true. Empty for every other type.
+- `candidates_listed` — VOTE-INTENTION ROSTER ONLY. The closed list shown in an `estimulada` block, in the exact printed order (up to 15). Include &quot;Não sabe&quot;, &quot;Branco/Nulo&quot;, &quot;Outro/Outros&quot; as entries when they appear inline (verbatim — downstream detects undecided/nonresponse options from these strings). Empty for every other type.
 - `subject_candidates` — WHO AN approval/rejection/issue QUESTION IS ABOUT, when it names specific candidate(s): the candidate(s) rated in an `avaliacao`, the candidate(s) named in a `rejeicao` (if named rather than open), a candidate named in an `issue`. Verbatim names. Empty for estimulada/espontanea/party/demographic/screener. Do NOT judge who the sponsor is — just record the names the PDF states.
 
 ### Candidate-order classification (for estimulada rosters)
@@ -313,9 +313,7 @@ A vote-intention block is `estimulada` or `espontanea`. If the SAME estimulada q
 - **candidates_listed**: up to 15 entries, exact printed order, original capitalization. estimulada rosters only.
 - **subject_candidates**: verbatim candidate name(s) an avaliacao/rejeicao/issue block is about. Empty otherwise.
 - **question_text**: verbatim Portuguese, up to ~300 chars for lever-bearing blocks; terse for demographics. Don&#x27;t paraphrase lever-bearing questions.
-- **n_vote_intention_scenarios**: full count of estimulada+espontanea blocks, regardless of the 30-cap.
-- **first_estimulada_position**: position of the first estimulada; 0 if none.
-- **headline_scenario_label**: label of the first estimulada, verbatim. Empty when none.
+- **scenarios_truncated**: true ONLY if the instrument has more blocks than the 30 you returned. Do NOT count or total the blocks — downstream derives the vote-intention count, first-estimulada position and headline label from the scenarios list.
 - **name_rotation_documented / _evidence**: true ONLY when the PDF prints an explicit instruction to rotate/alternate/randomize name order. Fixed printed order is NOT rotation.
 - **nonresponse_instruction_present / _text**: capture flag + verbatim text of any printed rule for handling undecided/refusal/blank/null (e.g. &quot;NÃO LER ESTAS OPÇÕES&quot;, &quot;redistribuir indecisos proporcionalmente&quot;, &quot;DESCARTAR BRANCOS&quot;). Absence is the default.
 
@@ -337,10 +335,9 @@ Extract the structured questionnaire features per the schema. Remember:
 - `scenarios` is the COMPLETE instrument in filing order: transcribe EVERY block (vote-intention, approval, rejection, party, issue, screener, demographic) with its 1-based `position`. NEVER reorder by type — the order is the signal.
 - HARD CAP 30 blocks (keep the first 30 IN ORDER if longer, note truncation); HARD CAP 15 candidates per estimulada roster.
 - `candidates_listed` = estimulada roster only; `subject_candidates` = the candidate(s) an approval/rejection/issue question is ABOUT. Record names verbatim; do NOT judge who the sponsor is.
-- `first_estimulada_position` = position of the first estimulada (0 if none); `n_vote_intention_scenarios` = full estimulada+espontanea count regardless of the cap.
+- Do NOT count or total the blocks (no count/position/headline fields) — downstream derives those from the scenarios list. Set `scenarios_truncated`=true only if more than 30 blocks existed.
 - `name_rotation_documented` only when the PDF prints an instruction to rotate; printed fixed order is NOT rotation.
-- `nonresponse_instruction_present` only when there is a printed handling rule; absence is the default.
-- `headline_scenario_label` = label of the FIRST estimulada, verbatim.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
+- `nonresponse_instruction_present` only when there is a printed handling rule; absence is the default.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
   &quot;$defs&quot;: {
     &quot;CandidateOrder&quot;: {
       &quot;enum&quot;: [
@@ -403,12 +400,6 @@ Extract the structured questionnaire features per the schema. Remember:
           &quot;title&quot;: &quot;Candidates Listed&quot;,
           &quot;type&quot;: &quot;array&quot;
         },
-        &quot;n_candidates_listed&quot;: {
-          &quot;default&quot;: 0,
-          &quot;description&quot;: &quot;Total candidates / options in the roster; equals len(candidates_listed) unless truncated past the 15 cap.&quot;,
-          &quot;title&quot;: &quot;N Candidates Listed&quot;,
-          &quot;type&quot;: &quot;integer&quot;
-        },
         &quot;subject_candidates&quot;: {
           &quot;description&quot;: &quot;WHO THIS QUESTION IS ABOUT, when it targets specific candidate(s) but is NOT a vote-intention roster. Populate for `avaliacao` (the candidate(s) being rated), `rejeicao` (the candidate(s) named in a &#x27;nunca votaria em X&#x27; item, if named rather than open), and `issue` items that name a candidate. Verbatim names, preserve capitalization. Empty for estimulada/espontanea (use candidates_listed), party, demographic and screener blocks. This is the primitive that lets the analysis match the item against the sponsor / the sponsor&#x27;s opponent — do NOT judge sponsorship here, just record the names the PDF states.&quot;,
           &quot;items&quot;: {
@@ -420,12 +411,6 @@ Extract the structured questionnaire features per the schema. Remember:
         &quot;candidate_order&quot;: {
           &quot;$ref&quot;: &quot;#/$defs/CandidateOrder&quot;,
           &quot;description&quot;: &quot;How the candidate list is ordered. &#x27;rotated&#x27; or &#x27;random&#x27; only when the PDF explicitly instructs the interviewer to rotate / randomize. &#x27;by_listed&#x27; for any printed order with no stated rule. &#x27;not_applicable&#x27; for non-vote-intention questions.&quot;
-        },
-        &quot;includes_undecided_option&quot;: {
-          &quot;default&quot;: false,
-          &quot;description&quot;: &quot;True if the candidate roster includes &#x27;Não sabe&#x27;, &#x27;Não respondeu&#x27;, &#x27;Branco/Nulo&#x27;, &#x27;Nenhum&#x27; or a similar explicit nonresponse / undecided option as a listed choice.&quot;,
-          &quot;title&quot;: &quot;Includes Undecided Option&quot;,
-          &quot;type&quot;: &quot;boolean&quot;
         }
       },
       &quot;required&quot;: [
@@ -441,35 +426,23 @@ Extract the structured questionnaire features per the schema. Remember:
   &quot;description&quot;: &quot;Survey-instrument extraction from `questionario_pesquisa` PDF.\n\nThe core output is `scenarios`: the COMPLETE, ORDERED transcript of\nevery question block in the instrument (vote-intention, approval,\nrejection, party, issue, screener, demographic), in true filing\norder. Presence flags, counts, and priming diagnostics are NOT\nextracted as separate judgments — they are derived downstream from\nthis ordered transcript crossed with sponsor identity. In\nparticular, Fernando&#x27;s priming hypothesis (an approval item about\nthe sponsor&#x27;s candidate, or a rejection item about an opponent,\nplaced BEFORE the first estimulada) is a predicate over\n`position` + `question_type` + `subject_candidates`, computed in the\nPanel-B analysis — not here.&quot;,
   &quot;properties&quot;: {
     &quot;pesquisa_realized&quot;: {
-      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is a &#x27;PESQUISA NÃO REALIZADA&#x27; stamp. When false, all other fields default to empty / 0 / unclear.&quot;,
+      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is a &#x27;PESQUISA NÃO REALIZADA&#x27; stamp. When false, all other fields default to empty / unclear.&quot;,
       &quot;title&quot;: &quot;Pesquisa Realized&quot;,
       &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;scenarios&quot;: {
-      &quot;description&quot;: &quot;The COMPLETE instrument transcript: EVERY question block, in true printed (filing) order, each with its 1-based `position`. Include vote-intention (estimulada/espontanea), approval (avaliacao), rejection (rejeicao), party, issue, screener AND demographic blocks — do NOT drop or reorder any. NEVER reorder to group by type: the order is the signal. Verbosity is tiered to stay within budget: for estimulada/avaliacao/rejeicao/party blocks give full question_text + candidates_listed / subject_candidates; for demographic/screener/issue blocks a one-line question_text (or just the label) is enough — but still list them in position order. HARD CAP 30 blocks: if the instrument is longer, keep the first 30 IN ORDER (never skip ahead) and note the truncation in extraction_notes.&quot;,
+      &quot;description&quot;: &quot;The COMPLETE instrument transcript: EVERY question block, in true printed (filing) order, each with its 1-based `position`. Include vote-intention (estimulada/espontanea), approval (avaliacao), rejection (rejeicao), party, issue, screener AND demographic blocks — do NOT drop or reorder any. NEVER reorder to group by type: the order is the signal. Verbosity is tiered to stay within budget: for estimulada/avaliacao/rejeicao/party blocks give full question_text + candidates_listed / subject_candidates; for demographic/screener/issue blocks a one-line question_text (or just the label) is enough — but still list them in position order. HARD CAP 30 blocks: if the instrument is longer, keep the first 30 IN ORDER (never skip ahead) and set scenarios_truncated=true. Do NOT count or total the scenarios — downstream derives counts/positions from this list.&quot;,
       &quot;items&quot;: {
         &quot;$ref&quot;: &quot;#/$defs/QuestionnaireScenario&quot;
       },
       &quot;title&quot;: &quot;Scenarios&quot;,
       &quot;type&quot;: &quot;array&quot;
     },
-    &quot;n_vote_intention_scenarios&quot;: {
-      &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Full count of distinct vote-intention scenarios (estimulada + espontanea) in the instrument, regardless of the 30-block cap. The &#x27;scenario-selection slant&#x27; diagnostic: sponsored polls may file &gt;1 estimulada with different rosters. Report the true total even if truncated.&quot;,
-      &quot;title&quot;: &quot;N Vote Intention Scenarios&quot;,
-      &quot;type&quot;: &quot;integer&quot;
-    },
-    &quot;first_estimulada_position&quot;: {
-      &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;`position` of the FIRST estimulada block (the headline vote-intention question). 0 when the instrument has no estimulada. This is the cut point for the priming test — any approval/rejection block with a smaller position comes BEFORE the headline.&quot;,
-      &quot;title&quot;: &quot;First Estimulada Position&quot;,
-      &quot;type&quot;: &quot;integer&quot;
-    },
-    &quot;headline_scenario_label&quot;: {
-      &quot;default&quot;: &quot;&quot;,
-      &quot;description&quot;: &quot;Label of the first / primary `estimulada` scenario — this is what gets reported as the headline vote-intention number. Empty when no estimulada present.&quot;,
-      &quot;title&quot;: &quot;Headline Scenario Label&quot;,
-      &quot;type&quot;: &quot;string&quot;
+    &quot;scenarios_truncated&quot;: {
+      &quot;default&quot;: false,
+      &quot;description&quot;: &quot;True ONLY if the instrument has MORE question blocks than the (cap-30) ones returned. False normally. A yes/no observation, not a count — downstream derives the vote-intention count, first-estimulada position and headline label from the scenarios transcript (count of estimulada+espontanea; min position where type==estimulada; its label).&quot;,
+      &quot;title&quot;: &quot;Scenarios Truncated&quot;,
+      &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;name_rotation_documented&quot;: {
       &quot;default&quot;: false,
@@ -613,75 +586,90 @@ Verificação:
   &quot;scenarios&quot;: [
     {
       &quot;position&quot;: 1,
-      &quot;label&quot;: &quot;1 - Gênero:&quot;,
+      &quot;label&quot;: &quot;1&quot;,
       &quot;question_type&quot;: &quot;screener&quot;,
-      &quot;question_text&quot;: &quot;1 - Gênero:&quot;,
+      &quot;question_text&quot;: &quot;Gostaria de saber se o(a) Sr(a) mora e vota no município de Ilhabela?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 2,
-      &quot;label&quot;: &quot;2 - Faixa Etária:&quot;,
+      &quot;label&quot;: &quot;1&quot;,
       &quot;question_type&quot;: &quot;screener&quot;,
-      &quot;question_text&quot;: &quot;2 - Faixa Etária:&quot;,
+      &quot;question_text&quot;: &quot;Gostaria de informar ainda que é uma pesquisa sobre assuntos políticos. Solicitamos sua autorização para usar e tratar todos os dados coletados e garantimos que suas respostas serão tratadas de forma anônima e confidencial, de acordo com a lei geral de proteção de dados - LGPD. O(A) Sr(a) nos autoriza?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 3,
-      &quot;label&quot;: &quot;3 - Escolaridade:&quot;,
+      &quot;label&quot;: &quot;1&quot;,
       &quot;question_type&quot;: &quot;screener&quot;,
-      &quot;question_text&quot;: &quot;3 - Escolaridade:&quot;,
+      &quot;question_text&quot;: &quot;Nos últimos 7 dias o(a) Sr(a) respondeu alguma pesquisa do INSTITUTO PARANÁ DE PESQUISAS?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 4,
-      &quot;label&quot;: &quot;4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)&quot;,
-      &quot;question_type&quot;: &quot;screener&quot;,
-      &quot;question_text&quot;: &quot;4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)&quot;,
+      &quot;label&quot;: &quot;1 - Gênero&quot;,
+      &quot;question_type&quot;: &quot;demographic&quot;,
+      &quot;question_text&quot;: &quot;Gênero:&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 5,
-      &quot;label&quot;: &quot;5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)&quot;,
-      &quot;question_type&quot;: &quot;espontanea&quot;,
-      &quot;question_text&quot;: &quot;5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)&quot;,
+      &quot;label&quot;: &quot;2 - Faixa Etária&quot;,
+      &quot;question_type&quot;: &quot;demographic&quot;,
+      &quot;question_text&quot;: &quot;Faixa Etária:&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 6,
-      &quot;label&quot;: &quot;6 - Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria? (ESPONTÂNEA)&quot;,
-      &quot;question_type&quot;: &quot;espontanea&quot;,
-      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria? (ESPONTÂNEA)&quot;,
+      &quot;label&quot;: &quot;3 - Escolaridade&quot;,
+      &quot;question_type&quot;: &quot;demographic&quot;,
+      &quot;question_text&quot;: &quot;Escolaridade:&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: true
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 7,
-      &quot;label&quot;: &quot;7 - Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)&quot;,
+      &quot;label&quot;: &quot;4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)&quot;,
+      &quot;question_type&quot;: &quot;demographic&quot;,
+      &quot;question_text&quot;: &quot;Renda Domiciliar Mensal:&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 8,
+      &quot;label&quot;: &quot;5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)&quot;,
+      &quot;question_type&quot;: &quot;espontanea&quot;,
+      &quot;question_text&quot;: &quot;Atualmente, qual é a sua ocupação principal: nível econômico?&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 9,
+      &quot;label&quot;: &quot;6&quot;,
+      &quot;question_type&quot;: &quot;espontanea&quot;,
+      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria?&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 10,
+      &quot;label&quot;: &quot;7&quot;,
       &quot;question_type&quot;: &quot;estimulada&quot;,
-      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)&quot;,
+      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria?&quot;,
       &quot;candidates_listed&quot;: [
         &quot;Não sabe/ Não respondeu&quot;,
         &quot;Nenhum/ Branco/ Nulo&quot;,
@@ -691,127 +679,101 @@ Verificação:
         &quot;Ronaldo Mariano&quot;,
         &quot;Toninho Colucci&quot;
       ],
-      &quot;n_candidates_listed&quot;: 7,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;by_listed&quot;,
-      &quot;includes_undecided_option&quot;: true
-    },
-    {
-      &quot;position&quot;: 8,
-      &quot;label&quot;: &quot;8 - Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM? (RM) (Disco 1)&quot;,
-      &quot;question_type&quot;: &quot;rejeicao&quot;,
-      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM? (RM) (Disco 1)&quot;,
-      &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
-      &quot;subject_candidates&quot;: [
-        &quot;Enfermeira Juliana&quot;,
-        &quot;Diana Almeida&quot;,
-        &quot;Manoel Marcos (Mané)&quot;,
-        &quot;Ronaldo Mariano&quot;,
-        &quot;Toninho Colucci&quot;
-      ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: true
-    },
-    {
-      &quot;position&quot;: 9,
-      &quot;label&quot;: &quot;9 - Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?&quot;,
-      &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?&quot;,
-      &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
-      &quot;subject_candidates&quot;: [
-        &quot;Toninho Colucci&quot;
-      ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
-    },
-    {
-      &quot;position&quot;: 10,
-      &quot;label&quot;: &quot;10 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?&quot;,
-      &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?&quot;,
-      &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
-      &quot;subject_candidates&quot;: [
-        &quot;Toninho Colucci&quot;
-      ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;by_listed&quot;
     },
     {
       &quot;position&quot;: 11,
-      &quot;label&quot;: &quot;11 - Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?&quot;,
-      &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?&quot;,
+      &quot;label&quot;: &quot;8&quot;,
+      &quot;question_type&quot;: &quot;rejeicao&quot;,
+      &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
-      &quot;subject_candidates&quot;: [
-        &quot;Tarcísio de Freitas&quot;
-      ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;subject_candidates&quot;: [],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 12,
-      &quot;label&quot;: &quot;12 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?&quot;,
+      &quot;label&quot;: &quot;9&quot;,
       &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?&quot;,
+      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [
-        &quot;Tarcísio de Freitas&quot;
+        &quot;Toninho Colucci&quot;
       ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 13,
-      &quot;label&quot;: &quot;13 - Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?&quot;,
+      &quot;label&quot;: &quot;10&quot;,
       &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?&quot;,
+      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [
-        &quot;Lula&quot;
+        &quot;Toninho Colucci&quot;
       ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 14,
-      &quot;label&quot;: &quot;14 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?&quot;,
+      &quot;label&quot;: &quot;11&quot;,
       &quot;question_type&quot;: &quot;avaliacao&quot;,
-      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?&quot;,
+      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [
-        &quot;Lula&quot;
+        &quot;Tarcísio de Freitas&quot;
       ],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
       &quot;position&quot;: 15,
+      &quot;label&quot;: &quot;12&quot;,
+      &quot;question_type&quot;: &quot;avaliacao&quot;,
+      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [
+        &quot;Tarcísio de Freitas&quot;
+      ],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 16,
+      &quot;label&quot;: &quot;13&quot;,
+      &quot;question_type&quot;: &quot;avaliacao&quot;,
+      &quot;question_text&quot;: &quot;Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [
+        &quot;Lula&quot;
+      ],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 17,
+      &quot;label&quot;: &quot;14&quot;,
+      &quot;question_type&quot;: &quot;avaliacao&quot;,
+      &quot;question_text&quot;: &quot;De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?&quot;,
+      &quot;candidates_listed&quot;: [],
+      &quot;subject_candidates&quot;: [
+        &quot;Lula&quot;
+      ],
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
+    },
+    {
+      &quot;position&quot;: 18,
       &quot;label&quot;: &quot;Dados de caracterização&quot;,
-      &quot;question_type&quot;: &quot;demographic&quot;,
+      &quot;question_type&quot;: &quot;other&quot;,
       &quot;question_text&quot;: &quot;Dados de caracterização&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;n_candidates_listed&quot;: 0,
       &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;,
-      &quot;includes_undecided_option&quot;: false
+      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     }
   ],
-  &quot;n_vote_intention_scenarios&quot;: 3,
-  &quot;first_estimulada_position&quot;: 7,
-  &quot;headline_scenario_label&quot;: &quot;7 - Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)&quot;,
+  &quot;scenarios_truncated&quot;: false,
   &quot;name_rotation_documented&quot;: false,
   &quot;name_rotation_evidence&quot;: &quot;&quot;,
-  &quot;nonresponse_instruction_present&quot;: true,
-  &quot;nonresponse_instruction_text&quot;: &quot;Não sabe/ Não respondeu, Ninguém/ Branco/ Nulo&quot;,
+  &quot;nonresponse_instruction_present&quot;: false,
+  &quot;nonresponse_instruction_text&quot;: &quot;&quot;,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="sampling"><h2>Sampling design (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL</code> &middot; schema <code>PollSampling</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_sampling_system.html">system</a> / <a href="../../source/llm/prompts/poll_sampling_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 680</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured information about a Brazilian electoral-poll sampling design from two free-text fields of the TSE PesqEle registration: DS_METODOLOGIA_PESQUISA (overall methodology, ~230 chars median) and DS_PLANO_AMOSTRAL (detailed sampling plan, ~1,640 chars median).
+}</pre></div><div class="we-sec" id="sampling"><h2>Sampling design (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL</code> &middot; schema <code>PollSampling</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_sampling_system.html">system</a> / <a href="../../source/llm/prompts/poll_sampling_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 660</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured information about a Brazilian electoral-poll sampling design from two free-text fields of the TSE PesqEle registration: DS_METODOLOGIA_PESQUISA (overall methodology, ~230 chars median) and DS_PLANO_AMOSTRAL (detailed sampling plan, ~1,640 chars median).
 
 Scope of this task (NOT the other two):
 - Sampling design family, stages, clustering, selection-within-cluster
@@ -824,7 +786,7 @@ Do NOT extract here: geographic coverage (separate poll_coverage task), mode / d
 ### Key parsing patterns
 
 1. **Brazilian-standard &quot;multi-stage + quota at final stage.&quot;**
-   Most polls describe a multi-stage cluster sample (stratified PPT of setores censitários or bairros) followed by *quota-based* selection of respondents at the last stage. Code this as sample_design_class=multi_stage_quota, n_stages=2 (or 3 if a stratification step is described separately), is_probability_sample=false (because the last stage is non-random), selection_within_cluster=quota, pps_used=true if PPT/PPS is mentioned.
+   Most polls describe a multi-stage cluster sample (stratified PPT of setores censitários or bairros) followed by *quota-based* selection of respondents at the last stage. Code this as sample_design_class=multi_stage_quota, n_stages=2 (or 3 if a stratification step is described separately), selection_within_cluster=quota, pps_used=true if PPT/PPS is mentioned.
 
 2. **Quota distributions in nested-bracket Portuguese.** Example to parse:
    &quot;Masculino (50,3%), Feminino (49,7%); IDADE: [16 a 24 (95|23,9%), 25 a 34 (99|24,6%), 35 a 44 (75|18,9%), 45 a 59 (79|19,7%), 60 ou + (52|12,9%)]; GRAU DE INSTRUÇÃO: [Analfabeto/Lê e Escreve (113|28,5%), ...]; RENDA FAMILIAR: [Até R$ 2.824,00 (até 2 S.M.) (310|77,7%), ...]&quot;
@@ -1010,7 +972,7 @@ Extract the sampling design fields per the schema. Remember:
       &quot;type&quot;: &quot;string&quot;
     }
   },
-  &quot;description&quot;: &quot;Sampling design + sample size + quotas + population reference,\nextracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA.&quot;,
+  &quot;description&quot;: &quot;Sampling design + sample size + quotas + population reference,\nextracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA.\n\nv2: dropped the derivable booleans is_probability_sample (derive from\nsample_design_class / selection_within_cluster) and is_quota_sample\n(derive from quota_variables non-empty). quota_variables is KEPT — it\ncarries the income-quota signal when the text names a quota dimension\nwithout printing its percentages (quota_distributions skips those), so\nit is NOT redundant with quota_distributions.&quot;,
   &quot;properties&quot;: {
     &quot;sample_design_class&quot;: {
       &quot;$ref&quot;: &quot;#/$defs/SampleDesignClass&quot;,
@@ -1021,11 +983,6 @@ Extract the sampling design fields per the schema. Remember:
       &quot;description&quot;: &quot;1-2 sentence quote from the text supporting sample_design_class.&quot;,
       &quot;title&quot;: &quot;Sample Design Evidence&quot;,
       &quot;type&quot;: &quot;string&quot;
-    },
-    &quot;is_probability_sample&quot;: {
-      &quot;description&quot;: &quot;True only if the FINAL respondent selection is random (no quotas).&quot;,
-      &quot;title&quot;: &quot;Is Probability Sample&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;n_stages&quot;: {
       &quot;default&quot;: 1,
@@ -1099,13 +1056,8 @@ Extract the sampling design fields per the schema. Remember:
       &quot;title&quot;: &quot;Population Assumed For Moe&quot;,
       &quot;type&quot;: &quot;string&quot;
     },
-    &quot;is_quota_sample&quot;: {
-      &quot;description&quot;: &quot;True if any quota is used at any stage.&quot;,
-      &quot;title&quot;: &quot;Is Quota Sample&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
-    },
     &quot;quota_variables&quot;: {
-      &quot;description&quot;: &quot;List of quota dimensions used. Mirror quota_distributions below (each variable that has a distribution entry also appears here).&quot;,
+      &quot;description&quot;: &quot;Every quota dimension the text says is USED — including dimensions named WITHOUT a percentage distribution (those are absent from quota_distributions). Superset of the variables in quota_distributions. This is where an income quota declared without printed bins still shows up, so do not omit a named quota dimension just because its percentages are missing.&quot;,
       &quot;items&quot;: {
         &quot;$ref&quot;: &quot;#/$defs/QuotaVariable&quot;
       },
@@ -1194,11 +1146,9 @@ Extract the sampling design fields per the schema. Remember:
   },
   &quot;required&quot;: [
     &quot;sample_design_class&quot;,
-    &quot;is_probability_sample&quot;,
     &quot;cluster_unit&quot;,
     &quot;selection_within_cluster&quot;,
     &quot;pps_used&quot;,
-    &quot;is_quota_sample&quot;,
     &quot;population_reference&quot;,
     &quot;population_source&quot;,
     &quot;census_sectors_used&quot;
@@ -1237,7 +1187,6 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
 </pre><h3>5 &middot; Real v2 output</h3><pre class="we-block">{
   &quot;sample_design_class&quot;: &quot;multi_stage_quota&quot;,
   &quot;sample_design_evidence&quot;: &quot;A amostra será representativa dos eleitores das áreas pesquisadas e será selecionada em duas etapas.&quot;,
-  &quot;is_probability_sample&quot;: false,
   &quot;n_stages&quot;: 2,
   &quot;stage_descriptions&quot;: [
     &quot;stage 1: sorteio probabilístico das localidades usando PPT&quot;,
@@ -1249,8 +1198,7 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
   &quot;declared_sample_size&quot;: null,
   &quot;margin_of_error_pp&quot;: 3.8,
   &quot;confidence_level_pct&quot;: 95.0,
-  &quot;population_assumed_for_moe&quot;: &quot;técnica de amostragem aleatória simples&quot;,
-  &quot;is_quota_sample&quot;: true,
+  &quot;population_assumed_for_moe&quot;: &quot;amostra aleatória simples&quot;,
   &quot;quota_variables&quot;: [
     &quot;sex&quot;,
     &quot;age&quot;,
@@ -1318,7 +1266,7 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
     }
   ],
   &quot;population_reference&quot;: &quot;tse_eligible&quot;,
-  &quot;population_reference_evidence&quot;: &quot;Amostra representativa do eleitorado do município de Ilhabela-SP.&quot;,
+  &quot;population_reference_evidence&quot;: &quot;a amostra será representativa dos eleitores das áreas pesquisadas&quot;,
   &quot;population_source&quot;: &quot;tse&quot;,
   &quot;census_sectors_used&quot;: true,
   &quot;voter_age_minimum&quot;: 16,
@@ -1333,7 +1281,7 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
   ],
   &quot;text_truncated&quot;: false,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="weighting"><h2>Post-fielding weighting (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE</code> &middot; schema <code>PollWeighting</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_weighting_system.html">system</a> / <a href="../../source/llm/prompts/poll_weighting_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 74</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">Você é especialista em metodologia de pesquisas eleitorais brasileiras (TSE).
+}</pre></div><div class="we-sec" id="weighting"><h2>Post-fielding weighting (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE</code> &middot; schema <code>PollWeighting</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_weighting_system.html">system</a> / <a href="../../source/llm/prompts/poll_weighting_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 127</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">Você é especialista em metodologia de pesquisas eleitorais brasileiras (TSE).
 
 Sua tarefa: extrair, dos textos de registro de uma pesquisa, a descrição da PONDERAÇÃO (weighting / correção pós-fielding). Você verá três campos: DS_METODOLOGIA_PESQUISA, DS_PLANO_AMOSTRAL e DS_SISTEMA_CONTROLE. A linguagem de ponderação pode aparecer em qualquer um dos três, mas com frequência aparece no DS_PLANO_AMOSTRAL ou DS_SISTEMA_CONTROLE.
 
@@ -1346,7 +1294,7 @@ Definições importantes:
 - `variables_weighted`: liste APENAS as variáveis efetivamente re-ponderadas (tokens minúsculos: sex, age, education, income, region, race). EXCLUA qualquer variável que o texto declare explicitamente NÃO ponderada — frases como &quot;o fator de ponderação é igual a 1&quot;, &quot;resultados obtidos no campo&quot;, &quot;sem ponderação para X&quot;. Mencionar uma variável na frase de ponderação NÃO basta; ela só entra se for efetivamente corrigida. Exemplo: &quot;ponderação para gênero e faixa etária; para escolaridade e renda o fator de ponderação é igual a 1&quot; → `variables_weighted = [&quot;sex&quot;,&quot;age&quot;]` (NÃO incluir education nem income).
 - `variables_explicitly_unweighted`: liste as variáveis que o texto explicitamente mantém SEM ponderação (fator = 1, &quot;resultados obtidos no campo&quot;, &quot;sem ponderação&quot;). Mesmos tokens minúsculos. No exemplo acima → `[&quot;education&quot;,&quot;income&quot;]`. Vazio quando nenhuma variável é declarada explicitamente não ponderada. (Isto é diferente de uma variável simplesmente não mencionada.)
 
-Responda no schema PollWeighting. Quando não houver ponderação descrita, marque `described=false`, `application=&quot;not_described&quot;`, listas vazias, e os demais campos com seus valores padrão.</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">Protocolo: {protocol}
+Responda no schema PollWeighting. Quando não houver ponderação descrita, marque `application=&quot;not_described&quot;`, listas vazias, e os demais campos com seus valores padrão (o &quot;described&quot; foi removido — ele é derivado de application != not_described).</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">Protocolo: {protocol}
 UF: {uf}
 Instituto: {institute}
 
@@ -1388,11 +1336,6 @@ Extraia a descrição da ponderação (correção pós-fielding) conforme o sche
   },
   &quot;description&quot;: &quot;Post-fielding weighting / ponderação description.\n\nReads: DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE.\n\nComplements PollSampling (which captures the quota DESIGN). This task\ncaptures the *post-fielding correction* that may or may not normalize\nsample shares back to population shares. The distinction matters for\nChannel A: quotas without weighting → directly biased; quotas with\nweighting back to population → not biased.&quot;,
   &quot;properties&quot;: {
-    &quot;described&quot;: {
-      &quot;description&quot;: &quot;True if any post-fielding weighting / ponderação / correção is described anywhere in the input text. False if the text only describes the sampling plan with no correction stage.&quot;,
-      &quot;title&quot;: &quot;Described&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
-    },
     &quot;application&quot;: {
       &quot;$ref&quot;: &quot;#/$defs/WeightingApplication&quot;,
       &quot;description&quot;: &quot;How the weighting is applied. always_applied: text says weights are always applied. conditional: text says weights are applied ONLY if sample deviates from quotas by some threshold (very common Brazilian pattern: &#x27;caso ocorram diferenças superiores à margem de erro&#x27;). described_unclear_application: weighting mentioned but application conditions ambiguous. not_described: no weighting described at all.&quot;
@@ -1459,7 +1402,6 @@ Extraia a descrição da ponderação (correção pós-fielding) conforme o sche
     }
   },
   &quot;required&quot;: [
-    &quot;described&quot;,
     &quot;application&quot;,
     &quot;target&quot;,
     &quot;post_stratification_explicit&quot;
@@ -1504,7 +1446,6 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
 
 
 </pre><h3>5 &middot; Real v2 output</h3><pre class="we-block">{
-  &quot;described&quot;: true,
   &quot;application&quot;: &quot;conditional&quot;,
   &quot;variables_weighted&quot;: [
     &quot;sex&quot;,
@@ -1514,8 +1455,8 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
     &quot;education&quot;,
     &quot;income&quot;
   ],
-  &quot;target&quot;: &quot;not_specified&quot;,
-  &quot;target_evidence&quot;: &quot;&quot;,
+  &quot;target&quot;: &quot;tse_eleitorado&quot;,
+  &quot;target_evidence&quot;: &quot;eventual ponderação para correção das variáveis gênero e faixa etária, com base nos percentuais acima apresentados, caso ocorram diferenças superiores a 4,5 (quatro vírgula cinco) pontos percentuais entre o previsto na amostra e a coleta realizada&quot;,
   &quot;post_stratification_explicit&quot;: true,
   &quot;conditional_threshold_pp&quot;: 4.5,
   &quot;correction_method&quot;: &quot;&quot;,
