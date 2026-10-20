@@ -383,10 +383,11 @@ class PollSampling(ExtractionSchema):
 
     v2: dropped the derivable booleans is_probability_sample (derive from
     sample_design_class / selection_within_cluster) and is_quota_sample
-    (derive from quota_variables non-empty). quota_variables is KEPT — it
-    carries the income-quota signal when the text names a quota dimension
-    without printing its percentages (quota_distributions skips those), so
-    it is NOT redundant with quota_distributions."""
+    (derive from quota_distributions non-empty), and quota_variables (the
+    quota-dimension set = {d.variable for d in quota_distributions}). The
+    dev set confirmed quota_variables is ~99.8% redundant: of 536 polls only
+    1 named a quota dimension (income) without printing its bins, and that
+    case cannot feed the income-skew lever anyway (no bins → no skew)."""
     schema_name: ClassVar[str] = "poll_sampling"
     schema_version: ClassVar[str] = "v2"
 
@@ -448,17 +449,6 @@ class PollSampling(ExtractionSchema):
     )
 
     # C. Quotas
-    quota_variables: list[QuotaVariable] = Field(
-        default_factory=list,
-        description=(
-            "Every quota dimension the text says is USED — including "
-            "dimensions named WITHOUT a percentage distribution (those are "
-            "absent from quota_distributions). Superset of the variables in "
-            "quota_distributions. This is where an income quota declared "
-            "without printed bins still shows up, so do not omit a named "
-            "quota dimension just because its percentages are missing."
-        ),
-    )
     quota_distributions: list[QuotaDistribution] = Field(
         default_factory=list,
         description=(
