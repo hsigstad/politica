@@ -1,6 +1,6 @@
 # Decisions
 
-## 2026-10-20 — poll_bairro_detail v2→v3: strip inferred coverage/rural, then collapse to one raw `units` row list
+## 2026-10-20 — poll_bairro_detail v2→v4: strip inferred coverage/rural, collapse to one raw `units` row list, drop LLM-computed totals
 
 **Decision:** Before the (unscaled) bairro universe run, (v2) drop the four
 LLM-inferred fields from `poll_bairro_detail` — `coverage_class_resolved`,
@@ -11,9 +11,14 @@ two-parallel-field design (`bairros` names list + lossy 10-item
 `distritos_listed`/`regional_structure`) with ONE faithful list, `units`:
 one `CoverageUnit` per distinct geographic allocation unit the PDF prints,
 each carrying whatever identifiers that row shows (`name` / `setor_code` /
-`distrito` / `n_entrevistas`). Final v3 shape: `pesquisa_realized`, `units`,
-`n_units_total`, `total_interviews_distributed`, `extraction_notes`. Schema
-v1 → v3.
+`distrito` / `n_entrevistas`); then (v4) drop the LLM-computed aggregates
+`n_units_total` and `total_interviews_distributed` — asking the model for an
+exact count/sum is unreliable (Ilhabela returned n_units_total=80 while
+listing 49 units) and both are derivable downstream (len(units); sum of
+n_entrevistas). Replace the count's only real job — a truncation signal —
+with a reliable boolean `units_truncated`. Final v4 shape:
+`pesquisa_realized`, `units`, `units_truncated`, `extraction_notes`. Schema
+v1 → v4.
 
 **Why v3 on top of v2:** v2 still violated "extract what is in the raw, no
 more no less" in two ways — `setor_codes_sample` was a lossy 10-item

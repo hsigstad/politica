@@ -13,13 +13,12 @@ The PDFs come from many pollsters and follow different formats — all map onto 
 
 ### Extraction rules
 
-- **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and put the true count in `n_units_total`. NEVER exceed 80.
+- **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and set `units_truncated=true`. NEVER exceed 80.
 - **name**: bairro/localidade, verbatim (preserve capitalization). Null for setor-only rows.
 - **setor_code**: the 12-15 digit IBGE setor code, verbatim, whenever the PDF prints one. Capture it every time it appears — it is the deterministic urban/rural key downstream.
 - **distrito**: the distrito/região heading the row sits under, if any. Null for flat lists.
 - **n_entrevistas**: per-unit interview count if stated; null if not.
-- **n_units_total**: true count of distinct units even if `units` was capped at 80.
-- **total_interviews_distributed**: sum of n_entrevistas across all units if reported (should approximate QT_ENTREVISTADO). 0 if counts are not given.
+- **units_truncated**: true ONLY when you hit the 80-unit cap and omitted some. Do NOT count or sum the units — no total fields; downstream derives counts/sums from the rows.
 
 ### Output rules
 

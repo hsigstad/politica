@@ -821,23 +821,25 @@ class CoverageUnit(BaseModel):
 class PollBairroDetail(ExtractionSchema):
     """Raw geographic allocation list from the per-poll bairro/município PDF.
 
-    v3: ONE faithful list of the rows as the PDF prints them (`units`), each
+    v4: ONE faithful list of the rows as the PDF prints them (`units`), each
     carrying whatever identifiers appear — bairro name, IBGE setor code,
-    distrito, interview count. No more / no less than the raw: v2's split
-    bairros-list + lossy 10-item setor_codes_sample is replaced by this
-    single row grain, which preserves the name<->setor<->count linkage and
-    drops nothing. Coverage class / rural / regional-structure / distrito
-    lists are NOT stored — all derivable downstream (matched IBGE setor
-    situacao + electorate ratio; set of unit distritos). See docs/decisions.md.
+    distrito, interview count. No more / no less than the raw. The LLM does
+    NOT count or sum: v3's n_units_total and total_interviews_distributed are
+    dropped (asking the model for exact aggregates is unreliable and they are
+    derivable downstream — len(units), sum of n_entrevistas). The only
+    non-row signal is a reliable `units_truncated` boolean. Coverage class /
+    rural / regional-structure / distrito lists are NOT stored — all derivable
+    downstream (matched IBGE setor situacao + electorate ratio; set of unit
+    distritos). See docs/decisions.md.
     """
     schema_name: ClassVar[str] = "poll_bairro_detail"
-    schema_version: ClassVar[str] = "v3"
+    schema_version: ClassVar[str] = "v4"
 
     pesquisa_realized: bool = Field(
         description=(
             "True normally. False ONLY when the PDF is the "
             "'PESQUISA NÃO REALIZADA' stamp (poll was cancelled). "
-            "When false, all other fields default to empty/zero."
+            "When false, all other fields default to empty."
         )
     )
 
@@ -849,25 +851,18 @@ class PollBairroDetail(ExtractionSchema):
             "(name / setor_code / distrito / n_entrevistas). Dedup to the "
             "finest printed unit: for per-interview setor microdata, emit "
             "one unit per distinct setor with its interview count (NOT one "
-            "row per interview). HARD CAP 80 units (token budget); if more, "
-            "keep the 80 with the largest n_entrevistas and record the true "
-            "count in n_units_total. Empty only for a not-realized stamp."
+            "row per interview). HARD CAP 80 units (token budget); if the "
+            "PDF has more, keep the 80 with the largest n_entrevistas and "
+            "set units_truncated=true. Empty only for a not-realized stamp."
         ),
     )
-    n_units_total: int = Field(
-        default=0,
+    units_truncated: bool = Field(
+        default=False,
         description=(
-            "Total distinct allocation units in the PDF (may exceed "
-            "len(units) if truncated). 0 when none are listed."
-        ),
-    )
-
-    total_interviews_distributed: int = Field(
-        default=0,
-        description=(
-            "Sum of n_entrevistas across all units if reported. 0 if "
-            "interview counts are not given. Should match the poll's "
-            "QT_ENTREVISTADO when fully reported."
+            "True ONLY if the PDF lists MORE distinct units than the ones "
+            "returned (i.e. the 80-unit cap was hit and some were omitted). "
+            "False normally. This is a yes/no observation, not a count — do "
+            "not try to total the units; downstream counts len(units)."
         ),
     )
 

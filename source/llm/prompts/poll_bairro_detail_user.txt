@@ -10,4 +10,4 @@ Extract the raw allocation list per the schema. Remember:
 - PESQUISA NÃO REALIZADA → pesquisa_realized=false, units empty, counts 0, skip the rest.
 - Per-interview setor microdata → one unit per DISTINCT setor with its interview count, NOT one unit per interview.
 - Capture setor_code (12-15 digit IBGE) on every row that prints one.
-- HARD CAP 80 units; put the true count in n_units_total.
+- HARD CAP 80 units; if more exist, set units_truncated=true. Do NOT count or sum the units.
