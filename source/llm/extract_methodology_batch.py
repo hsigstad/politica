@@ -548,6 +548,8 @@ def cmd_submit() -> int:
                 "submitted_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                 "status": b.status,
             }
+            _save_state(state)   # persist after EACH create — a mid-loop crash
+                                 # must not orphan already-created batches
             print(f"  [{task.name}/{key}] batch {b.id} created (status={b.status})")
     _save_state(state)
     return 0
