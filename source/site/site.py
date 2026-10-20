@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import html as _html
+import json as _json
 from pathlib import Path
 
 from sitekit import SiteConfig
@@ -154,6 +155,116 @@ GUIDE_BRIEFS = [
 ]
 
 
+# --- Project-local hook: LLM extraction worked-example page -----------------
+# REASONING: documents politica's extractors end-to-end for any consumer — one
+# real run (protocol SP076792024, Ilhabela) showing, per extractor, the verbatim
+# v2 system+user prompts, the JSON schema sent, the example input document, and
+# the REAL v2 output. Prompts are read LIVE from source/llm/prompts/ (auto-current
+# as they evolve); the schema + input doc + output are run-pinned in the committed
+# source/site/worked_example/*.json (they are a matched set from one extraction run,
+# refreshed only by re-running source/../run_worked_example.py).
+# ASSUMES: source/site/worked_example/<task>.json exist (committed site assets).
+
+_WORKED_DIR = Path("source/site/worked_example")
+_WORKED_ORDER = ["questionario", "sampling", "weighting", "bairro_detail"]
+
+_WORKED_CSS = """
+<style>
+.we-meta{color:var(--muted,#57606a);font-size:.9rem;margin:.2rem 0 1rem}
+.we-block{border:1px solid var(--border,#d0d7de);border-radius:6px;
+  padding:.5rem .7rem;margin:.4rem 0 1.2rem;overflow-x:auto;
+  background:var(--code-bg,#f6f8fa);white-space:pre-wrap;overflow-wrap:anywhere;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;line-height:1.5}
+.we-sec{margin-top:1.6rem;padding-top:.6rem;border-top:2px solid var(--border,#d0d7de)}
+@media (prefers-color-scheme:dark){.we-block{background:#161b22}}
+</style>
+"""
+
+
+def _render_worked_example(ctx):
+    """Render one worked-example page (all extractors, one real run)."""
+    from sitekit.nav import inject_nav
+    from sitekit.templates import read_template
+
+    data_dir = ctx.project_root / _WORKED_DIR
+    prompts_dir = ctx.project_root / _PROMPTS_REL
+    if not data_dir.is_dir():
+        return {}
+    tasks = [t for t in _WORKED_ORDER if (data_dir / f"{t}.json").is_file()]
+    if not tasks:
+        return {}
+
+    def esc(s):
+        return _html.escape(str(s))
+
+    def block(s):
+        return f'<pre class="we-block">{esc(s)}</pre>'
+
+    first = _json.loads((data_dir / f"{tasks[0]}.json").read_text())
+    proto = first.get("protocol", "")
+    parts = [
+        _WORKED_CSS,
+        f"<p>One real extraction run on TSE poll <code>{esc(proto)}</code> "
+        "(Ilhabela, SP — Instituto Paraná), showing exactly what each politica "
+        "LLM extractor sends and gets back. For every extractor: the verbatim "
+        "<b>system</b> and <b>user</b> messages, the <b>JSON schema</b> sent to "
+        "the model, the <b>example input document</b>, and the <b>real output</b>. "
+        "Model: <code>gpt-4o-mini</code> with Structured Outputs. Prompts are read "
+        "live from <code>source/llm/prompts/</code>; the schema, input and output "
+        "are pinned to this run.</p>",
+        '<ul class="link-list">' + "".join(
+            f'<li><a href="#{t}">{esc(_json.loads((data_dir/f"{t}.json").read_text()).get("title", t))}</a></li>'
+            for t in tasks) + "</ul>",
+    ]
+    for t in tasks:
+        d = _json.loads((data_dir / f"{t}.json").read_text())
+        stem = d.get("prompt_stem", "")
+        sys_txt = (prompts_dir / f"{stem}_system.txt").read_text(encoding="utf-8").rstrip("\n")
+        user_txt = (prompts_dir / f"{stem}_user.txt").read_text(encoding="utf-8").rstrip("\n")
+        usage = d.get("usage") or {}
+        comp = usage.get("completion_tokens", "?")
+        out_json = _json.dumps(d.get("output"), ensure_ascii=False, indent=2)
+        parts.append(
+            f'<div class="we-sec" id="{t}"><h2>{esc(d.get("title", t))}</h2>'
+            f'<p class="we-meta">Source: <code>{esc(d.get("input_source",""))}</code> '
+            f'&middot; schema <code>{esc(d.get("schema_class",""))}</code> '
+            f'(<a href="../../source/llm/schemas.html">schemas.py</a>) '
+            f'&middot; prompts: '
+            f'<a href="../../source/llm/prompts/{stem}_system.html">system</a> / '
+            f'<a href="../../source/llm/prompts/{stem}_user.html">user</a> '
+            f'&middot; output <b>{"valid" if d.get("valid") else "INVALID"}</b> '
+            f'&middot; completion_tokens {esc(comp)}</p>'
+            f'<h3>1 &middot; System message (verbatim)</h3>{block(sys_txt)}'
+            f'<h3>2 &middot; User message template (verbatim)</h3>'
+            f'<p class="we-meta">The <code>{{...}}</code> placeholders are filled per poll; '
+            f'the document placeholder is filled with the example input below.</p>{block(user_txt)}'
+            f'<h3>3 &middot; JSON schema sent to the API</h3>{block(d.get("schema_json",""))}'
+            f'<h3>4 &middot; Example input document</h3>{block(d.get("input_doc",""))}'
+            f'<h3>5 &middot; Real v2 output</h3>{block(out_json)}'
+            f'</div>'
+        )
+
+    template = read_template(ctx.config, "doc.html")
+    # Lives two levels deep (source/llm/worked-example.html) so the "LLM prompts"
+    # group links and the prompt/schema cross-links share one prefix.
+    out_dir = ctx.site_dir / "source" / "llm"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    prefix = "../../"
+    page = template.replace("<!-- INJECT_TITLE -->", "LLM extraction — worked example")
+    page = page.replace("<!-- INJECT_CONTENT -->", "".join(parts))
+    page = inject_nav(page, ctx, prefix=prefix, active="")
+    (out_dir / "worked-example.html").write_text(page, encoding="utf-8")
+    print(f"  source/llm/worked-example.html ({len(tasks)} extractors)")
+    return {
+        "extra_docs_info": [{
+            "category": "LLM prompts",
+            "title": "LLM extraction — worked example",
+            "stem": "llm-worked-example",
+            "href": "source/llm/worked-example.html",
+        }]
+    }
+
+
 config = SiteConfig(
     project_root=PROJECT_ROOT,
     project_title="politica",
@@ -184,6 +295,7 @@ config = SiteConfig(
     extra_nav_css=(
         ".md-body pre { white-space: pre-wrap; overflow-wrap: anywhere; }"
     ),
-    # Render the LLM extraction prompts (plain .txt) as browsable pages.
-    hooks=[_render_prompt_pages],
+    # Render the LLM extraction prompts (plain .txt) as browsable pages, and a
+    # worked-example page (one real run: prompts + schema + input + output).
+    hooks=[_render_prompt_pages, _render_worked_example],
 )
