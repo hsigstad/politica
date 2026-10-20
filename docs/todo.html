@@ -251,7 +251,28 @@ document.addEventListener('click', function() {
 <main>
 <div class="md-body">
 <h1>TODOs</h1>
+<h2 id="deferred-only-if-we-re-run-frozen-extractors">Deferred — only if we re-run frozen extractors</h2>
+<p>These universe-scaled extractors are frozen (see decisions.md &quot;Frozen
+universe-scaled extractors stay frozen for this paper&quot;). Apply these fixes
+ONLY on a deliberate re-run; they are not worth a re-run on their own.</p>
 <ul>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled/><strong>poll_coverage v2 — apply no-LLM-counts / no-derivable-booleans</strong></p>
+<ul>
+<li><code>n_neighborhoods_or_districts</code> = len(neighborhoods_listed) → drop</li>
+<li><code>coverage_to_be_complemented</code> ≈ coverage_class==deferred_complement → drop</li>
+<li>overlap among <code>coverage_field_substantive</code> / <code>rural_included</code> /
+<code>rural_excluded_explicitly</code> → consolidate/drop the derivable ones</li>
+<li>created: 2026-10-20</li>
+</ul>
+</li>
+<li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled/><strong>poll_relatorio — enum-ify <code>Scenario.scenario_type</code></strong></p>
+<ul>
+<li>replace the free string with the canonical ScenarioType vocabulary
+(crosswalk in decisions.md &quot;Scenario-type vocabulary …&quot;); removes the
+drift risk in the only free-string scenario-type field.</li>
+<li>created: 2026-10-20</li>
+</ul>
+</li>
 <li class="task-list-item"><p><input class="task-list-item-checkbox" type="checkbox" disabled/><strong>Publish the 2024 poll relatório README alongside the mirrored artifacts</strong></p>
 <ul>
 <li>source: <code>docs/reference/poll_relatorio_2024.md</code></li>
