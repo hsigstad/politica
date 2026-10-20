@@ -1521,7 +1521,9 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
   &quot;correction_method&quot;: &quot;&quot;,
   &quot;text_truncated&quot;: false,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 501</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured coverage information from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing the bairros / localidades / setores censitários where the poll was actually conducted.
+}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 120</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract the raw bairro/localidade list from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing the bairros / localidades / setores censitários where the poll was actually conducted.
+
+Extract ONLY faithful facts parseable from the PDF — the bairro list, setor codes, distritos, and counts. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from bairro names here.
 
 The PDFs come from many different pollsters and follow different formats:
 
@@ -1544,9 +1546,7 @@ The PDFs come from many different pollsters and follow different formats:
 
 5. **&quot;PESQUISA NÃO REALIZADA&quot; stamp** (PDF text is just this phrase or similar):
    - Set pesquisa_realized=false
-   - coverage_class_resolved=not_realized
-   - All lists empty
-   - n_*_total = 0
+   - All lists empty, n_*_total = 0
    - Skip all other extraction
 
 6. **Per-interview setor microdata** (one row per questionnaire, no bairro names):
@@ -1556,41 +1556,22 @@ The PDFs come from many different pollsters and follow different formats:
    - distritos_listed gets the unique distrito names.
    - n_setores_total = count of unique setor codes.
    - setor_codes_sample = up to 10 example setor codes.
-   - coverage_class_resolved based on distrito naming (&quot;Distrito X urbano&quot; → urban_only).
-
-### Coverage class resolution rules
-
-Use the actual bairro list to classify:
-
-- **full_municipality**: list spans MOST major bairros of the city AND includes rural districts / assentamentos / zona rural.
-- **urban_only**: bairros are all within the urban perimeter; no rural / distrito-rural / assentamento.
-- **urban_plus_selected_rural**: mostly urban bairros + a few rural / distrital additions (typical of mid-size munis).
-- **specific_neighborhoods**: small subset (typically &lt;10) of bairros, not a coverage of the municipality.
-- **rural_only**: only assentamentos / rural districts. Rare.
-- **cross_municipal**: bairros span multiple municípios (rare).
-- **not_realized**: only when pesquisa_realized=false.
-- **other**: doesn&#x27;t fit cleanly.
-- **unclear**: PDF is illegible / OCR-failure / image-only.
-
-If you cannot tell whether a listed name is urban or rural from context, default to **rural_included=false** rather than guessing. Bairros with names like &quot;Distrito de X&quot;, &quot;Assentamento Y&quot;, &quot;Zona Rural&quot;, &quot;Comunidade Z&quot; are clearly rural. &quot;Centro&quot;, &quot;Vila&quot;, &quot;Jardim&quot;, &quot;Conjunto Habitacional&quot; are urban.
 
 ### Extraction rules
 
 - **bairros**: deduplicate (same bairro name across multiple setores → one entry). Cap at 50 entries (HARD LIMIT). If more, populate the top 50 by n_entrevistas (descending), and put the true total in `n_bairros_total`. NEVER exceed 50 entries — the output token budget cannot fit more.
 - **n_entrevistas**: report the per-bairro count. For regional structure with &quot;Total Região N&quot;, report the bairro-level count, NOT the region total.
-- **distritos_listed**: populate when the PDF uses distrito/região headings (e.g. &quot;Distrito Campos Elíseos&quot;, &quot;REGIÃO 1&quot;). Empty for flat lists.
-- **setor_codes_sample**: only populate when IBGE setor codes (12-15 digit numeric strings) are explicitly listed (QUAEST-style). Up to 10 codes. `n_setores_total` carries the full count.
-- **rural_included**: true if any listed bairro is rural-coded.
-- **rural_explicit**: true only when the PDF text states rural inclusion (&quot;inclui zona rural&quot;, &quot;abrange rural e urbana&quot;). Stricter than rural_included.
+- **distrito** (per bairro) / **distritos_listed**: populate when the PDF uses distrito/região headings (e.g. &quot;Distrito Campos Elíseos&quot;, &quot;REGIÃO 1&quot;). Empty for flat lists.
+- **regional_structure**: true when the PDF organizes bairros by REGIÃO / Distrito; false for flat lists.
+- **setor_codes_sample**: ALWAYS capture IBGE setor codes (12-15 digit numeric strings) whenever the PDF prints them — up to 10 examples. These key deterministic urban/rural + coverage classification downstream, so do not skip them. `n_setores_total` carries the full count. Empty only when no setor codes appear.
 - **total_interviews_distributed**: sum of bairro-level n_entrevistas if reported. Should approximately match the poll&#x27;s QT_ENTREVISTADO. 0 if not reported.
 
 ### Output rules
 
 - Strict JSON matching the supplied schema.
-- not_realized PDFs: only set pesquisa_realized=false + coverage_class_resolved=not_realized + extraction_notes; all other fields use defaults (empty lists, 0, false).
+- not_realized PDFs: set pesquisa_realized=false + extraction_notes; all other fields use defaults (empty lists, 0).
 - All bairro names in Portuguese, verbatim (preserve capitalization as written).
-- Quotes in coverage_class_evidence are 1-2 sentences, Portuguese, verbatim from the PDF.
-- Don&#x27;t speculate beyond what the text supports.</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">TSE poll {protocol} (município {municipality}, UF {uf}, institute {institute}).
+- Don&#x27;t speculate beyond what the text supports. Flag illegible / image-only / OCR-failure PDFs in extraction_notes.</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">TSE poll {protocol} (município {municipality}, UF {uf}, institute {institute}).
 Bairro/município detail PDF, extracted text:
 
 ---
@@ -1598,7 +1579,7 @@ Bairro/município detail PDF, extracted text:
 ---
 
 Extract the structured coverage detail per the schema. Remember:
-- PESQUISA NÃO REALIZADA → pesquisa_realized=false, coverage_class_resolved=not_realized, skip the rest.
+- PESQUISA NÃO REALIZADA → pesquisa_realized=false, empty lists, counts 0, skip the rest.
 - Cap bairros at 100; report total in n_bairros_total.
 - setor codes only if the PDF lists 12+ digit IBGE codes.
 - For regional structure (RJ-style), set regional_structure=true and populate distritos_listed.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
@@ -1643,39 +1624,14 @@ Extract the structured coverage detail per the schema. Remember:
       ],
       &quot;title&quot;: &quot;BairroEntry&quot;,
       &quot;type&quot;: &quot;object&quot;
-    },
-    &quot;CoverageClassResolved&quot;: {
-      &quot;enum&quot;: [
-        &quot;full_municipality&quot;,
-        &quot;urban_only&quot;,
-        &quot;urban_plus_selected_rural&quot;,
-        &quot;specific_neighborhoods&quot;,
-        &quot;rural_only&quot;,
-        &quot;cross_municipal&quot;,
-        &quot;not_realized&quot;,
-        &quot;other&quot;,
-        &quot;unclear&quot;
-      ],
-      &quot;title&quot;: &quot;CoverageClassResolved&quot;,
-      &quot;type&quot;: &quot;string&quot;
     }
   },
-  &quot;description&quot;: &quot;Coverage detail from per-poll bairro/município complement PDF.&quot;,
+  &quot;description&quot;: &quot;Raw bairro/localidade list from the per-poll bairro/município PDF.\n\nv2: extracts ONLY faithful facts parseable from the messy PDF layouts —\nthe bairro list (name + count + distrito), setor codes, and totals.\nCoverage class and rural inclusion are NOT inferred here (v1 did, from\nbairro name strings); they are derived downstream from matched IBGE setor\nsituacao + an electorate-coverage ratio. See docs/decisions.md.&quot;,
   &quot;properties&quot;: {
     &quot;pesquisa_realized&quot;: {
-      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is the &#x27;PESQUISA NÃO REALIZADA&#x27; stamp (poll was cancelled). When false, all other fields default to empty/zero/unclear.&quot;,
+      &quot;description&quot;: &quot;True normally. False ONLY when the PDF is the &#x27;PESQUISA NÃO REALIZADA&#x27; stamp (poll was cancelled). When false, all other fields default to empty/zero.&quot;,
       &quot;title&quot;: &quot;Pesquisa Realized&quot;,
       &quot;type&quot;: &quot;boolean&quot;
-    },
-    &quot;coverage_class_resolved&quot;: {
-      &quot;$ref&quot;: &quot;#/$defs/CoverageClassResolved&quot;,
-      &quot;description&quot;: &quot;Final coverage classification from the actual bairro list. full_municipality if the list spans the major bairros of the city + rural districts; urban_only if no rural is named; specific_neighborhoods if only a small subset; not_realized if pesquisa_realized is false.&quot;
-    },
-    &quot;coverage_class_evidence&quot;: {
-      &quot;default&quot;: &quot;&quot;,
-      &quot;description&quot;: &quot;1-2 sentence quote or paraphrase from the PDF supporting the classification.&quot;,
-      &quot;title&quot;: &quot;Coverage Class Evidence&quot;,
-      &quot;type&quot;: &quot;string&quot;
     },
     &quot;bairros&quot;: {
       &quot;description&quot;: &quot;All bairros / localidades listed in the PDF, deduplicated. HARD CAP at 50 entries (token budget). If more, populate the top 50 by n_entrevistas descending and record the true total in n_bairros_total. NEVER exceed 50. Empty list when the PDF is setor-microdata only with no bairro names.&quot;,
@@ -1705,7 +1661,7 @@ Extract the structured coverage detail per the schema. Remember:
       &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;setor_codes_sample&quot;: {
-      &quot;description&quot;: &quot;Up to 10 example IBGE setor censitário codes if the PDF lists them (typically 12-15 digits). Empty for most pollsters; populated for QUAEST-style PDFs.&quot;,
+      &quot;description&quot;: &quot;IBGE setor censitário codes (12-15 digit numeric strings) when the PDF prints them — up to 10 examples. ALWAYS capture these when present: they key deterministic urban/rural + coverage classification downstream. Empty only when the PDF lists no setor codes. n_setores_total carries the full count.&quot;,
       &quot;items&quot;: {
         &quot;type&quot;: &quot;string&quot;
       },
@@ -1714,19 +1670,9 @@ Extract the structured coverage detail per the schema. Remember:
     },
     &quot;n_setores_total&quot;: {
       &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Total setor codes in the PDF; 0 if not listed.&quot;,
+      &quot;description&quot;: &quot;Total distinct setor codes in the PDF; 0 if none listed.&quot;,
       &quot;title&quot;: &quot;N Setores Total&quot;,
       &quot;type&quot;: &quot;integer&quot;
-    },
-    &quot;rural_included&quot;: {
-      &quot;description&quot;: &quot;True if any rural bairro / assentamento / distrito is in the list.&quot;,
-      &quot;title&quot;: &quot;Rural Included&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
-    },
-    &quot;rural_explicit&quot;: {
-      &quot;description&quot;: &quot;True only if the PDF explicitly states rural inclusion (e.g., &#x27;inclui zona rural&#x27;).&quot;,
-      &quot;title&quot;: &quot;Rural Explicit&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
     },
     &quot;total_interviews_distributed&quot;: {
       &quot;default&quot;: 0,
@@ -1743,10 +1689,7 @@ Extract the structured coverage detail per the schema. Remember:
   },
   &quot;required&quot;: [
     &quot;pesquisa_realized&quot;,
-    &quot;coverage_class_resolved&quot;,
-    &quot;regional_structure&quot;,
-    &quot;rural_included&quot;,
-    &quot;rural_explicit&quot;
+    &quot;regional_structure&quot;
   ],
   &quot;title&quot;: &quot;PollBairroDetail&quot;,
   &quot;type&quot;: &quot;object&quot;
@@ -1898,73 +1841,9 @@ DIVISÃO DAS AMOSTRAS EM ILHABELA - SP POR SETORES CENSITÁRIOS:
 352040015000004: 5 entrevistas
 352040015000012: 15 entrevistas</pre><h3>5 &middot; Real v2 output</h3><pre class="we-block">{
   &quot;pesquisa_realized&quot;: true,
-  &quot;coverage_class_resolved&quot;: &quot;urban_only&quot;,
-  &quot;coverage_class_evidence&quot;: &quot;A amostra é representativa dos eleitores das áreas pesquisadas e foi selecionada em duas etapas.&quot;,
-  &quot;bairros&quot;: [
-    {
-      &quot;name&quot;: &quot;Centro&quot;,
-      &quot;n_entrevistas&quot;: 100,
-      &quot;distrito&quot;: &quot;Centro&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Curral&quot;,
-      &quot;n_entrevistas&quot;: 80,
-      &quot;distrito&quot;: &quot;Praia do Curral&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Julião&quot;,
-      &quot;n_entrevistas&quot;: 70,
-      &quot;distrito&quot;: &quot;Praia do Julião&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Viana&quot;,
-      &quot;n_entrevistas&quot;: 60,
-      &quot;distrito&quot;: &quot;Praia do Viana&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Bonete&quot;,
-      &quot;n_entrevistas&quot;: 50,
-      &quot;distrito&quot;: &quot;Praia do Bonete&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia da Feiticeira&quot;,
-      &quot;n_entrevistas&quot;: 40,
-      &quot;distrito&quot;: &quot;Praia da Feiticeira&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Jabaquara&quot;,
-      &quot;n_entrevistas&quot;: 30,
-      &quot;distrito&quot;: &quot;Praia do Jabaquara&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Indaiá&quot;,
-      &quot;n_entrevistas&quot;: 20,
-      &quot;distrito&quot;: &quot;Praia do Indaiá&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Perequê&quot;,
-      &quot;n_entrevistas&quot;: 10,
-      &quot;distrito&quot;: &quot;Praia do Perequê&quot;
-    },
-    {
-      &quot;name&quot;: &quot;Praia do Saco da Capela&quot;,
-      &quot;n_entrevistas&quot;: 5,
-      &quot;distrito&quot;: &quot;Praia do Saco da Capela&quot;
-    }
-  ],
-  &quot;n_bairros_total&quot;: 10,
-  &quot;distritos_listed&quot;: [
-    &quot;Centro&quot;,
-    &quot;Praia do Curral&quot;,
-    &quot;Praia do Julião&quot;,
-    &quot;Praia do Viana&quot;,
-    &quot;Praia do Bonete&quot;,
-    &quot;Praia da Feiticeira&quot;,
-    &quot;Praia do Jabaquara&quot;,
-    &quot;Praia do Indaiá&quot;,
-    &quot;Praia do Perequê&quot;,
-    &quot;Praia do Saco da Capela&quot;
-  ],
+  &quot;bairros&quot;: [],
+  &quot;n_bairros_total&quot;: 0,
+  &quot;distritos_listed&quot;: [],
   &quot;regional_structure&quot;: false,
   &quot;setor_codes_sample&quot;: [
     &quot;352040005000001&quot;,
@@ -1978,9 +1857,7 @@ DIVISÃO DAS AMOSTRAS EM ILHABELA - SP POR SETORES CENSITÁRIOS:
     &quot;352040005000018&quot;,
     &quot;352040005000019&quot;
   ],
-  &quot;n_setores_total&quot;: 50,
-  &quot;rural_included&quot;: false,
-  &quot;rural_explicit&quot;: false,
+  &quot;n_setores_total&quot;: 40,
   &quot;total_interviews_distributed&quot;: 700,
   &quot;extraction_notes&quot;: &quot;&quot;
 }</pre></div>

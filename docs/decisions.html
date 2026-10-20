@@ -251,6 +251,38 @@ document.addEventListener('click', function() {
 <main>
 <div class="md-body">
 <h1>Decisions</h1>
+<h2 id="2026-10-20-poll-bairro-detail-v2-strip-inferred-coverage-rural-keep-the-raw-list">2026-10-20 — poll_bairro_detail v2: strip inferred coverage/rural, keep the raw list</h2>
+<p><strong>Decision:</strong> Before the (unscaled) bairro universe run, drop the four
+LLM-inferred fields from <code>poll_bairro_detail</code> — <code>coverage_class_resolved</code>,
+<code>coverage_class_evidence</code>, <code>rural_included</code>, <code>rural_explicit</code> (and the
+now-orphaned <code>CoverageClassResolved</code> enum). Keep only faithful facts the
+LLM can parse from the messy PDF layouts: <code>pesquisa_realized</code>, <code>bairros</code>
+(name + n_entrevistas + distrito), <code>n_bairros_total</code>, <code>distritos_listed</code>,
+<code>regional_structure</code>, <code>setor_codes_sample</code>, <code>n_setores_total</code>,
+<code>total_interviews_distributed</code>, <code>extraction_notes</code>. The prompt now also
+instructs the model to ALWAYS capture IBGE setor codes when the PDF prints
+them. Schema bumped v1 → v2.</p>
+<p><strong>Why:</strong> same extract-raw-derive-downstream principle as the questionnaire
+v2 rework. Coverage class and rural inclusion were inferred from bairro
+NAME STRINGS — subjective and hard to audit. They are better derived
+downstream, grounded in real geography: matched IBGE setor <code>situacao</code>
+(urbano/rural) + an electorate-coverage ratio (sampled-bairro electorate /
+município electorate), reusing the bairro→seção→electorate join. If a rural
+guess is ever wanted for name-only PDFs, that is a SEPARATE optional
+downstream LLM pass, deliberately NOT baked into this extraction.</p>
+<p><strong>Consumers:</strong> the only consumer of the dropped fields is poll-sponsor-bias
+(<code>curated_pairs_assemble.py</code>, <code>pilot_bairro_detail.py</code>,
+<code>_secao_oversampling_scope.py</code>, AN-107 coverage mechanism). politica itself
+has no clean/assembly consumer of <code>bairro_detail</code>. The poll-sponsor-bias
+session owns rebuilding the downstream coverage derivation (setor situacao</p>
+<ul>
+<li>electorate ratio, consuming territorio read-only) so stripping the
+extractor does not strand AN-107.</li>
+</ul>
+<p><strong>Touched files:</strong> <code>source/llm/schemas.py</code>,
+<code>source/llm/prompts/poll_bairro_detail_{system,user}.txt</code>. The worked-
+example page's bairro section (<code>source/site/worked_example/bairro_detail.json</code>)
+still shows the v1 shape until the bairro extractor is re-run.</p>
 <h2 id="2026-10-20-scenario-type-vocabulary-is-fragmented-across-three-poll-extractions-crosswalk-forward-plan">2026-10-20 — Scenario-type vocabulary is fragmented across three poll extractions (crosswalk + forward plan)</h2>
 <p><strong>Decision:</strong> Do NOT re-extract already-scaled tasks to harmonize the
 scenario/question-type vocabulary. <code>poll_relatorio</code> ran on the universe
