@@ -2373,11 +2373,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <a id="L-781" name="L-781"></a>
 <a id="L-782" name="L-782"></a><span class="sd">    Carries whatever identifiers the PDF gives that row — any of a bairro</span>
 <a id="L-783" name="L-783"></a><span class="sd">    name, an IBGE setor code, a distrito — plus its interview count. One</span>
-<a id="L-784" name="L-784"></a><span class="sd">    unified row grain across all PDF formats: name-tabular PDFs fill `name`;</span>
-<a id="L-785" name="L-785"></a><span class="sd">    QUAEST/setor PDFs fill `setor_code`; some fill both. Downstream matches</span>
-<a id="L-786" name="L-786"></a><span class="sd">    on whichever identifier is present.</span>
+<a id="L-784" name="L-784"></a><span class="sd">    unified row grain across all PDF formats: name-tabular PDFs fill</span>
+<a id="L-785" name="L-785"></a><span class="sd">    `bairro_name`; QUAEST/setor PDFs fill `setor_code`; some fill both.</span>
+<a id="L-786" name="L-786"></a><span class="sd">    Downstream matches on whichever identifier is present.</span>
 <a id="L-787" name="L-787"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="L-788" name="L-788"></a>    <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+<a id="L-788" name="L-788"></a>    <span class="n">bairro_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
 <a id="L-789" name="L-789"></a>        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <a id="L-790" name="L-790"></a>        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
 <a id="L-791" name="L-791"></a>            <span class="s2">&quot;Bairro / localidade name, verbatim, if the row names one. &quot;</span>
@@ -2425,7 +2425,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <a id="L-833" name="L-833"></a><span class="sd">    distritos). See docs/decisions.md.</span>
 <a id="L-834" name="L-834"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="L-835" name="L-835"></a>    <span class="n">schema_name</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;poll_bairro_detail&quot;</span>
-<a id="L-836" name="L-836"></a>    <span class="n">schema_version</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;v4&quot;</span>
+<a id="L-836" name="L-836"></a>    <span class="n">schema_version</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;v5&quot;</span>
 <a id="L-837" name="L-837"></a>
 <a id="L-838" name="L-838"></a>    <span class="n">pesquisa_realized</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
 <a id="L-839" name="L-839"></a>        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
@@ -2440,7 +2440,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <a id="L-848" name="L-848"></a>        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
 <a id="L-849" name="L-849"></a>            <span class="s2">&quot;Every DISTINCT geographic allocation unit the PDF lists, in &quot;</span>
 <a id="L-850" name="L-850"></a>            <span class="s2">&quot;printed order, each with the identifiers that row carries &quot;</span>
-<a id="L-851" name="L-851"></a>            <span class="s2">&quot;(name / setor_code / distrito / n_entrevistas). Dedup to the &quot;</span>
+<a id="L-851" name="L-851"></a>            <span class="s2">&quot;(bairro_name / setor_code / distrito / n_entrevistas). Dedup to the &quot;</span>
 <a id="L-852" name="L-852"></a>            <span class="s2">&quot;finest printed unit: for per-interview setor microdata, emit &quot;</span>
 <a id="L-853" name="L-853"></a>            <span class="s2">&quot;one unit per distinct setor with its interview count (NOT one &quot;</span>
 <a id="L-854" name="L-854"></a>            <span class="s2">&quot;row per interview). HARD CAP 80 units (token budget); if the &quot;</span>
