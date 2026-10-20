@@ -1,5 +1,67 @@
 # Decisions
 
+## 2026-10-20 — Scenario-type vocabulary is fragmented across three poll extractions (crosswalk + forward plan)
+
+**Decision:** Do NOT re-extract already-scaled tasks to harmonize the
+scenario/question-type vocabulary. `poll_relatorio` ran on the universe
+(`build/llm/poll_relatorio_2024.parquet`) and `poll_coverage` ran on the
+full 14,876-poll universe, so under the freeze rule (never touch a prompt
+already run on the universe) their schemas stay as-is. Instead we record
+the crosswalk here and adopt a single canonical vocabulary only in (a)
+not-yet-scaled tasks going forward and (b) `poll_relatorio` *if and when*
+it is re-extracted for an independent reason.
+
+**Why:** The same concept (a vote-intention / approval / rejection
+scenario) is encoded three incompatible ways, which forces any
+cross-task consumer to hand-reconcile:
+
+- `poll_questionario.QuestionType` (enum): `estimulada`, `espontanea`,
+  `avaliacao`, `rejeicao`, `party`, `demographic`, `issue`, `screener`,
+  `other`, `unclear`. Source: questionnaire PDF (actual instrument).
+- `poll_operations.ScenarioType` (enum): `estimulado`, `espontaneo`,
+  `segundo_turno`, `rejeicao`, `avaliacao_governo`, `votos_validos`,
+  `rejeicao_estimulada`, `other`. Source: DS_METODOLOGIA narrative.
+- `poll_relatorio.Scenario.scenario_type` (FREE STRING — drift risk):
+  `espontaneo`, `estimulado`, `votos_validos`, `rejeicao`,
+  `avaliacao_governo`, `segundo_turno_simulacao`, `outro`. Source:
+  relatório PDF (reported numbers). **This one is frozen.**
+
+Spelling (`estimulada`/`estimulado`), granularity, and the free-string
+form all differ. The vocabularies also carve approval differently:
+questionnaire `avaliacao` is candidate/incumbent approval in general,
+whereas operations/relatório split out `avaliacao_governo` (government
+approval) specifically — a consumer merging them must treat
+`avaliacao` as the superset. Questionnaire has no `segundo_turno` type:
+a second-round estimulada is just another `estimulada` block.
+
+**Canonical crosswalk** (target vocabulary ← each source's values):
+
+| canonical | questionario | operations | relatorio (frozen) |
+|---|---|---|---|
+| `estimulada` (closed-list vote intention) | estimulada | estimulado | estimulado |
+| `espontanea` (open vote intention) | espontanea | espontaneo | espontaneo |
+| `segundo_turno` | (an estimulada block) | segundo_turno | segundo_turno_simulacao |
+| `rejeicao` | rejeicao | rejeicao / rejeicao_estimulada | rejeicao |
+| `avaliacao_candidato` | avaliacao (superset) | — | — |
+| `avaliacao_governo` | avaliacao (superset) | avaliacao_governo | avaliacao_governo |
+| `votos_validos` | (derived from a scenario) | votos_validos | votos_validos |
+| `party` | party | — | — |
+| `demographic`/`issue`/`screener` | demographic/issue/screener | — | — |
+| `other`/`unclear` | other/unclear | other | outro |
+
+**Forward plan (no re-extraction now):**
+
+- Consumers joining across tasks map through the table above; treat
+  questionnaire `avaliacao` as `{avaliacao_candidato, avaliacao_governo}`.
+- A shared `ScenarioType` enum is NOT introduced as code yet because the
+  only free-string offender (`poll_relatorio`) is frozen; `questionario`
+  and `operations` already use enums. When `poll_relatorio` is next
+  re-run, enum-ify `scenario_type` against the canonical column and the
+  harmonization lands for free.
+
+**Touched files:** none (documentation only; crosswalk is advisory for
+downstream consumers).
+
 ## 2026-05-28 — Poll pipeline (scrape + LLM extract + clean) consolidated here
 
 **Decision:** The TSE poll acquisition + cleaning chain lives here in

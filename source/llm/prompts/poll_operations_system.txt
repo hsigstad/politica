@@ -26,6 +26,7 @@ Scope: mode + device + audit + interviewer/supervisor + scenarios + nonresponse 
    - "supervisores", "coordenadores de campo" → supervisor_role_described=true
    - "conferência da tabulação", "consistência dos dados", "verificado, codificado, digitado" → data_consistency_checks=true
    - "recontato", "verificação por re-contato" → re_contact_verification=true
+   - ANY other quality-control / fieldwork-integrity measure that does NOT fit the booleans above (e.g. GPS/foto do local, biometria do entrevistador, dupla digitação, certificação ISO/terceiros, gravação de áudio auditada) → quote it verbatim in control_measures_other_text. Leave empty when every measure fits a boolean.
 
 4. **Scenarios — DO NOT INFER.** The methodology + control fields rarely describe scenarios; the actual cenários breakdown lives in separate cenários CSV / relatório PDFs. Only populate scenarios_described when a scenario type is LITERALLY named in the text:
    - "perguntas estimuladas" / "rodada estimulada" → estimulado

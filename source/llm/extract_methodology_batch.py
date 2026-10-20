@@ -1,3 +1,10 @@
+# INTENT: run the politica poll-methodology LLM extractions over the full poll
+# universe via the OpenAI Batch API (one JSONL of requests per task), writing
+# llmkit-format cache files the sync wrappers can reuse.
+# REASONING: the Batch API is half-price with a 24h SLA — the right fit for
+# ~14k polls x N tasks, where the synchronous path would take ~95h.
+# ASSUMES: BASE_DIR points at the politica repo; per-task wrapper modules
+# (poll_sampling, ..., poll_weighting) expose SYSTEM_PROMPT/USER_TEMPLATE/schema.
 """Batch-API version of extract_methodology.py.
 
 The synchronous version takes ~10s per LLM call (gpt-4o-mini with
@@ -57,9 +64,10 @@ import poll_coverage
 import poll_operations
 import poll_bairro_detail
 import poll_questionario
+import poll_weighting
 from schemas import (
     PollSampling, PollCoverage, PollOperations,
-    PollBairroDetail, PollQuestionario,
+    PollBairroDetail, PollQuestionario, PollWeighting,
 )
 
 # Same short-circuit logic as the sync orchestrator.
@@ -164,6 +172,27 @@ def _operations_user_prompt(row, _text, template):
     )
 
 
+def _weighting_text(row, max_chars):
+    a = _truncate(str(row.get("DS_METODOLOGIA_PESQUISA") or ""), max_chars)
+    b = _truncate(str(row.get("DS_PLANO_AMOSTRAL") or ""), max_chars)
+    c = _truncate(str(row.get("DS_SISTEMA_CONTROLE") or ""), max_chars)
+    return a + "\n\n" + b + "\n\n" + c
+
+
+def _weighting_user_prompt(row, _text, template):
+    a = _truncate(str(row.get("DS_METODOLOGIA_PESQUISA") or ""), poll_weighting.MAX_TEXT_CHARS)
+    b = _truncate(str(row.get("DS_PLANO_AMOSTRAL") or ""), poll_weighting.MAX_TEXT_CHARS)
+    c = _truncate(str(row.get("DS_SISTEMA_CONTROLE") or ""), poll_weighting.MAX_TEXT_CHARS)
+    return template.format(
+        protocol=str(row["NR_PROTOCOLO_REGISTRO"]),
+        uf=str(row["SG_UF"]),
+        institute=str(row.get("NM_EMPRESA") or ""),
+        ds_metodologia=a,
+        ds_plano_amostral=b,
+        ds_sistema_controle=c,
+    )
+
+
 def _protocol(row): return str(row["NR_PROTOCOLO_REGISTRO"])
 
 
@@ -265,6 +294,13 @@ TASKS = [
     TaskSpec("operations", poll_operations, PollOperations,
              build_text=_operations_text,
              build_user_prompt=_operations_user_prompt,
+             build_doc_id=_protocol),
+    # poll_weighting runs in the SAME universe batch as sampling so the
+    # income analyses (Panel B renda_low, AN-146/147, weighting interaction)
+    # extract once — it reads the same three DS_* registration fields.
+    TaskSpec("weighting", poll_weighting, PollWeighting,
+             build_text=_weighting_text,
+             build_user_prompt=_weighting_user_prompt,
              build_doc_id=_protocol),
     TaskSpec("bairro_detail", poll_bairro_detail, PollBairroDetail,
              build_text=_bairro_text,

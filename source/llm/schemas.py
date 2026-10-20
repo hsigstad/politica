@@ -1,3 +1,9 @@
+# INTENT: define the Pydantic output schemas for every politica LLM extraction
+# task; each ExtractionSchema subclass is the authoritative field inventory for
+# one system/user prompt pair under source/llm/prompts/ and one extractor module.
+# REASONING: keeping the schemas in one module lets llmkit validate structured
+# output per task and lets the site render a single schema source page.
+# ASSUMES: llmkit.ExtractionSchema provides the base (schema_name/version ClassVars).
 """Pydantic schemas for politica LLM extractions.
 
 Tasks:
@@ -717,6 +723,21 @@ class PollOperations(ExtractionSchema):
     supervisor_role_described: bool = Field(
         description="True if a field supervisor role (separate from interviewer) is described."
     )
+    control_measures_other_text: str = Field(
+        default="",
+        description=(
+            "Escape hatch for the fixed audit/control booleans above: "
+            "any quality-control or fieldwork-integrity measure the text "
+            "describes that does NOT fit training / consistency-check / "
+            "re-contact / supervisor / audit-pct. Verbatim or close "
+            "paraphrase, Portuguese. Examples: GPS/photo proof of "
+            "interview, biometric interviewer check-in, double data "
+            "entry, third-party certification/ISO, call-center recording "
+            "review. Empty when every described measure fits a boolean. "
+            "This keeps the raw control detail for consumers whose "
+            "question the boolean menu doesn't anticipate."
+        ),
+    )
 
     # Funding mention (cross-task — often appears in DS_METODOLOGIA)
     funding_source_mentioned: bool = Field(
@@ -895,8 +916,9 @@ class PollBairroDetail(ExtractionSchema):
 class QuestionType(str, Enum):
     estimulada = "estimulada"          # candidate names shown to respondent
     espontanea = "espontanea"          # spontaneous, no names shown
-    avaliacao = "avaliacao"            # approval/rejection (Bom/Ruim, etc.)
+    avaliacao = "avaliacao"            # approval/evaluation (Bom/Ruim, Ótimo/Péssimo)
     rejeicao = "rejeicao"              # explicit "never vote for" question
+    party = "party"                    # party-preference question (which party, not candidate)
     demographic = "demographic"         # sex/age/education/income/race
     issue = "issue"                    # issue / agenda question
     screener = "screener"              # eligibility / quota screener
@@ -916,8 +938,24 @@ class CandidateOrder(str, Enum):
 
 
 class QuestionnaireScenario(BaseModel):
-    """One scenario / question block from the questionnaire PDF."""
+    """One question block from the questionnaire PDF, in filing order.
 
+    This models EVERY block in the instrument — not only vote-intention
+    scenarios but also approval/rejection, party-preference, issue,
+    screener and demographic blocks — so the downstream analysis can
+    reconstruct question ordering and priming structure (e.g. an approval
+    or rejection item placed BEFORE the first estimulada). The order and
+    `position` of blocks is load-bearing; never reorder them.
+    """
+
+    position: int = Field(
+        description=(
+            "1-based filing order of this block in the instrument "
+            "(1 = first question printed). MUST reflect the true printed "
+            "order; this is what lets the analysis test whether an "
+            "approval/rejection item precedes the first estimulada."
+        )
+    )
     label: str = Field(
         description=(
             "The exact label or number used in the PDF, verbatim. "
@@ -940,17 +978,36 @@ class QuestionnaireScenario(BaseModel):
     candidates_listed: list[str] = Field(
         default_factory=list,
         description=(
-            "Candidate / option names as listed in the PDF, in the "
-            "order they appear. Up to 15 entries. Preserve original "
-            "capitalization. Empty when the scenario is not a vote-"
-            "intention question (e.g. demographic / approval / issue)."
+            "VOTE-INTENTION ROSTER ONLY: candidate / option names as "
+            "listed in the PDF, in the order they appear. Up to 15 "
+            "entries. Preserve original capitalization. Populate for "
+            "`estimulada` scenarios (the closed list shown to the "
+            "respondent). Leave empty for every other question_type — "
+            "use `subject_candidates` to record who an approval / "
+            "rejection / issue question is ABOUT."
         ),
     )
     n_candidates_listed: int = Field(
         default=0,
         description=(
-            "Total candidates / options in the scenario; equals "
+            "Total candidates / options in the roster; equals "
             "len(candidates_listed) unless truncated past the 15 cap."
+        ),
+    )
+    subject_candidates: list[str] = Field(
+        default_factory=list,
+        description=(
+            "WHO THIS QUESTION IS ABOUT, when it targets specific "
+            "candidate(s) but is NOT a vote-intention roster. Populate "
+            "for `avaliacao` (the candidate(s) being rated), `rejeicao` "
+            "(the candidate(s) named in a 'nunca votaria em X' item, if "
+            "named rather than open), and `issue` items that name a "
+            "candidate. Verbatim names, preserve capitalization. Empty "
+            "for estimulada/espontanea (use candidates_listed), party, "
+            "demographic and screener blocks. This is the primitive that "
+            "lets the analysis match the item against the sponsor / the "
+            "sponsor's opponent — do NOT judge sponsorship here, just "
+            "record the names the PDF states."
         ),
     )
     candidate_order: CandidateOrder = Field(
@@ -975,14 +1032,21 @@ class QuestionnaireScenario(BaseModel):
 class PollQuestionario(ExtractionSchema):
     """Survey-instrument extraction from `questionario_pesquisa` PDF.
 
-    Targets the levers the registration narrative cannot reach:
-    name-order priming, multiple-scenario filing, candidate-roster
-    composition, and any procedural notes on undecided/nonresponse
-    handling printed inside the questionnaire.
+    The core output is `scenarios`: the COMPLETE, ORDERED transcript of
+    every question block in the instrument (vote-intention, approval,
+    rejection, party, issue, screener, demographic), in true filing
+    order. Presence flags, counts, and priming diagnostics are NOT
+    extracted as separate judgments — they are derived downstream from
+    this ordered transcript crossed with sponsor identity. In
+    particular, Fernando's priming hypothesis (an approval item about
+    the sponsor's candidate, or a rejection item about an opponent,
+    placed BEFORE the first estimulada) is a predicate over
+    `position` + `question_type` + `subject_candidates`, computed in the
+    Panel-B analysis — not here.
     """
 
     schema_name: ClassVar[str] = "poll_questionario"
-    schema_version: ClassVar[str] = "v1"
+    schema_version: ClassVar[str] = "v2"
 
     pesquisa_realized: bool = Field(
         description=(
@@ -992,68 +1056,52 @@ class PollQuestionario(ExtractionSchema):
         )
     )
 
-    n_scenarios_total: int = Field(
-        default=0,
-        description=(
-            "Total number of vote-intention scenarios "
-            "(estimulada / espontanea) in the questionnaire. May "
-            "exceed len(scenarios) if truncated; the hard cap on "
-            "scenarios is 12 entries. This excludes approval/rejection/"
-            "demographic blocks."
-        ),
-    )
-    n_vote_intention_scenarios: int = Field(
-        default=0,
-        description=(
-            "Number of distinct vote-intention scenarios "
-            "(estimulada + espontanea), regardless of cap. The key "
-            "diagnostic for 'scenario-selection slant': sponsored "
-            "polls may file >1 estimulada with different rosters."
-        ),
-    )
-    n_estimulada_scenarios: int = Field(
-        default=0,
-        description="Count of `estimulada` (closed-list) scenarios.",
-    )
-    n_espontanea_scenarios: int = Field(
-        default=0,
-        description="Count of `espontanea` (open) scenarios.",
-    )
-
     scenarios: list[QuestionnaireScenario] = Field(
         default_factory=list,
         description=(
-            "All scenarios / questions in the questionnaire, in "
-            "filing order. HARD CAP at 12 entries (token budget). "
-            "If more, prioritize: every vote-intention scenario "
-            "(estimulada + espontanea) first, then approval/"
-            "rejection, then demographics. Always include at least "
-            "the headline (first estimulada) and the first espontanea "
-            "if both present."
+            "The COMPLETE instrument transcript: EVERY question block, "
+            "in true printed (filing) order, each with its 1-based "
+            "`position`. Include vote-intention (estimulada/espontanea), "
+            "approval (avaliacao), rejection (rejeicao), party, issue, "
+            "screener AND demographic blocks — do NOT drop or reorder "
+            "any. NEVER reorder to group by type: the order is the "
+            "signal. Verbosity is tiered to stay within budget: for "
+            "estimulada/avaliacao/rejeicao/party blocks give full "
+            "question_text + candidates_listed / subject_candidates; for "
+            "demographic/screener/issue blocks a one-line question_text "
+            "(or just the label) is enough — but still list them in "
+            "position order. HARD CAP 30 blocks: if the instrument is "
+            "longer, keep the first 30 IN ORDER (never skip ahead) and "
+            "note the truncation in extraction_notes."
         ),
     )
 
+    n_vote_intention_scenarios: int = Field(
+        default=0,
+        description=(
+            "Full count of distinct vote-intention scenarios "
+            "(estimulada + espontanea) in the instrument, regardless of "
+            "the 30-block cap. The 'scenario-selection slant' diagnostic: "
+            "sponsored polls may file >1 estimulada with different "
+            "rosters. Report the true total even if truncated."
+        ),
+    )
+    first_estimulada_position: int = Field(
+        default=0,
+        description=(
+            "`position` of the FIRST estimulada block (the headline "
+            "vote-intention question). 0 when the instrument has no "
+            "estimulada. This is the cut point for the priming test — "
+            "any approval/rejection block with a smaller position comes "
+            "BEFORE the headline."
+        ),
+    )
     headline_scenario_label: str = Field(
         default="",
         description=(
             "Label of the first / primary `estimulada` scenario — "
             "this is what gets reported as the headline vote-"
             "intention number. Empty when no estimulada present."
-        ),
-    )
-    headline_candidate_order: CandidateOrder = Field(
-        description=(
-            "Candidate-order rule for the headline scenario. "
-            "Replicates that scenario's candidate_order field for "
-            "easy top-level access. 'not_applicable' when no "
-            "headline estimulada exists."
-        )
-    )
-    headline_n_candidates: int = Field(
-        default=0,
-        description=(
-            "n_candidates_listed for the headline scenario. 0 when "
-            "no headline estimulada exists."
         ),
     )
 
@@ -1095,33 +1143,11 @@ class PollQuestionario(ExtractionSchema):
         ),
     )
 
-    approval_question_present: bool = Field(
-        default=False,
-        description=(
-            "True if a candidate / incumbent approval question "
-            "(Bom/Ótimo/Ruim/Péssimo etc.) is in the questionnaire. "
-            "Sponsored polls often include approval to surface a "
-            "favorable narrative even when the headline is close."
-        ),
-    )
-    rejection_question_present: bool = Field(
-        default=False,
-        description=(
-            "True if a 'never vote for' (rejeição) question is "
-            "present. Sponsored polls may omit rejection items to "
-            "avoid surfacing their candidate's rejection score."
-        ),
-    )
-
-    asks_party_first: bool = Field(
-        default=False,
-        description=(
-            "True if the questionnaire asks party preference BEFORE "
-            "the candidate-name vote-intention question. Primes "
-            "party identification and is a documented priming "
-            "lever in the survey-methods literature."
-        ),
-    )
+    # NOTE: approval_question_present, rejection_question_present and
+    # asks_party_first were removed in v2. They are now DERIVED from the
+    # ordered `scenarios` transcript (presence = any block of that type;
+    # asks_party_first = position(party) < first_estimulada_position),
+    # which also recovers directionality + ordering the booleans discarded.
 
     extraction_notes: str = Field(
         default="",
@@ -1189,9 +1215,25 @@ class PollWeighting(ExtractionSchema):
     variables_weighted: list[str] = Field(
         default_factory=list,
         description=(
-            "Variables that get re-weighted. Use lowercase short tokens: "
-            "sex, age, education, income, region, race. Empty list if not described."
+            "Variables EFFECTIVELY re-weighted. Use lowercase short tokens: "
+            "sex, age, education, income, region, race. EXCLUDE any variable "
+            "the text explicitly leaves unweighted (fator = 1, 'resultados "
+            "obtidos no campo', 'sem ponderação para X') — merely naming a "
+            "variable in the weighting sentence is NOT enough. Empty list if "
+            "not described."
         )
+    )
+    variables_explicitly_unweighted: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Variables the text EXPLICITLY declares left unweighted "
+            "(fator de ponderação = 1, 'resultados obtidos no campo', 'sem "
+            "ponderação'). Lowercase tokens (sex, age, education, income, "
+            "region, race). Empty if none. This is the mechanism-honest "
+            "lever: a variable here is deliberately NOT corrected, which is "
+            "distinct from a variable simply not mentioned — downstream the "
+            "income lever is live wherever income is unweighted."
+        ),
     )
     target: WeightingTarget = Field(
         description=(
