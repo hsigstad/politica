@@ -1,5 +1,23 @@
 # TODOs
 
+## Deferred — only if we re-run frozen extractors
+
+These universe-scaled extractors are frozen (see decisions.md "Frozen
+universe-scaled extractors stay frozen for this paper"). Apply these fixes
+ONLY on a deliberate re-run; they are not worth a re-run on their own.
+
+- [ ] **poll_coverage v2 — apply no-LLM-counts / no-derivable-booleans**
+  - `n_neighborhoods_or_districts` = len(neighborhoods_listed) → drop
+  - `coverage_to_be_complemented` ≈ coverage_class==deferred_complement → drop
+  - overlap among `coverage_field_substantive` / `rural_included` /
+    `rural_excluded_explicitly` → consolidate/drop the derivable ones
+  - created: 2026-10-20
+- [ ] **poll_relatorio — enum-ify `Scenario.scenario_type`**
+  - replace the free string with the canonical ScenarioType vocabulary
+    (crosswalk in decisions.md "Scenario-type vocabulary …"); removes the
+    drift risk in the only free-string scenario-type field.
+  - created: 2026-10-20
+
 - [ ] **Publish the 2024 poll relatório README alongside the mirrored artifacts**
   - source: `docs/reference/poll_relatorio_2024.md`
   - action: copy it to the external mirror next to

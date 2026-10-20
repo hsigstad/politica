@@ -35,22 +35,19 @@ n_units_total 80-vs-49 case) and redundant; derivable booleans invite drift.
 Audited by the poll-sponsor-bias session before the dev run. All three are
 unscaled, so this costs no re-extraction.
 
-## Frozen-extractor fix backlog (apply ONLY if/when a frozen extractor is re-run)
+## 2026-10-20 — Frozen universe-scaled extractors stay frozen for this paper
 
-These extractors already ran at universe scale, so their prompts are FROZEN
-(touching them would strand prior results + force a costly re-run). Record
-wanted fixes here so they are not lost; apply them only on a deliberate re-run.
+**Decision:** The already-run universe-scale extractors (`poll_coverage` at
+14,876 polls; `poll_relatorio`) are FROZEN — we will NOT re-run them for this
+paper.
 
-- **poll_coverage** (universe-scaled, 14,876): apply the no-LLM-counts /
-  no-derivable-booleans principle to a future coverage v2 —
-  `n_neighborhoods_or_districts` (= len(neighborhoods_listed)),
-  `coverage_to_be_complemented` (≈ coverage_class==deferred_complement), and
-  the overlap among `coverage_field_substantive` / `rural_included` /
-  `rural_excluded_explicitly` are all derivable or redundant and should be
-  dropped/consolidated.
-- **poll_relatorio** (universe-scaled; `build/llm/poll_relatorio_2024.parquet`):
-  enum-ify the free-string `Scenario.scenario_type` against the canonical
-  vocabulary (see the scenario-type crosswalk entry below).
+**Why:** re-running the universe is costly, and the known field-quality
+issues in their schemas (LLM-counted totals, derivable booleans, the
+free-string relatório `scenario_type`) are NOT load-bearing — the fields the
+analyses actually consume are sound, so the gain from fixing them is cosmetic
+and would strand the prior results. The concrete fixes to apply IF a re-run
+ever happens for an independent reason are a conditional backlog, logged in
+`docs/todo.md` ("Deferred — only if we re-run frozen extractors"), not here.
 
 ## 2026-10-20 — poll_bairro_detail v2→v4: strip inferred coverage/rural, collapse to one raw `units` row list, drop LLM-computed totals
 
