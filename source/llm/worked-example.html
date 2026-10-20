@@ -972,7 +972,7 @@ Extract the sampling design fields per the schema. Remember:
       &quot;type&quot;: &quot;string&quot;
     }
   },
-  &quot;description&quot;: &quot;Sampling design + sample size + quotas + population reference,\nextracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA.\n\nv2: dropped the derivable booleans is_probability_sample (derive from\nsample_design_class / selection_within_cluster) and is_quota_sample\n(derive from quota_variables non-empty). quota_variables is KEPT — it\ncarries the income-quota signal when the text names a quota dimension\nwithout printing its percentages (quota_distributions skips those), so\nit is NOT redundant with quota_distributions.&quot;,
+  &quot;description&quot;: &quot;Sampling design + sample size + quotas + population reference,\nextracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA.\n\nv2: dropped the derivable booleans is_probability_sample (derive from\nsample_design_class / selection_within_cluster) and is_quota_sample\n(derive from quota_distributions non-empty), and quota_variables (the\nquota-dimension set = {d.variable for d in quota_distributions}). The\ndev set confirmed quota_variables is ~99.8% redundant: of 536 polls only\n1 named a quota dimension (income) without printing its bins, and that\ncase cannot feed the income-skew lever anyway (no bins → no skew).&quot;,
   &quot;properties&quot;: {
     &quot;sample_design_class&quot;: {
       &quot;$ref&quot;: &quot;#/$defs/SampleDesignClass&quot;,
@@ -1055,14 +1055,6 @@ Extract the sampling design fields per the schema. Remember:
       &quot;description&quot;: &quot;What population assumption underlies the MoE computation, in 1 short phrase. Example: &#x27;amostra aleatória simples&#x27;, &#x27;população infinita&#x27;, &#x27;eleitorado de Feijó AC&#x27;.&quot;,
       &quot;title&quot;: &quot;Population Assumed For Moe&quot;,
       &quot;type&quot;: &quot;string&quot;
-    },
-    &quot;quota_variables&quot;: {
-      &quot;description&quot;: &quot;Every quota dimension the text says is USED — including dimensions named WITHOUT a percentage distribution (those are absent from quota_distributions). Superset of the variables in quota_distributions. This is where an income quota declared without printed bins still shows up, so do not omit a named quota dimension just because its percentages are missing.&quot;,
-      &quot;items&quot;: {
-        &quot;$ref&quot;: &quot;#/$defs/QuotaVariable&quot;
-      },
-      &quot;title&quot;: &quot;Quota Variables&quot;,
-      &quot;type&quot;: &quot;array&quot;
     },
     &quot;quota_distributions&quot;: {
       &quot;description&quot;: &quot;Per-variable distribution. Populate one entry per quota dimension stated with percentages. Skip dimensions where only the variable is named without a distribution.&quot;,
@@ -1199,12 +1191,6 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
   &quot;margin_of_error_pp&quot;: 3.8,
   &quot;confidence_level_pct&quot;: 95.0,
   &quot;population_assumed_for_moe&quot;: &quot;amostra aleatória simples&quot;,
-  &quot;quota_variables&quot;: [
-    &quot;sex&quot;,
-    &quot;age&quot;,
-    &quot;education&quot;,
-    &quot;income&quot;
-  ],
   &quot;quota_distributions&quot;: [
     {
       &quot;variable&quot;: &quot;sex&quot;,
