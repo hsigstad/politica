@@ -251,17 +251,31 @@ document.addEventListener('click', function() {
 <main>
 <div class="md-body">
 <h1>Decisions</h1>
-<h2 id="2026-10-20-poll-bairro-detail-v2-strip-inferred-coverage-rural-keep-the-raw-list">2026-10-20 — poll_bairro_detail v2: strip inferred coverage/rural, keep the raw list</h2>
-<p><strong>Decision:</strong> Before the (unscaled) bairro universe run, drop the four
+<h2 id="2026-10-20-poll-bairro-detail-v2-v3-strip-inferred-coverage-rural-then-collapse-to-one-raw-units-row-list">2026-10-20 — poll_bairro_detail v2→v3: strip inferred coverage/rural, then collapse to one raw <code>units</code> row list</h2>
+<p><strong>Decision:</strong> Before the (unscaled) bairro universe run, (v2) drop the four
 LLM-inferred fields from <code>poll_bairro_detail</code> — <code>coverage_class_resolved</code>,
 <code>coverage_class_evidence</code>, <code>rural_included</code>, <code>rural_explicit</code> (and the
-now-orphaned <code>CoverageClassResolved</code> enum). Keep only faithful facts the
-LLM can parse from the messy PDF layouts: <code>pesquisa_realized</code>, <code>bairros</code>
-(name + n_entrevistas + distrito), <code>n_bairros_total</code>, <code>distritos_listed</code>,
-<code>regional_structure</code>, <code>setor_codes_sample</code>, <code>n_setores_total</code>,
-<code>total_interviews_distributed</code>, <code>extraction_notes</code>. The prompt now also
-instructs the model to ALWAYS capture IBGE setor codes when the PDF prints
-them. Schema bumped v1 → v2.</p>
+now-orphaned <code>CoverageClassResolved</code> enum); then (v3) replace the
+two-parallel-field design (<code>bairros</code> names list + lossy 10-item
+<code>setor_codes_sample</code> + <code>n_bairros_total</code>/<code>n_setores_total</code>/
+<code>distritos_listed</code>/<code>regional_structure</code>) with ONE faithful list, <code>units</code>:
+one <code>CoverageUnit</code> per distinct geographic allocation unit the PDF prints,
+each carrying whatever identifiers that row shows (<code>name</code> / <code>setor_code</code> /
+<code>distrito</code> / <code>n_entrevistas</code>). Final v3 shape: <code>pesquisa_realized</code>, <code>units</code>,
+<code>n_units_total</code>, <code>total_interviews_distributed</code>, <code>extraction_notes</code>. Schema
+v1 → v3.</p>
+<p><strong>Why v3 on top of v2:</strong> v2 still violated &quot;extract what is in the raw, no
+more no less&quot; in two ways — <code>setor_codes_sample</code> was a lossy 10-item
+<em>sample</em> (with the real count hidden in <code>n_setores_total</code>), and splitting
+names from codes into parallel lists destroyed the row-level
+name↔setor↔count linkage. The single <code>units</code> grain preserves the linkage,
+drops nothing (cap raised to 80 with a truncation-proof <code>n_units_total</code>),
+and lets <code>distritos_listed</code> / <code>regional_structure</code> go (both derivable from
+the units). One judgment call: for per-interview setor microdata the model
+dedups to one unit per DISTINCT setor with its interview count, rather than
+transcribing one row per interview — still the raw allocation, not an
+inference. The prompt instructs ALWAYS capturing IBGE setor codes when
+printed (the deterministic urban/rural key downstream).</p>
 <p><strong>Why:</strong> same extract-raw-derive-downstream principle as the questionnaire
 v2 rework. Coverage class and rural inclusion were inferred from bairro
 NAME STRINGS — subjective and hard to audit. They are better derived

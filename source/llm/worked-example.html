@@ -1521,56 +1521,34 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
   &quot;correction_method&quot;: &quot;&quot;,
   &quot;text_truncated&quot;: false,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 120</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract the raw bairro/localidade list from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing the bairros / localidades / setores censitários where the poll was actually conducted.
+}</pre></div><div class="we-sec" id="bairro_detail"><h2>Bairro/coverage detail (bairro_municipio PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_bairro_municipio.pdf</code> &middot; schema <code>PollBairroDetail</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_bairro_detail_system.html">system</a> / <a href="../../source/llm/prompts/poll_bairro_detail_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1404</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract the raw geographic allocation list from a Brazilian electoral-poll &quot;bairro/município detail&quot; PDF. These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° as the complement to DS_DADO_MUNICIPIO, listing where the poll was actually conducted.
 
-Extract ONLY faithful facts parseable from the PDF — the bairro list, setor codes, distritos, and counts. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from bairro names here.
+Extract exactly what the PDF lists — no more, no less. The output is ONE list, `units`: one entry per DISTINCT geographic allocation unit the PDF prints, each carrying whatever identifiers that row shows — a bairro name, an IBGE setor code, a distrito, an interview count. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from names here.
 
-The PDFs come from many different pollsters and follow different formats:
+The PDFs come from many pollsters and follow different formats — all map onto the same `units` list:
 
-1. **QUAEST-style tabular with IBGE setor codes**:
-   `Código | Distrito | Bairro/localidade | N entrevistas`
-   - 12+ digit setor codes (e.g. 120040105000004)
-   - Bairros repeat across multiple setores
-   - Distrito column populated
-
-2. **Standard bairros × n_entrevistas table**:
-   `BAIRRO | AMOSTRAS` or similar; flat list with interview counts.
-
-3. **Regional structure (RJ-style)**:
-   `REGIÃO 1 (34,0%) | Distrito Campos Elíseos | bairros &amp; counts | Total Região 1: 272`
-   - Bairros nested under REGIÃO and Distrito headings
-   - Set regional_structure=true; populate distritos_listed
-
-4. **Narrative bairro list**:
-   &quot;Bairro X: N entrevistas, Bairro Y: M entrevistas, ...&quot;
-
-5. **&quot;PESQUISA NÃO REALIZADA&quot; stamp** (PDF text is just this phrase or similar):
-   - Set pesquisa_realized=false
-   - All lists empty, n_*_total = 0
-   - Skip all other extraction
-
-6. **Per-interview setor microdata** (one row per questionnaire, no bairro names):
-   `N° QUESTIONÁRIO | DISTRITO CENSITÁRIO | SETOR CENSITÁRIO`
-   - The PDF lists each interview with its distrito + setor code, no bairros.
-   - bairros stays empty list [].
-   - distritos_listed gets the unique distrito names.
-   - n_setores_total = count of unique setor codes.
-   - setor_codes_sample = up to 10 example setor codes.
+1. **QUAEST-style tabular with IBGE setor codes**: `Código | Distrito | Bairro/localidade | N entrevistas` → each unit has setor_code (+ name + distrito + n_entrevistas as printed).
+2. **Standard bairros × n_entrevistas table**: `BAIRRO | AMOSTRAS` → each unit has name + n_entrevistas, no setor_code.
+3. **Regional structure (RJ-style)**: `REGIÃO 1 | Distrito X | bairros &amp; counts | Total Região 1: 272` → units have name + distrito; use the per-bairro count, NOT the região total.
+4. **Narrative list**: &quot;Bairro X: N entrevistas, ...&quot; → one unit per bairro.
+5. **&quot;PESQUISA NÃO REALIZADA&quot; stamp**: set pesquisa_realized=false, units empty, counts 0, skip the rest.
+6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): DEDUP to one unit per DISTINCT setor, with n_entrevistas = how many interviews fell in that setor. Do NOT emit one unit per interview. name stays null; setor_code + distrito populated.
 
 ### Extraction rules
 
-- **bairros**: deduplicate (same bairro name across multiple setores → one entry). Cap at 50 entries (HARD LIMIT). If more, populate the top 50 by n_entrevistas (descending), and put the true total in `n_bairros_total`. NEVER exceed 50 entries — the output token budget cannot fit more.
-- **n_entrevistas**: report the per-bairro count. For regional structure with &quot;Total Região N&quot;, report the bairro-level count, NOT the region total.
-- **distrito** (per bairro) / **distritos_listed**: populate when the PDF uses distrito/região headings (e.g. &quot;Distrito Campos Elíseos&quot;, &quot;REGIÃO 1&quot;). Empty for flat lists.
-- **regional_structure**: true when the PDF organizes bairros by REGIÃO / Distrito; false for flat lists.
-- **setor_codes_sample**: ALWAYS capture IBGE setor codes (12-15 digit numeric strings) whenever the PDF prints them — up to 10 examples. These key deterministic urban/rural + coverage classification downstream, so do not skip them. `n_setores_total` carries the full count. Empty only when no setor codes appear.
-- **total_interviews_distributed**: sum of bairro-level n_entrevistas if reported. Should approximately match the poll&#x27;s QT_ENTREVISTADO. 0 if not reported.
+- **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and put the true count in `n_units_total`. NEVER exceed 80.
+- **name**: bairro/localidade, verbatim (preserve capitalization). Null for setor-only rows.
+- **setor_code**: the 12-15 digit IBGE setor code, verbatim, whenever the PDF prints one. Capture it every time it appears — it is the deterministic urban/rural key downstream.
+- **distrito**: the distrito/região heading the row sits under, if any. Null for flat lists.
+- **n_entrevistas**: per-unit interview count if stated; null if not.
+- **n_units_total**: true count of distinct units even if `units` was capped at 80.
+- **total_interviews_distributed**: sum of n_entrevistas across all units if reported (should approximate QT_ENTREVISTADO). 0 if counts are not given.
 
 ### Output rules
 
 - Strict JSON matching the supplied schema.
-- not_realized PDFs: set pesquisa_realized=false + extraction_notes; all other fields use defaults (empty lists, 0).
-- All bairro names in Portuguese, verbatim (preserve capitalization as written).
+- not_realized PDFs: pesquisa_realized=false, units empty, counts 0, extraction_notes set.
+- Portuguese verbatim for names (preserve capitalization).
 - Don&#x27;t speculate beyond what the text supports. Flag illegible / image-only / OCR-failure PDFs in extraction_notes.</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">TSE poll {protocol} (município {municipality}, UF {uf}, institute {institute}).
 Bairro/município detail PDF, extracted text:
 
@@ -1578,32 +1556,41 @@ Bairro/município detail PDF, extracted text:
 {pdf_text}
 ---
 
-Extract the structured coverage detail per the schema. Remember:
-- PESQUISA NÃO REALIZADA → pesquisa_realized=false, empty lists, counts 0, skip the rest.
-- Cap bairros at 100; report total in n_bairros_total.
-- setor codes only if the PDF lists 12+ digit IBGE codes.
-- For regional structure (RJ-style), set regional_structure=true and populate distritos_listed.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
+Extract the raw allocation list per the schema. Remember:
+- Output ONE `units` list: one entry per DISTINCT geographic unit the PDF prints, each with whatever identifiers that row shows (name / setor_code / distrito / n_entrevistas). No more, no less than the raw.
+- PESQUISA NÃO REALIZADA → pesquisa_realized=false, units empty, counts 0, skip the rest.
+- Per-interview setor microdata → one unit per DISTINCT setor with its interview count, NOT one unit per interview.
+- Capture setor_code (12-15 digit IBGE) on every row that prints one.
+- HARD CAP 80 units; put the true count in n_units_total.</pre><h3>3 &middot; JSON schema sent to the API</h3><pre class="we-block">{
   &quot;$defs&quot;: {
-    &quot;BairroEntry&quot;: {
-      &quot;description&quot;: &quot;One bairro / localidade entry with optional interview count.&quot;,
+    &quot;CoverageUnit&quot;: {
+      &quot;description&quot;: &quot;One geographic allocation unit (a row) as printed in the PDF.\n\nCarries whatever identifiers the PDF gives that row — any of a bairro\nname, an IBGE setor code, a distrito — plus its interview count. One\nunified row grain across all PDF formats: name-tabular PDFs fill `name`;\nQUAEST/setor PDFs fill `setor_code`; some fill both. Downstream matches\non whichever identifier is present.&quot;,
       &quot;properties&quot;: {
         &quot;name&quot;: {
-          &quot;description&quot;: &quot;Bairro / localidade name, verbatim as written in the PDF.&quot;,
-          &quot;title&quot;: &quot;Name&quot;,
-          &quot;type&quot;: &quot;string&quot;
-        },
-        &quot;n_entrevistas&quot;: {
           &quot;anyOf&quot;: [
             {
-              &quot;type&quot;: &quot;integer&quot;
+              &quot;type&quot;: &quot;string&quot;
             },
             {
               &quot;type&quot;: &quot;null&quot;
             }
           ],
           &quot;default&quot;: null,
-          &quot;description&quot;: &quot;Number of interviews allocated to this bairro, if stated. Null when not reported. For pollsters using regional structure (RJ-style with Total Região), report the per-bairro count, not the region total.&quot;,
-          &quot;title&quot;: &quot;N Entrevistas&quot;
+          &quot;description&quot;: &quot;Bairro / localidade name, verbatim, if the row names one. Null for setor-only rows (e.g. per-interview setor microdata).&quot;,
+          &quot;title&quot;: &quot;Name&quot;
+        },
+        &quot;setor_code&quot;: {
+          &quot;anyOf&quot;: [
+            {
+              &quot;type&quot;: &quot;string&quot;
+            },
+            {
+              &quot;type&quot;: &quot;null&quot;
+            }
+          ],
+          &quot;default&quot;: null,
+          &quot;description&quot;: &quot;IBGE setor censitário code (12-15 digit numeric string) for this row, verbatim, if printed. Null when the row has no setor code. Capture it whenever present — it keys deterministic urban/rural downstream.&quot;,
+          &quot;title&quot;: &quot;Setor Code&quot;
         },
         &quot;distrito&quot;: {
           &quot;anyOf&quot;: [
@@ -1615,68 +1602,51 @@ Extract the structured coverage detail per the schema. Remember:
             }
           ],
           &quot;default&quot;: null,
-          &quot;description&quot;: &quot;Distrito / region the bairro belongs to, if the PDF organizes bairros by distrito (e.g., RJ-style REGIÃO/Distrito structure). Null otherwise.&quot;,
+          &quot;description&quot;: &quot;Distrito / região this row belongs to, if the PDF groups by distrito (e.g. RJ-style REGIÃO/Distrito). Null otherwise.&quot;,
           &quot;title&quot;: &quot;Distrito&quot;
+        },
+        &quot;n_entrevistas&quot;: {
+          &quot;anyOf&quot;: [
+            {
+              &quot;type&quot;: &quot;integer&quot;
+            },
+            {
+              &quot;type&quot;: &quot;null&quot;
+            }
+          ],
+          &quot;default&quot;: null,
+          &quot;description&quot;: &quot;Interviews allocated to this unit, if stated. Null when not reported. For regional layouts with a &#x27;Total Região&#x27; line, report the per-unit count, not the region total.&quot;,
+          &quot;title&quot;: &quot;N Entrevistas&quot;
         }
       },
-      &quot;required&quot;: [
-        &quot;name&quot;
-      ],
-      &quot;title&quot;: &quot;BairroEntry&quot;,
+      &quot;title&quot;: &quot;CoverageUnit&quot;,
       &quot;type&quot;: &quot;object&quot;
     }
   },
-  &quot;description&quot;: &quot;Raw bairro/localidade list from the per-poll bairro/município PDF.\n\nv2: extracts ONLY faithful facts parseable from the messy PDF layouts —\nthe bairro list (name + count + distrito), setor codes, and totals.\nCoverage class and rural inclusion are NOT inferred here (v1 did, from\nbairro name strings); they are derived downstream from matched IBGE setor\nsituacao + an electorate-coverage ratio. See docs/decisions.md.&quot;,
+  &quot;description&quot;: &quot;Raw geographic allocation list from the per-poll bairro/município PDF.\n\nv3: ONE faithful list of the rows as the PDF prints them (`units`), each\ncarrying whatever identifiers appear — bairro name, IBGE setor code,\ndistrito, interview count. No more / no less than the raw: v2&#x27;s split\nbairros-list + lossy 10-item setor_codes_sample is replaced by this\nsingle row grain, which preserves the name&lt;-&gt;setor&lt;-&gt;count linkage and\ndrops nothing. Coverage class / rural / regional-structure / distrito\nlists are NOT stored — all derivable downstream (matched IBGE setor\nsituacao + electorate ratio; set of unit distritos). See docs/decisions.md.&quot;,
   &quot;properties&quot;: {
     &quot;pesquisa_realized&quot;: {
       &quot;description&quot;: &quot;True normally. False ONLY when the PDF is the &#x27;PESQUISA NÃO REALIZADA&#x27; stamp (poll was cancelled). When false, all other fields default to empty/zero.&quot;,
       &quot;title&quot;: &quot;Pesquisa Realized&quot;,
       &quot;type&quot;: &quot;boolean&quot;
     },
-    &quot;bairros&quot;: {
-      &quot;description&quot;: &quot;All bairros / localidades listed in the PDF, deduplicated. HARD CAP at 50 entries (token budget). If more, populate the top 50 by n_entrevistas descending and record the true total in n_bairros_total. NEVER exceed 50. Empty list when the PDF is setor-microdata only with no bairro names.&quot;,
+    &quot;units&quot;: {
+      &quot;description&quot;: &quot;Every DISTINCT geographic allocation unit the PDF lists, in printed order, each with the identifiers that row carries (name / setor_code / distrito / n_entrevistas). Dedup to the finest printed unit: for per-interview setor microdata, emit one unit per distinct setor with its interview count (NOT one row per interview). HARD CAP 80 units (token budget); if more, keep the 80 with the largest n_entrevistas and record the true count in n_units_total. Empty only for a not-realized stamp.&quot;,
       &quot;items&quot;: {
-        &quot;$ref&quot;: &quot;#/$defs/BairroEntry&quot;
+        &quot;$ref&quot;: &quot;#/$defs/CoverageUnit&quot;
       },
-      &quot;title&quot;: &quot;Bairros&quot;,
+      &quot;title&quot;: &quot;Units&quot;,
       &quot;type&quot;: &quot;array&quot;
     },
-    &quot;n_bairros_total&quot;: {
+    &quot;n_units_total&quot;: {
       &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Total distinct bairros listed in the PDF (may exceed len(bairros) if truncated). 0 when no bairros are listed.&quot;,
-      &quot;title&quot;: &quot;N Bairros Total&quot;,
-      &quot;type&quot;: &quot;integer&quot;
-    },
-    &quot;distritos_listed&quot;: {
-      &quot;description&quot;: &quot;Distritos / regiões / administrative subdivisions if the PDF uses them (common in large munis like RJ, SP). Empty if the PDF doesn&#x27;t structure by distrito.&quot;,
-      &quot;items&quot;: {
-        &quot;type&quot;: &quot;string&quot;
-      },
-      &quot;title&quot;: &quot;Distritos Listed&quot;,
-      &quot;type&quot;: &quot;array&quot;
-    },
-    &quot;regional_structure&quot;: {
-      &quot;description&quot;: &quot;True if the PDF organizes bairros by REGIÃO / Distrito (common in RJ, SP). False for flat bairro lists.&quot;,
-      &quot;title&quot;: &quot;Regional Structure&quot;,
-      &quot;type&quot;: &quot;boolean&quot;
-    },
-    &quot;setor_codes_sample&quot;: {
-      &quot;description&quot;: &quot;IBGE setor censitário codes (12-15 digit numeric strings) when the PDF prints them — up to 10 examples. ALWAYS capture these when present: they key deterministic urban/rural + coverage classification downstream. Empty only when the PDF lists no setor codes. n_setores_total carries the full count.&quot;,
-      &quot;items&quot;: {
-        &quot;type&quot;: &quot;string&quot;
-      },
-      &quot;title&quot;: &quot;Setor Codes Sample&quot;,
-      &quot;type&quot;: &quot;array&quot;
-    },
-    &quot;n_setores_total&quot;: {
-      &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Total distinct setor codes in the PDF; 0 if none listed.&quot;,
-      &quot;title&quot;: &quot;N Setores Total&quot;,
+      &quot;description&quot;: &quot;Total distinct allocation units in the PDF (may exceed len(units) if truncated). 0 when none are listed.&quot;,
+      &quot;title&quot;: &quot;N Units Total&quot;,
       &quot;type&quot;: &quot;integer&quot;
     },
     &quot;total_interviews_distributed&quot;: {
       &quot;default&quot;: 0,
-      &quot;description&quot;: &quot;Sum of n_entrevistas across all bairros if reported. 0 if interview counts are not given. Should match the poll&#x27;s QT_ENTREVISTADO when fully reported.&quot;,
+      &quot;description&quot;: &quot;Sum of n_entrevistas across all units if reported. 0 if interview counts are not given. Should match the poll&#x27;s QT_ENTREVISTADO when fully reported.&quot;,
       &quot;title&quot;: &quot;Total Interviews Distributed&quot;,
       &quot;type&quot;: &quot;integer&quot;
     },
@@ -1688,8 +1658,7 @@ Extract the structured coverage detail per the schema. Remember:
     }
   },
   &quot;required&quot;: [
-    &quot;pesquisa_realized&quot;,
-    &quot;regional_structure&quot;
+    &quot;pesquisa_realized&quot;
   ],
   &quot;title&quot;: &quot;PollBairroDetail&quot;,
   &quot;type&quot;: &quot;object&quot;
@@ -1841,23 +1810,303 @@ DIVISÃO DAS AMOSTRAS EM ILHABELA - SP POR SETORES CENSITÁRIOS:
 352040015000004: 5 entrevistas
 352040015000012: 15 entrevistas</pre><h3>5 &middot; Real v2 output</h3><pre class="we-block">{
   &quot;pesquisa_realized&quot;: true,
-  &quot;bairros&quot;: [],
-  &quot;n_bairros_total&quot;: 0,
-  &quot;distritos_listed&quot;: [],
-  &quot;regional_structure&quot;: false,
-  &quot;setor_codes_sample&quot;: [
-    &quot;352040005000001&quot;,
-    &quot;352040005000002&quot;,
-    &quot;352040005000005&quot;,
-    &quot;352040005000007&quot;,
-    &quot;352040005000008&quot;,
-    &quot;352040005000015&quot;,
-    &quot;352040005000016&quot;,
-    &quot;352040005000017&quot;,
-    &quot;352040005000018&quot;,
-    &quot;352040005000019&quot;
+  &quot;units&quot;: [
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000001&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000002&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 14
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000005&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 8
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000007&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000008&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000015&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 25
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000016&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 25
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000017&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 28
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000018&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000019&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 35
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000020&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 30
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000021&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000022&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 30
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000023&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000024&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000025&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 16
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000026&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 16
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000027&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 16
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000028&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000029&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000030&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 25
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000031&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000032&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 35
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000033&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 30
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000034&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 30
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000036&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 16
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000037&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 16
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000038&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 18
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000039&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 5
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000040&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 30
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000041&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000042&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 8
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040005000043&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 10
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000001&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000002&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 6
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000004&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000005&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 15
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000006&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 15
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000007&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000008&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 6
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000009&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000010&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000011&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 8
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000012&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000013&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 7
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000014&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 8
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040010000017&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 15
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040015000004&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 5
+    },
+    {
+      &quot;name&quot;: null,
+      &quot;setor_code&quot;: &quot;352040015000012&quot;,
+      &quot;distrito&quot;: null,
+      &quot;n_entrevistas&quot;: 15
+    }
   ],
-  &quot;n_setores_total&quot;: 40,
+  &quot;n_units_total&quot;: 80,
   &quot;total_interviews_distributed&quot;: 700,
   &quot;extraction_notes&quot;: &quot;&quot;
 }</pre></div>
