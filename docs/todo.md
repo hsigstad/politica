@@ -1,5 +1,22 @@
 # TODOs
 
+- [ ] **Run poll_weighting + poll_operations at universe scale if a later analysis needs them**
+  - dropped from the 2026-10-20 Panel-B universe run (not Panel-B levers:
+    weighting is a robustness flag, operations is methodology QC). Both are
+    unscaled and independent — rebuild their batch request JSONLs
+    (`build --all` regenerates them) and submit; no rework to the others.
+  - weighting matters only for the rare type-B override (income in
+    variables_weighted AND an independent census/TSE target AND
+    post_stratification_explicit); operations' mode field is the likely
+    use (a regression control).
+  - created: 2026-10-20
+- [ ] **Recover the ~24 messy-format bairro polls if coverage fallback is insufficient**
+  - 0.16% of bairro with non-15-digit setor codes / verbose
+    perimeter-description quota tables; no extraction, documented gap.
+    Currently fall back to poll_coverage / DS_DADO_MUNICIPIO. Only worth
+    bespoke parsing if the coverage mechanism needs those specific polls.
+  - created: 2026-10-20
+
 ## Deferred — only if we re-run frozen extractors
 
 These universe-scaled extractors are frozen (see decisions.md "Frozen

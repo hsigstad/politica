@@ -2,6 +2,19 @@
 
 Completed TODOs (moved out of `todo.md` so the active list stays scoped to current work).
 
+- [x] **Poll-methodology universe LLM extraction — sampling + questionario + bairro (2026-10-20)**
+  - Ran the full ~14,876-poll universe via the OpenAI Batch API after a
+    dev-set QC + prompt-hardening pass. Coverage: sampling 14,874,
+    questionario 14,404, bairro 12,919 (per-interview setor microdata
+    parsed deterministically; ~24 messy-format polls a documented 0.16%
+    gap). 0/41,606 requests failed. Income-quota bin-sums 98.6% clean.
+  - Schema versions bumped (sampling v3, questionario v4, bairro v5);
+    extraction stays raw, reductions handled downstream per
+    `docs/reference/poll_extraction_consumption.md` (3 consumption rules).
+  - weighting + operations deliberately NOT run (not Panel-B levers) —
+    see the open todo.
+  - Rationale + the QC-driven schema decisions are in `decisions.md`.
+
 - [x] **Token stopword filter on the candmatch ladder**
   - source: `source/clean/poll_2024.py` (`TOKEN_STOPWORDS` constant,
     `_score_name` token-overlap branch).
