@@ -47,3 +47,7 @@ with >80 bairros are complete (not truncated); the 80 cap binds only setores.
 `poll_coverage` v1 (frozen) · `poll_relatorio` v1 (frozen). The batch build's
 cache skip is version-aware (schema_version + prompt_hash), so re-running
 after a change re-extracts only the changed tasks.
+
+## bairro coverage gap (universe run 2026-10-20)
+
+bairro_detail covers 12,919 polls. ~24 polls (0.16%) with heterogeneous messy layouts (non-15-digit setor codes; verbose quota-perimeter tables that exceed the 16k LLM output ceiling) have NO bairro extraction and are a known gap — fall back to poll_coverage / DS_DADO_MUNICIPIO for those. Per-interview setor-microdata PDFs are parsed deterministically (regex count per distinct setor; _cache_meta.validation_status == deterministic_microdata).

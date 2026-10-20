@@ -28,12 +28,15 @@ MICRODATA_MIN_CODE_OCCURRENCES = 120
 
 
 def looks_like_setor_microdata(text: str) -> bool:
-    """True only for per-interview setor microdata: many code occurrences AND
-    occurrences >= 2x distinct codes (heavy repetition). These are the PDFs the
-    LLM clips on and where occurrence-count == interviews-per-setor is correct."""
-    codes = _SETOR_RE.findall(text or "")
-    n, d = len(codes), len(set(codes))
-    return n >= MICRODATA_MIN_CODE_OCCURRENCES and n >= 2 * d
+    """True for setor-code-heavy PDFs (many 15-digit codes) — per-interview
+    microdata listings. The LLM cannot emit these: >~120 units blows the 16k
+    output ceiling and it clips. So route ANY such PDF to the deterministic
+    occurrence-counter (one unit per distinct setor; n_entrevistas = rows
+    carrying it). We gate on occurrence count alone — an earlier n>=2*distinct
+    gate wrongly sent LOW-repetition listings (many setores, ~1-2 interviews
+    each) to the LLM, where they clipped. The setor SET is always exact; the
+    per-setor count is exact for per-interview rows (the overwhelming case)."""
+    return len(_SETOR_RE.findall(text or "")) >= MICRODATA_MIN_CODE_OCCURRENCES
 
 
 _UNITS_CAP = 80
