@@ -260,7 +260,7 @@ document.addEventListener('click', function() {
 .we-sec{margin-top:1.6rem;padding-top:.6rem;border-top:2px solid var(--border,#d0d7de)}
 @media (prefers-color-scheme:dark){.we-block{background:#161b22}}
 </style>
-<p>One real extraction run on TSE poll <code>SP076792024</code> (Ilhabela, SP — Instituto Paraná), showing exactly what each politica LLM extractor sends and gets back. For every extractor: the verbatim <b>system</b> and <b>user</b> messages, the <b>JSON schema</b> sent to the model, the <b>example input document</b>, and the <b>real output</b>. Model: <code>gpt-4o-mini</code> with Structured Outputs. Prompts are read live from <code>source/llm/prompts/</code>; the schema, input and output are pinned to this run.</p><ul class="link-list"><li><a href="#questionario">Questionnaire (questionario_pesquisa PDF)</a></li><li><a href="#sampling">Sampling design (DS_ registration fields)</a></li><li><a href="#weighting">Post-fielding weighting (DS_ registration fields)</a></li><li><a href="#bairro_detail">Bairro/coverage detail (bairro_municipio PDF)</a></li></ul><div class="we-sec" id="questionario"><h2>Questionnaire (questionario_pesquisa PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_questionario_pesquisa.pdf</code> &middot; schema <code>PollQuestionario</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_questionario_system.html">system</a> / <a href="../../source/llm/prompts/poll_questionario_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1695</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured features from a Brazilian electoral-poll questionnaire PDF (`questionario_pesquisa`). These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° and contain the survey instrument: the printed questions, the candidate roster shown to respondents, and procedural notes for interviewers.
+<p>One real extraction run on TSE poll <code>SP076792024</code> (Ilhabela, SP — Instituto Paraná), showing exactly what each politica LLM extractor sends and gets back. For every extractor: the verbatim <b>system</b> and <b>user</b> messages, the <b>JSON schema</b> sent to the model, the <b>example input document</b>, and the <b>real output</b>. Model: <code>gpt-4o-mini</code> with Structured Outputs. Prompts are read live from <code>source/llm/prompts/</code>; the schema, input and output are pinned to this run.</p><ul class="link-list"><li><a href="#questionario">Questionnaire (questionario_pesquisa PDF)</a></li><li><a href="#sampling">Sampling design (DS_ registration fields)</a></li><li><a href="#weighting">Post-fielding weighting (DS_ registration fields)</a></li><li><a href="#bairro_detail">Bairro/coverage detail (bairro_municipio PDF)</a></li></ul><div class="we-sec" id="questionario"><h2>Questionnaire (questionario_pesquisa PDF)</h2><p class="we-meta">Source: <code>SP076792024_434334_questionario_pesquisa.pdf</code> &middot; schema <code>PollQuestionario</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_questionario_system.html">system</a> / <a href="../../source/llm/prompts/poll_questionario_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 1672</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured features from a Brazilian electoral-poll questionnaire PDF (`questionario_pesquisa`). These PDFs are filed by pollsters per TSE PesqEle Resolution 23.600/2019 §7° and contain the survey instrument: the printed questions, the candidate roster shown to respondents, and procedural notes for interviewers.
 
 ### Your primary job: transcribe the instrument in order
 
@@ -270,7 +270,7 @@ Why order matters: a questionnaire can prime respondents by placing an approval 
 
 ### Classifying each block (question_type)
 
-- `estimulada` — closed-list vote intention: candidate names read/shown to the respondent.
+- `estimulada` — closed-list vote intention: the block ASKS WHO THE RESPONDENT WOULD VOTE FOR **and shows a candidate roster** (names read/listed). BOTH conditions required. Classify by what the question asks + whether a roster is present — NOT by the word &quot;estimulada&quot; appearing in the label. A block merely tagged &quot;(ESTIMULADA)&quot; is NOT estimulada unless it is a vote-intention question with a candidate list. Common MIS-tags to reclassify: a vote-certainty question (&quot;tem certeza do seu voto / já está decidido?&quot;) → `other`; an expectation question (&quot;quem você acha que vai GANHAR?&quot;) → `issue`; a demographic (&quot;Gênero&quot;, &quot;Idade&quot;) → `demographic`; a rejection (&quot;nunca votaria&quot;) → `rejeicao`. If a block says &quot;estimulada&quot; but has no candidate roster and does not ask vote intention, it is NOT estimulada.
 - `espontanea` — open vote intention: who would you vote for, no names offered.
 - `avaliacao` — approval / evaluation of a candidate or incumbent (Bom/Ótimo/Ruim/Péssimo, &quot;aprova/desaprova&quot;).
 - `rejeicao` — explicit &quot;would never vote for&quot; question.
@@ -688,7 +688,13 @@ Verificação:
       &quot;question_type&quot;: &quot;rejeicao&quot;,
       &quot;question_text&quot;: &quot;Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM?&quot;,
       &quot;candidates_listed&quot;: [],
-      &quot;subject_candidates&quot;: [],
+      &quot;subject_candidates&quot;: [
+        &quot;Enfermeira Juliana&quot;,
+        &quot;Diana Almeida&quot;,
+        &quot;Manoel Marcos (Mané)&quot;,
+        &quot;Ronaldo Mariano&quot;,
+        &quot;Toninho Colucci&quot;
+      ],
       &quot;candidate_order&quot;: &quot;not_applicable&quot;
     },
     {
@@ -756,15 +762,6 @@ Verificação:
         &quot;Lula&quot;
       ],
       &quot;candidate_order&quot;: &quot;not_applicable&quot;
-    },
-    {
-      &quot;position&quot;: 18,
-      &quot;label&quot;: &quot;Dados de caracterização&quot;,
-      &quot;question_type&quot;: &quot;other&quot;,
-      &quot;question_text&quot;: &quot;Dados de caracterização&quot;,
-      &quot;candidates_listed&quot;: [],
-      &quot;subject_candidates&quot;: [],
-      &quot;candidate_order&quot;: &quot;not_applicable&quot;
     }
   ],
   &quot;scenarios_truncated&quot;: false,
@@ -773,7 +770,7 @@ Verificação:
   &quot;nonresponse_instruction_present&quot;: false,
   &quot;nonresponse_instruction_text&quot;: &quot;&quot;,
   &quot;extraction_notes&quot;: &quot;&quot;
-}</pre></div><div class="we-sec" id="sampling"><h2>Sampling design (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL</code> &middot; schema <code>PollSampling</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_sampling_system.html">system</a> / <a href="../../source/llm/prompts/poll_sampling_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 660</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured information about a Brazilian electoral-poll sampling design from two free-text fields of the TSE PesqEle registration: DS_METODOLOGIA_PESQUISA (overall methodology, ~230 chars median) and DS_PLANO_AMOSTRAL (detailed sampling plan, ~1,640 chars median).
+}</pre></div><div class="we-sec" id="sampling"><h2>Sampling design (DS_ registration fields)</h2><p class="we-meta">Source: <code>DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL</code> &middot; schema <code>PollSampling</code> (<a href="../../source/llm/schemas.html">schemas.py</a>) &middot; prompts: <a href="../../source/llm/prompts/poll_sampling_system.html">system</a> / <a href="../../source/llm/prompts/poll_sampling_user.html">user</a> &middot; output <b>valid</b> &middot; completion_tokens 647</p><h3>1 &middot; System message (verbatim)</h3><pre class="we-block">You extract structured information about a Brazilian electoral-poll sampling design from two free-text fields of the TSE PesqEle registration: DS_METODOLOGIA_PESQUISA (overall methodology, ~230 chars median) and DS_PLANO_AMOSTRAL (detailed sampling plan, ~1,640 chars median).
 
 Scope of this task (NOT the other two):
 - Sampling design family, stages, clustering, selection-within-cluster
@@ -813,6 +810,12 @@ Do NOT extract here: geographic coverage (separate poll_coverage task), mode / d
    ]
    ```
    Decimals use Portuguese comma — convert to dot. Income labels often include &quot;(até N S.M.)&quot; — keep the bracketed salário-mínimo annotation in the label as written.
+
+   **COUNTS vs PERCENTAGES — critical.** A bin value is either an interview COUNT (people) or a PERCENTAGE. Tell them apart by what they sum to: a variable&#x27;s bins sum to ~100 → PERCENTAGES → put in `bin_percentages`; they sum to ~the sample size n (declared_sample_size) → COUNTS → put in `bin_counts` and leave `bin_percentages=[]`. Example: &quot;RENDA: Até 1 SM (65), 1 a 2 SM (58), 2 a 5 SM (59), + de 5 SM (18)&quot; — these sum to 200 = n, so they are COUNTS → bin_counts=[65,58,59,18], bin_percentages=[]. Do NOT invent or rescale percentages the text does not state. When a bin shows BOTH (count|percent), fill both arrays.
+
+   **CROSS-TABS — extract MARGINALS, not a slice.** If quotas are a joint table (e.g. sex × faixa etária, with a male column and a female column), emit ONE entry per variable whose bins are that variable&#x27;s MARGINAL and sum to ~100 — do NOT copy a single sex&#x27;s column (that sums to ~50). If the text gives only joint cells and no recoverable marginal, record what is stated and flag it in extraction_notes rather than emitting a partial distribution.
+
+   **Sanity:** a `bin_percentages` you emit should sum to ~100 (±a few, rounding). If yours sums far from 100, you have likely mistaken counts for percentages or taken a cross-tab slice — re-check before emitting.
 
 3. **Population reference**: the literal phrase tells you which to pick.
    - &quot;população residente&quot; + IBGE 2022 / &quot;Censo 2022&quot; → census_2022_residents
@@ -1181,8 +1184,8 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
   &quot;sample_design_evidence&quot;: &quot;A amostra será representativa dos eleitores das áreas pesquisadas e será selecionada em duas etapas.&quot;,
   &quot;n_stages&quot;: 2,
   &quot;stage_descriptions&quot;: [
-    &quot;stage 1: sorteio probabilístico das localidades usando PPT&quot;,
-    &quot;stage 2: seleção do entrevistado utilizando quotas amostrais proporcionais&quot;
+    &quot;stage 1: PPT selection of localidades&quot;,
+    &quot;stage 2: quota selection within locality by gender/age/education/income&quot;
   ],
   &quot;cluster_unit&quot;: &quot;bairro&quot;,
   &quot;selection_within_cluster&quot;: &quot;quota&quot;,
@@ -1252,7 +1255,7 @@ Está prevista eventual ponderação para correção das variáveis gênero e fa
     }
   ],
   &quot;population_reference&quot;: &quot;tse_eligible&quot;,
-  &quot;population_reference_evidence&quot;: &quot;a amostra será representativa dos eleitores das áreas pesquisadas&quot;,
+  &quot;population_reference_evidence&quot;: &quot;a amostra representativa do eleitorado do município de Ilhabela-SP&quot;,
   &quot;population_source&quot;: &quot;tse&quot;,
   &quot;census_sectors_used&quot;: true,
   &quot;voter_age_minimum&quot;: 16,
@@ -1280,7 +1283,7 @@ Definições importantes:
 - `variables_weighted`: liste APENAS as variáveis efetivamente re-ponderadas (tokens minúsculos: sex, age, education, income, region, race). EXCLUA qualquer variável que o texto declare explicitamente NÃO ponderada — frases como &quot;o fator de ponderação é igual a 1&quot;, &quot;resultados obtidos no campo&quot;, &quot;sem ponderação para X&quot;. Mencionar uma variável na frase de ponderação NÃO basta; ela só entra se for efetivamente corrigida. Exemplo: &quot;ponderação para gênero e faixa etária; para escolaridade e renda o fator de ponderação é igual a 1&quot; → `variables_weighted = [&quot;sex&quot;,&quot;age&quot;]` (NÃO incluir education nem income).
 - `variables_explicitly_unweighted`: liste as variáveis que o texto explicitamente mantém SEM ponderação (fator = 1, &quot;resultados obtidos no campo&quot;, &quot;sem ponderação&quot;). Mesmos tokens minúsculos. No exemplo acima → `[&quot;education&quot;,&quot;income&quot;]`. Vazio quando nenhuma variável é declarada explicitamente não ponderada. (Isto é diferente de uma variável simplesmente não mencionada.)
 
-Responda no schema PollWeighting. Quando não houver ponderação descrita, marque `application=&quot;not_described&quot;`, listas vazias, e os demais campos com seus valores padrão (o &quot;described&quot; foi removido — ele é derivado de application != not_described).</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">Protocolo: {protocol}
+Responda no schema PollWeighting. Quando não houver ponderação descrita, marque `application=&quot;not_described&quot;`, listas vazias, e os demais campos com seus valores padrão.</pre><h3>2 &middot; User message template (verbatim)</h3><p class="we-meta">The <code>{...}</code> placeholders are filled per poll; the document placeholder is filled with the example input below.</p><pre class="we-block">Protocolo: {protocol}
 UF: {uf}
 Instituto: {institute}
 
@@ -1452,6 +1455,12 @@ As entrevistas serão realizadas por uma equipe de entrevistadores e supervisore
 
 Extract exactly what the PDF lists — no more, no less. The output is ONE list, `units`: one entry per DISTINCT geographic allocation unit the PDF prints, each carrying whatever identifiers that row shows — a bairro name, an IBGE setor code, a distrito, an interview count. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from names here.
 
+### TWO HARD RULES — read before anything else
+
+1. **ONE unit per DISTINCT unit — NEVER repeat a setor_code (or a bairro name).** Many PDFs are *per-interview microdata*: they print one ROW PER QUESTIONNAIRE, so the SAME setor_code appears on dozens of rows. You MUST COLLAPSE those into a SINGLE unit whose `n_entrevistas` is the COUNT of rows for that setor. Emitting one unit per interview row is WRONG — it is the #1 failure, it produces hundreds of duplicate units and the output gets truncated mid-list (data lost). A município has at most a few dozen distinct setores; if your `units` list is longer than ~100 you are failing to dedup. Before emitting a unit, check: have I already emitted this setor_code? If yes, do NOT add it again — increment that setor&#x27;s count instead.
+
+2. **HARD CAP: at most 80 units, ever.** If the distinct units exceed 80, emit only the 80 with the largest `n_entrevistas` and set `units_truncated=true`. NEVER emit more than 80 units under any circumstances — more than 80 will truncate the response and lose everything.
+
 The PDFs come from many pollsters and follow different formats — all map onto the same `units` list:
 
 1. **QUAEST-style tabular with IBGE setor codes**: `Código | Distrito | Bairro/localidade | N entrevistas` → each unit has setor_code (+ bairro_name + distrito + n_entrevistas as printed).
@@ -1459,7 +1468,9 @@ The PDFs come from many pollsters and follow different formats — all map onto 
 3. **Regional structure (RJ-style)**: `REGIÃO 1 | Distrito X | bairros &amp; counts | Total Região 1: 272` → units have bairro_name + distrito; use the per-bairro count, NOT the região total.
 4. **Narrative list**: &quot;Bairro X: N entrevistas, ...&quot; → one unit per bairro.
 5. **&quot;PESQUISA NÃO REALIZADA&quot; stamp**: set pesquisa_realized=false, units empty, counts 0, skip the rest.
-6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): DEDUP to one unit per DISTINCT setor, with n_entrevistas = how many interviews fell in that setor. Do NOT emit one unit per interview. bairro_name stays null; setor_code + distrito populated.
+6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): the DANGER format. COLLAPSE to one unit per DISTINCT setor; n_entrevistas = how many interview rows carry that setor. bairro_name stays null; setor_code + distrito populated. Worked example — input rows:
+   `001 | Centro | 352040005000001` / `002 | Centro | 352040005000001` / `003 | Centro | 352040005000012`
+   → emit TWO units: {setor_code:&quot;352040005000001&quot;, distrito:&quot;Centro&quot;, n_entrevistas:2} and {setor_code:&quot;352040005000012&quot;, distrito:&quot;Centro&quot;, n_entrevistas:1}. NOT three units.
 
 ### Extraction rules
 

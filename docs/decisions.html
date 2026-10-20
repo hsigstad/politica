@@ -280,7 +280,7 @@ structured QT_ENTREVISTADO — a faithful fact, not a derivation) and
 <code>n_stages</code> (can carry info even when stage_descriptions is sparse).</li>
 <li><strong>poll_weighting v1 → v2.</strong> DROP <code>described</code> (= application != not_described).</li>
 </ul>
-<p><strong>Why:</strong> asking the model for exact counts/sums is unreliable (the bairro
+<p><strong>Reason:</strong> asking the model for exact counts/sums is unreliable (the bairro
 n_units_total 80-vs-49 case) and redundant; derivable booleans invite drift.
 Audited by the poll-sponsor-bias session before the dev run. All three are
 unscaled, so this costs no re-extraction.</p>
@@ -288,7 +288,7 @@ unscaled, so this costs no re-extraction.</p>
 <p><strong>Decision:</strong> The already-run universe-scale extractors (<code>poll_coverage</code> at
 14,876 polls; <code>poll_relatorio</code>) are FROZEN — we will NOT re-run them for this
 paper.</p>
-<p><strong>Why:</strong> re-running the universe is costly, and the known field-quality
+<p><strong>Reason:</strong> re-running the universe is costly, and the known field-quality
 issues in their schemas (LLM-counted totals, derivable booleans, the
 free-string relatório <code>scenario_type</code>) are NOT load-bearing — the fields the
 analyses actually consume are sound, so the gain from fixing them is cosmetic
@@ -326,7 +326,7 @@ dedups to one unit per DISTINCT setor with its interview count, rather than
 transcribing one row per interview — still the raw allocation, not an
 inference. The prompt instructs ALWAYS capturing IBGE setor codes when
 printed (the deterministic urban/rural key downstream).</p>
-<p><strong>Why:</strong> same extract-raw-derive-downstream principle as the questionnaire
+<p><strong>Reason:</strong> same extract-raw-derive-downstream principle as the questionnaire
 v2 rework. Coverage class and rural inclusion were inferred from bairro
 NAME STRINGS — subjective and hard to audit. They are better derived
 downstream, grounded in real geography: matched IBGE setor <code>situacao</code>
@@ -356,7 +356,7 @@ already run on the universe) their schemas stay as-is. Instead we record
 the crosswalk here and adopt a single canonical vocabulary only in (a)
 not-yet-scaled tasks going forward and (b) <code>poll_relatorio</code> <em>if and when</em>
 it is re-extracted for an independent reason.</p>
-<p><strong>Why:</strong> The same concept (a vote-intention / approval / rejection
+<p><strong>Reason:</strong> The same concept (a vote-intention / approval / rejection
 scenario) is encoded three incompatible ways, which forces any
 cross-task consumer to hand-reconcile:</p>
 <ul>
