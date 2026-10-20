@@ -6,7 +6,7 @@ Bairro/município detail PDF, extracted text:
 ---
 
 Extract the raw allocation list per the schema. Remember:
-- Output ONE `units` list: one entry per DISTINCT geographic unit the PDF prints, each with whatever identifiers that row shows (name / setor_code / distrito / n_entrevistas). No more, no less than the raw.
+- Output ONE `units` list: one entry per DISTINCT geographic unit the PDF prints, each with whatever identifiers that row shows (bairro_name / setor_code / distrito / n_entrevistas). No more, no less than the raw.
 - PESQUISA NÃO REALIZADA → pesquisa_realized=false, units empty, counts 0, skip the rest.
 - Per-interview setor microdata → one unit per DISTINCT setor with its interview count, NOT one unit per interview.
 - Capture setor_code (12-15 digit IBGE) on every row that prints one.

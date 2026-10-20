@@ -10,7 +10,7 @@ two-parallel-field design (`bairros` names list + lossy 10-item
 `setor_codes_sample` + `n_bairros_total`/`n_setores_total`/
 `distritos_listed`/`regional_structure`) with ONE faithful list, `units`:
 one `CoverageUnit` per distinct geographic allocation unit the PDF prints,
-each carrying whatever identifiers that row shows (`name` / `setor_code` /
+each carrying whatever identifiers that row shows (`bairro_name` / `setor_code` /
 `distrito` / `n_entrevistas`); then (v4) drop the LLM-computed aggregates
 `n_units_total` and `total_interviews_distributed` — asking the model for an
 exact count/sum is unreliable (Ilhabela returned n_units_total=80 while
@@ -18,7 +18,8 @@ listing 49 units) and both are derivable downstream (len(units); sum of
 n_entrevistas). Replace the count's only real job — a truncation signal —
 with a reliable boolean `units_truncated`. Final v4 shape:
 `pesquisa_realized`, `units`, `units_truncated`, `extraction_notes`. Schema
-v1 → v4.
+v1 → v5 (v5 renames the unit's `name` field to `bairro_name` for clarity —
+it holds the bairro, distinct from the coarser `distrito`/região grouping).
 
 **Why v3 on top of v2:** v2 still violated "extract what is in the raw, no
 more no less" in two ways — `setor_codes_sample` was a lossy 10-item

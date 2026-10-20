@@ -4,17 +4,17 @@ Extract exactly what the PDF lists — no more, no less. The output is ONE list,
 
 The PDFs come from many pollsters and follow different formats — all map onto the same `units` list:
 
-1. **QUAEST-style tabular with IBGE setor codes**: `Código | Distrito | Bairro/localidade | N entrevistas` → each unit has setor_code (+ name + distrito + n_entrevistas as printed).
-2. **Standard bairros × n_entrevistas table**: `BAIRRO | AMOSTRAS` → each unit has name + n_entrevistas, no setor_code.
-3. **Regional structure (RJ-style)**: `REGIÃO 1 | Distrito X | bairros & counts | Total Região 1: 272` → units have name + distrito; use the per-bairro count, NOT the região total.
+1. **QUAEST-style tabular with IBGE setor codes**: `Código | Distrito | Bairro/localidade | N entrevistas` → each unit has setor_code (+ bairro_name + distrito + n_entrevistas as printed).
+2. **Standard bairros × n_entrevistas table**: `BAIRRO | AMOSTRAS` → each unit has bairro_name + n_entrevistas, no setor_code.
+3. **Regional structure (RJ-style)**: `REGIÃO 1 | Distrito X | bairros & counts | Total Região 1: 272` → units have bairro_name + distrito; use the per-bairro count, NOT the região total.
 4. **Narrative list**: "Bairro X: N entrevistas, ..." → one unit per bairro.
 5. **"PESQUISA NÃO REALIZADA" stamp**: set pesquisa_realized=false, units empty, counts 0, skip the rest.
-6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): DEDUP to one unit per DISTINCT setor, with n_entrevistas = how many interviews fell in that setor. Do NOT emit one unit per interview. name stays null; setor_code + distrito populated.
+6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): DEDUP to one unit per DISTINCT setor, with n_entrevistas = how many interviews fell in that setor. Do NOT emit one unit per interview. bairro_name stays null; setor_code + distrito populated.
 
 ### Extraction rules
 
 - **units**: one entry per distinct allocation unit, in printed order. Dedup to the finest printed unit (if the same bairro appears across several setores and the PDF prints setores, the setor is the unit; if only bairros are printed, the bairro is the unit). Populate only the identifiers the row actually shows — leave the others null. HARD CAP 80 units (token budget): if the PDF lists more, keep the 80 with the largest n_entrevistas and set `units_truncated=true`. NEVER exceed 80.
-- **name**: bairro/localidade, verbatim (preserve capitalization). Null for setor-only rows.
+- **bairro_name**: bairro/localidade, verbatim (preserve capitalization). Null for setor-only rows.
 - **setor_code**: the 12-15 digit IBGE setor code, verbatim, whenever the PDF prints one. Capture it every time it appears — it is the deterministic urban/rural key downstream.
 - **distrito**: the distrito/região heading the row sits under, if any. Null for flat lists.
 - **n_entrevistas**: per-unit interview count if stated; null if not.

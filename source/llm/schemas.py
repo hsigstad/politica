@@ -781,11 +781,11 @@ class CoverageUnit(BaseModel):
 
     Carries whatever identifiers the PDF gives that row — any of a bairro
     name, an IBGE setor code, a distrito — plus its interview count. One
-    unified row grain across all PDF formats: name-tabular PDFs fill `name`;
-    QUAEST/setor PDFs fill `setor_code`; some fill both. Downstream matches
-    on whichever identifier is present.
+    unified row grain across all PDF formats: name-tabular PDFs fill
+    `bairro_name`; QUAEST/setor PDFs fill `setor_code`; some fill both.
+    Downstream matches on whichever identifier is present.
     """
-    name: Optional[str] = Field(
+    bairro_name: Optional[str] = Field(
         default=None,
         description=(
             "Bairro / localidade name, verbatim, if the row names one. "
@@ -833,7 +833,7 @@ class PollBairroDetail(ExtractionSchema):
     distritos). See docs/decisions.md.
     """
     schema_name: ClassVar[str] = "poll_bairro_detail"
-    schema_version: ClassVar[str] = "v4"
+    schema_version: ClassVar[str] = "v5"
 
     pesquisa_realized: bool = Field(
         description=(
@@ -848,7 +848,7 @@ class PollBairroDetail(ExtractionSchema):
         description=(
             "Every DISTINCT geographic allocation unit the PDF lists, in "
             "printed order, each with the identifiers that row carries "
-            "(name / setor_code / distrito / n_entrevistas). Dedup to the "
+            "(bairro_name / setor_code / distrito / n_entrevistas). Dedup to the "
             "finest printed unit: for per-interview setor microdata, emit "
             "one unit per distinct setor with its interview count (NOT one "
             "row per interview). HARD CAP 80 units (token budget); if the "
