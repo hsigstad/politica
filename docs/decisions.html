@@ -251,6 +251,122 @@ document.addEventListener('click', function() {
 <main>
 <div class="md-body">
 <h1>Decisions</h1>
+<h2 id="2026-10-20-scenario-type-vocabulary-is-fragmented-across-three-poll-extractions-crosswalk-forward-plan">2026-10-20 — Scenario-type vocabulary is fragmented across three poll extractions (crosswalk + forward plan)</h2>
+<p><strong>Decision:</strong> Do NOT re-extract already-scaled tasks to harmonize the
+scenario/question-type vocabulary. <code>poll_relatorio</code> ran on the universe
+(<code>build/llm/poll_relatorio_2024.parquet</code>) and <code>poll_coverage</code> ran on the
+full 14,876-poll universe, so under the freeze rule (never touch a prompt
+already run on the universe) their schemas stay as-is. Instead we record
+the crosswalk here and adopt a single canonical vocabulary only in (a)
+not-yet-scaled tasks going forward and (b) <code>poll_relatorio</code> <em>if and when</em>
+it is re-extracted for an independent reason.</p>
+<p><strong>Why:</strong> The same concept (a vote-intention / approval / rejection
+scenario) is encoded three incompatible ways, which forces any
+cross-task consumer to hand-reconcile:</p>
+<ul>
+<li><code>poll_questionario.QuestionType</code> (enum): <code>estimulada</code>, <code>espontanea</code>,
+<code>avaliacao</code>, <code>rejeicao</code>, <code>party</code>, <code>demographic</code>, <code>issue</code>, <code>screener</code>,
+<code>other</code>, <code>unclear</code>. Source: questionnaire PDF (actual instrument).</li>
+<li><code>poll_operations.ScenarioType</code> (enum): <code>estimulado</code>, <code>espontaneo</code>,
+<code>segundo_turno</code>, <code>rejeicao</code>, <code>avaliacao_governo</code>, <code>votos_validos</code>,
+<code>rejeicao_estimulada</code>, <code>other</code>. Source: DS_METODOLOGIA narrative.</li>
+<li><code>poll_relatorio.Scenario.scenario_type</code> (FREE STRING — drift risk):
+<code>espontaneo</code>, <code>estimulado</code>, <code>votos_validos</code>, <code>rejeicao</code>,
+<code>avaliacao_governo</code>, <code>segundo_turno_simulacao</code>, <code>outro</code>. Source:
+relatório PDF (reported numbers). <strong>This one is frozen.</strong></li>
+</ul>
+<p>Spelling (<code>estimulada</code>/<code>estimulado</code>), granularity, and the free-string
+form all differ. The vocabularies also carve approval differently:
+questionnaire <code>avaliacao</code> is candidate/incumbent approval in general,
+whereas operations/relatório split out <code>avaliacao_governo</code> (government
+approval) specifically — a consumer merging them must treat
+<code>avaliacao</code> as the superset. Questionnaire has no <code>segundo_turno</code> type:
+a second-round estimulada is just another <code>estimulada</code> block.</p>
+<p><strong>Canonical crosswalk</strong> (target vocabulary ← each source's values):</p>
+<table>
+<thead>
+<tr>
+  <th>canonical</th>
+  <th>questionario</th>
+  <th>operations</th>
+  <th>relatorio (frozen)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>estimulada</code> (closed-list vote intention)</td>
+  <td>estimulada</td>
+  <td>estimulado</td>
+  <td>estimulado</td>
+</tr>
+<tr>
+  <td><code>espontanea</code> (open vote intention)</td>
+  <td>espontanea</td>
+  <td>espontaneo</td>
+  <td>espontaneo</td>
+</tr>
+<tr>
+  <td><code>segundo_turno</code></td>
+  <td>(an estimulada block)</td>
+  <td>segundo_turno</td>
+  <td>segundo_turno_simulacao</td>
+</tr>
+<tr>
+  <td><code>rejeicao</code></td>
+  <td>rejeicao</td>
+  <td>rejeicao / rejeicao_estimulada</td>
+  <td>rejeicao</td>
+</tr>
+<tr>
+  <td><code>avaliacao_candidato</code></td>
+  <td>avaliacao (superset)</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>avaliacao_governo</code></td>
+  <td>avaliacao (superset)</td>
+  <td>avaliacao_governo</td>
+  <td>avaliacao_governo</td>
+</tr>
+<tr>
+  <td><code>votos_validos</code></td>
+  <td>(derived from a scenario)</td>
+  <td>votos_validos</td>
+  <td>votos_validos</td>
+</tr>
+<tr>
+  <td><code>party</code></td>
+  <td>party</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>demographic</code>/<code>issue</code>/<code>screener</code></td>
+  <td>demographic/issue/screener</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>other</code>/<code>unclear</code></td>
+  <td>other/unclear</td>
+  <td>other</td>
+  <td>outro</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Forward plan (no re-extraction now):</strong></p>
+<ul>
+<li>Consumers joining across tasks map through the table above; treat
+questionnaire <code>avaliacao</code> as <code>{avaliacao_candidato, avaliacao_governo}</code>.</li>
+<li>A shared <code>ScenarioType</code> enum is NOT introduced as code yet because the
+only free-string offender (<code>poll_relatorio</code>) is frozen; <code>questionario</code>
+and <code>operations</code> already use enums. When <code>poll_relatorio</code> is next
+re-run, enum-ify <code>scenario_type</code> against the canonical column and the
+harmonization lands for free.</li>
+</ul>
+<p><strong>Touched files:</strong> none (documentation only; crosswalk is advisory for
+downstream consumers).</p>
 <h2 id="2026-05-28-poll-pipeline-scrape-llm-extract-clean-consolidated-here">2026-05-28 — Poll pipeline (scrape + LLM extract + clean) consolidated here</h2>
 <p><strong>Decision:</strong> The TSE poll acquisition + cleaning chain lives here in
 <code>source/{scrape,llm,clean}/</code>. Project-specific assembly steps (e.g.
