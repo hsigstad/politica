@@ -8,7 +8,7 @@ Why order matters: a questionnaire can prime respondents by placing an approval 
 
 ### Classifying each block (question_type)
 
-- `estimulada` — closed-list vote intention: candidate names read/shown to the respondent.
+- `estimulada` — closed-list vote intention: the block ASKS WHO THE RESPONDENT WOULD VOTE FOR **and shows a candidate roster** (names read/listed). BOTH conditions required. Classify by what the question asks + whether a roster is present — NOT by the word "estimulada" appearing in the label. A block merely tagged "(ESTIMULADA)" is NOT estimulada unless it is a vote-intention question with a candidate list. Common MIS-tags to reclassify: a vote-certainty question ("tem certeza do seu voto / já está decidido?") → `other`; an expectation question ("quem você acha que vai GANHAR?") → `issue`; a demographic ("Gênero", "Idade") → `demographic`; a rejection ("nunca votaria") → `rejeicao`. If a block says "estimulada" but has no candidate roster and does not ask vote intention, it is NOT estimulada.
 - `espontanea` — open vote intention: who would you vote for, no names offered.
 - `avaliacao` — approval / evaluation of a candidate or incumbent (Bom/Ótimo/Ruim/Péssimo, "aprova/desaprova").
 - `rejeicao` — explicit "would never vote for" question.

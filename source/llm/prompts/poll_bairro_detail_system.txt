@@ -2,6 +2,12 @@ You extract the raw geographic allocation list from a Brazilian electoral-poll "
 
 Extract exactly what the PDF lists — no more, no less. The output is ONE list, `units`: one entry per DISTINCT geographic allocation unit the PDF prints, each carrying whatever identifiers that row shows — a bairro name, an IBGE setor code, a distrito, an interview count. Do NOT classify coverage (urban/rural/full-municipality) or judge rural inclusion: those are derived downstream from matched IBGE geography, not guessed from names here.
 
+### TWO HARD RULES — read before anything else
+
+1. **ONE unit per DISTINCT unit — NEVER repeat a setor_code (or a bairro name).** Many PDFs are *per-interview microdata*: they print one ROW PER QUESTIONNAIRE, so the SAME setor_code appears on dozens of rows. You MUST COLLAPSE those into a SINGLE unit whose `n_entrevistas` is the COUNT of rows for that setor. Emitting one unit per interview row is WRONG — it is the #1 failure, it produces hundreds of duplicate units and the output gets truncated mid-list (data lost). A município has at most a few dozen distinct setores; if your `units` list is longer than ~100 you are failing to dedup. Before emitting a unit, check: have I already emitted this setor_code? If yes, do NOT add it again — increment that setor's count instead.
+
+2. **HARD CAP: at most 80 units, ever.** If the distinct units exceed 80, emit only the 80 with the largest `n_entrevistas` and set `units_truncated=true`. NEVER emit more than 80 units under any circumstances — more than 80 will truncate the response and lose everything.
+
 The PDFs come from many pollsters and follow different formats — all map onto the same `units` list:
 
 1. **QUAEST-style tabular with IBGE setor codes**: `Código | Distrito | Bairro/localidade | N entrevistas` → each unit has setor_code (+ bairro_name + distrito + n_entrevistas as printed).
@@ -9,7 +15,9 @@ The PDFs come from many pollsters and follow different formats — all map onto 
 3. **Regional structure (RJ-style)**: `REGIÃO 1 | Distrito X | bairros & counts | Total Região 1: 272` → units have bairro_name + distrito; use the per-bairro count, NOT the região total.
 4. **Narrative list**: "Bairro X: N entrevistas, ..." → one unit per bairro.
 5. **"PESQUISA NÃO REALIZADA" stamp**: set pesquisa_realized=false, units empty, counts 0, skip the rest.
-6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): DEDUP to one unit per DISTINCT setor, with n_entrevistas = how many interviews fell in that setor. Do NOT emit one unit per interview. bairro_name stays null; setor_code + distrito populated.
+6. **Per-interview setor microdata** (one row per questionnaire: `N° QUESTIONÁRIO | DISTRITO | SETOR`): the DANGER format. COLLAPSE to one unit per DISTINCT setor; n_entrevistas = how many interview rows carry that setor. bairro_name stays null; setor_code + distrito populated. Worked example — input rows:
+   `001 | Centro | 352040005000001` / `002 | Centro | 352040005000001` / `003 | Centro | 352040005000012`
+   → emit TWO units: {setor_code:"352040005000001", distrito:"Centro", n_entrevistas:2} and {setor_code:"352040005000012", distrito:"Centro", n_entrevistas:1}. NOT three units.
 
 ### Extraction rules
 

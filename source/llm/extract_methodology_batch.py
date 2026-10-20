@@ -65,6 +65,7 @@ import poll_operations
 import poll_bairro_detail
 import poll_questionario
 import poll_weighting
+from bairro_deterministic import looks_like_setor_microdata, parse_setor_microdata
 from schemas import (
     PollSampling, PollCoverage, PollOperations,
     PollBairroDetail, PollQuestionario, PollWeighting,
@@ -455,6 +456,19 @@ def cmd_build(n: int | None, seed: int, max_mb: float) -> int:
                 t_hash = text_hash(text)
                 key = task.cache.key(doc_id, t_hash, MODEL, schema_name=task.schema.schema_name)
                 if _cache_is_current(task, key):
+                    n_cached += 1
+                    continue
+                # bairro per-interview setor-microdata: the LLM clips / won't
+                # dedup hundreds of rows — parse deterministically and skip it.
+                if task.name == "bairro_detail" and looks_like_setor_microdata(text):
+                    task.cache.put(
+                        key, parse_setor_microdata(text),
+                        doc_id=doc_id, text_hash=t_hash,
+                        prompt_hash=task.system_prompt_hash, model=MODEL,
+                        schema_name=task.schema.schema_name,
+                        schema_version=task.schema.schema_version,
+                        validation_status="deterministic_microdata",
+                    )
                     n_cached += 1
                     continue
                 req = _build_request(task, row)

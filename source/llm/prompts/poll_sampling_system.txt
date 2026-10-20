@@ -39,6 +39,12 @@ Do NOT extract here: geographic coverage (separate poll_coverage task), mode / d
    ```
    Decimals use Portuguese comma — convert to dot. Income labels often include "(até N S.M.)" — keep the bracketed salário-mínimo annotation in the label as written.
 
+   **COUNTS vs PERCENTAGES — critical.** A bin value is either an interview COUNT (people) or a PERCENTAGE. Tell them apart by what they sum to: a variable's bins sum to ~100 → PERCENTAGES → put in `bin_percentages`; they sum to ~the sample size n (declared_sample_size) → COUNTS → put in `bin_counts` and leave `bin_percentages=[]`. Example: "RENDA: Até 1 SM (65), 1 a 2 SM (58), 2 a 5 SM (59), + de 5 SM (18)" — these sum to 200 = n, so they are COUNTS → bin_counts=[65,58,59,18], bin_percentages=[]. Do NOT invent or rescale percentages the text does not state. When a bin shows BOTH (count|percent), fill both arrays.
+
+   **CROSS-TABS — extract MARGINALS, not a slice.** If quotas are a joint table (e.g. sex × faixa etária, with a male column and a female column), emit ONE entry per variable whose bins are that variable's MARGINAL and sum to ~100 — do NOT copy a single sex's column (that sums to ~50). If the text gives only joint cells and no recoverable marginal, record what is stated and flag it in extraction_notes rather than emitting a partial distribution.
+
+   **Sanity:** a `bin_percentages` you emit should sum to ~100 (±a few, rounding). If yours sums far from 100, you have likely mistaken counts for percentages or taken a cross-tab slice — re-check before emitting.
+
 3. **Population reference**: the literal phrase tells you which to pick.
    - "população residente" + IBGE 2022 / "Censo 2022" → census_2022_residents
    - "eleitorado" + TSE source → tse_eligible

@@ -389,7 +389,7 @@ class PollSampling(ExtractionSchema):
     1 named a quota dimension (income) without printing its bins, and that
     case cannot feed the income-skew lever anyway (no bins → no skew)."""
     schema_name: ClassVar[str] = "poll_sampling"
-    schema_version: ClassVar[str] = "v2"
+    schema_version: ClassVar[str] = "v3"
 
     # A. Sampling design
     sample_design_class: SampleDesignClass = Field(
@@ -997,7 +997,7 @@ class PollQuestionario(ExtractionSchema):
     """
 
     schema_name: ClassVar[str] = "poll_questionario"
-    schema_version: ClassVar[str] = "v3"
+    schema_version: ClassVar[str] = "v4"
 
     pesquisa_realized: bool = Field(
         description=(
