@@ -639,11 +639,15 @@ def cmd_harvest() -> int:
             if not bid:
                 continue
             b = client.batches.retrieve(bid)
-            if b.status != "completed":
-                print(f"  [{task.name}/{key}] not completed (status={b.status})")
+            # A cancelled batch still exposes an output file for the requests
+            # that finished before cancellation — harvest those too (we cancel
+            # hung batches to release their completed results). Skip only
+            # non-terminal / output-less states.
+            if b.status not in ("completed", "cancelled"):
+                print(f"  [{task.name}/{key}] not harvestable (status={b.status})")
                 continue
             if not b.output_file_id:
-                print(f"  [{task.name}/{key}] no output file")
+                print(f"  [{task.name}/{key}] no output file (status={b.status})")
                 continue
             out_path = BATCH_DIR / f"output_{task.name}__{key}.jsonl"
             print(f"  [{task.name}/{key}] downloading output → {out_path}")
