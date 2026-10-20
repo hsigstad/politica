@@ -5,8 +5,9 @@ Bairro/município detail PDF, extracted text:
 {pdf_text}
 ---
 
-Extract the structured coverage detail per the schema. Remember:
-- PESQUISA NÃO REALIZADA → pesquisa_realized=false, empty lists, counts 0, skip the rest.
-- Cap bairros at 100; report total in n_bairros_total.
-- setor codes only if the PDF lists 12+ digit IBGE codes.
-- For regional structure (RJ-style), set regional_structure=true and populate distritos_listed.
+Extract the raw allocation list per the schema. Remember:
+- Output ONE `units` list: one entry per DISTINCT geographic unit the PDF prints, each with whatever identifiers that row shows (name / setor_code / distrito / n_entrevistas). No more, no less than the raw.
+- PESQUISA NÃO REALIZADA → pesquisa_realized=false, units empty, counts 0, skip the rest.
+- Per-interview setor microdata → one unit per DISTINCT setor with its interview count, NOT one unit per interview.
+- Capture setor_code (12-15 digit IBGE) on every row that prints one.
+- HARD CAP 80 units; put the true count in n_units_total.

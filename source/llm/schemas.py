@@ -776,41 +776,62 @@ class PollOperations(ExtractionSchema):
 # pass, deliberately NOT baked into this faithful extraction.
 
 
-class BairroEntry(BaseModel):
-    """One bairro / localidade entry with optional interview count."""
-    name: str = Field(
-        description="Bairro / localidade name, verbatim as written in the PDF."
-    )
-    n_entrevistas: Optional[int] = Field(
+class CoverageUnit(BaseModel):
+    """One geographic allocation unit (a row) as printed in the PDF.
+
+    Carries whatever identifiers the PDF gives that row — any of a bairro
+    name, an IBGE setor code, a distrito — plus its interview count. One
+    unified row grain across all PDF formats: name-tabular PDFs fill `name`;
+    QUAEST/setor PDFs fill `setor_code`; some fill both. Downstream matches
+    on whichever identifier is present.
+    """
+    name: Optional[str] = Field(
         default=None,
         description=(
-            "Number of interviews allocated to this bairro, if stated. "
-            "Null when not reported. For pollsters using regional "
-            "structure (RJ-style with Total Região), report the per-"
-            "bairro count, not the region total."
+            "Bairro / localidade name, verbatim, if the row names one. "
+            "Null for setor-only rows (e.g. per-interview setor microdata)."
+        ),
+    )
+    setor_code: Optional[str] = Field(
+        default=None,
+        description=(
+            "IBGE setor censitário code (12-15 digit numeric string) for "
+            "this row, verbatim, if printed. Null when the row has no setor "
+            "code. Capture it whenever present — it keys deterministic "
+            "urban/rural downstream."
         ),
     )
     distrito: Optional[str] = Field(
         default=None,
         description=(
-            "Distrito / region the bairro belongs to, if the PDF "
-            "organizes bairros by distrito (e.g., RJ-style REGIÃO/"
-            "Distrito structure). Null otherwise."
+            "Distrito / região this row belongs to, if the PDF groups by "
+            "distrito (e.g. RJ-style REGIÃO/Distrito). Null otherwise."
+        ),
+    )
+    n_entrevistas: Optional[int] = Field(
+        default=None,
+        description=(
+            "Interviews allocated to this unit, if stated. Null when not "
+            "reported. For regional layouts with a 'Total Região' line, "
+            "report the per-unit count, not the region total."
         ),
     )
 
 
 class PollBairroDetail(ExtractionSchema):
-    """Raw bairro/localidade list from the per-poll bairro/município PDF.
+    """Raw geographic allocation list from the per-poll bairro/município PDF.
 
-    v2: extracts ONLY faithful facts parseable from the messy PDF layouts —
-    the bairro list (name + count + distrito), setor codes, and totals.
-    Coverage class and rural inclusion are NOT inferred here (v1 did, from
-    bairro name strings); they are derived downstream from matched IBGE setor
-    situacao + an electorate-coverage ratio. See docs/decisions.md.
+    v3: ONE faithful list of the rows as the PDF prints them (`units`), each
+    carrying whatever identifiers appear — bairro name, IBGE setor code,
+    distrito, interview count. No more / no less than the raw: v2's split
+    bairros-list + lossy 10-item setor_codes_sample is replaced by this
+    single row grain, which preserves the name<->setor<->count linkage and
+    drops nothing. Coverage class / rural / regional-structure / distrito
+    lists are NOT stored — all derivable downstream (matched IBGE setor
+    situacao + electorate ratio; set of unit distritos). See docs/decisions.md.
     """
     schema_name: ClassVar[str] = "poll_bairro_detail"
-    schema_version: ClassVar[str] = "v2"
+    schema_version: ClassVar[str] = "v3"
 
     pesquisa_realized: bool = Field(
         description=(
@@ -820,60 +841,31 @@ class PollBairroDetail(ExtractionSchema):
         )
     )
 
-    bairros: list[BairroEntry] = Field(
+    units: list[CoverageUnit] = Field(
         default_factory=list,
         description=(
-            "All bairros / localidades listed in the PDF, deduplicated. "
-            "HARD CAP at 50 entries (token budget). If more, populate "
-            "the top 50 by n_entrevistas descending and record the "
-            "true total in n_bairros_total. NEVER exceed 50. Empty "
-            "list when the PDF is setor-microdata only with no bairro "
-            "names."
+            "Every DISTINCT geographic allocation unit the PDF lists, in "
+            "printed order, each with the identifiers that row carries "
+            "(name / setor_code / distrito / n_entrevistas). Dedup to the "
+            "finest printed unit: for per-interview setor microdata, emit "
+            "one unit per distinct setor with its interview count (NOT one "
+            "row per interview). HARD CAP 80 units (token budget); if more, "
+            "keep the 80 with the largest n_entrevistas and record the true "
+            "count in n_units_total. Empty only for a not-realized stamp."
         ),
     )
-    n_bairros_total: int = Field(
+    n_units_total: int = Field(
         default=0,
         description=(
-            "Total distinct bairros listed in the PDF (may exceed "
-            "len(bairros) if truncated). 0 when no bairros are listed."
+            "Total distinct allocation units in the PDF (may exceed "
+            "len(units) if truncated). 0 when none are listed."
         ),
-    )
-
-    distritos_listed: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Distritos / regiões / administrative subdivisions if the "
-            "PDF uses them (common in large munis like RJ, SP). "
-            "Empty if the PDF doesn't structure by distrito."
-        ),
-    )
-    regional_structure: bool = Field(
-        description=(
-            "True if the PDF organizes bairros by REGIÃO / Distrito "
-            "(common in RJ, SP). False for flat bairro lists."
-        )
-    )
-
-    setor_codes_sample: list[str] = Field(
-        default_factory=list,
-        description=(
-            "IBGE setor censitário codes (12-15 digit numeric strings) "
-            "when the PDF prints them — up to 10 examples. ALWAYS "
-            "capture these when present: they key deterministic "
-            "urban/rural + coverage classification downstream. Empty "
-            "only when the PDF lists no setor codes. n_setores_total "
-            "carries the full count."
-        ),
-    )
-    n_setores_total: int = Field(
-        default=0,
-        description="Total distinct setor codes in the PDF; 0 if none listed.",
     )
 
     total_interviews_distributed: int = Field(
         default=0,
         description=(
-            "Sum of n_entrevistas across all bairros if reported. 0 if "
+            "Sum of n_entrevistas across all units if reported. 0 if "
             "interview counts are not given. Should match the poll's "
             "QT_ENTREVISTADO when fully reported."
         ),

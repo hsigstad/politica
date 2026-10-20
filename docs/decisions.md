@@ -1,17 +1,32 @@
 # Decisions
 
-## 2026-10-20 — poll_bairro_detail v2: strip inferred coverage/rural, keep the raw list
+## 2026-10-20 — poll_bairro_detail v2→v3: strip inferred coverage/rural, then collapse to one raw `units` row list
 
-**Decision:** Before the (unscaled) bairro universe run, drop the four
+**Decision:** Before the (unscaled) bairro universe run, (v2) drop the four
 LLM-inferred fields from `poll_bairro_detail` — `coverage_class_resolved`,
 `coverage_class_evidence`, `rural_included`, `rural_explicit` (and the
-now-orphaned `CoverageClassResolved` enum). Keep only faithful facts the
-LLM can parse from the messy PDF layouts: `pesquisa_realized`, `bairros`
-(name + n_entrevistas + distrito), `n_bairros_total`, `distritos_listed`,
-`regional_structure`, `setor_codes_sample`, `n_setores_total`,
-`total_interviews_distributed`, `extraction_notes`. The prompt now also
-instructs the model to ALWAYS capture IBGE setor codes when the PDF prints
-them. Schema bumped v1 → v2.
+now-orphaned `CoverageClassResolved` enum); then (v3) replace the
+two-parallel-field design (`bairros` names list + lossy 10-item
+`setor_codes_sample` + `n_bairros_total`/`n_setores_total`/
+`distritos_listed`/`regional_structure`) with ONE faithful list, `units`:
+one `CoverageUnit` per distinct geographic allocation unit the PDF prints,
+each carrying whatever identifiers that row shows (`name` / `setor_code` /
+`distrito` / `n_entrevistas`). Final v3 shape: `pesquisa_realized`, `units`,
+`n_units_total`, `total_interviews_distributed`, `extraction_notes`. Schema
+v1 → v3.
+
+**Why v3 on top of v2:** v2 still violated "extract what is in the raw, no
+more no less" in two ways — `setor_codes_sample` was a lossy 10-item
+*sample* (with the real count hidden in `n_setores_total`), and splitting
+names from codes into parallel lists destroyed the row-level
+name↔setor↔count linkage. The single `units` grain preserves the linkage,
+drops nothing (cap raised to 80 with a truncation-proof `n_units_total`),
+and lets `distritos_listed` / `regional_structure` go (both derivable from
+the units). One judgment call: for per-interview setor microdata the model
+dedups to one unit per DISTINCT setor with its interview count, rather than
+transcribing one row per interview — still the raw allocation, not an
+inference. The prompt instructs ALWAYS capturing IBGE setor codes when
+printed (the deterministic urban/rural key downstream).
 
 **Why:** same extract-raw-derive-downstream principle as the questionnaire
 v2 rework. Coverage class and rural inclusion were inferred from bairro
