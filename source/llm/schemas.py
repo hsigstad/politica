@@ -768,16 +768,12 @@ class PollOperations(ExtractionSchema):
 # A small but non-trivial subset (~12% sampled) shows only "PESQUISA
 # NÃO REALIZADA" — flagged via its own enum value.
 
-class CoverageClassResolved(str, Enum):
-    full_municipality = "full_municipality"          # bairros spanning the whole city, urban + rural
-    urban_only = "urban_only"                        # urban perimeter only — most common pattern
-    urban_plus_selected_rural = "urban_plus_selected_rural"
-    specific_neighborhoods = "specific_neighborhoods"  # small subset of bairros
-    rural_only = "rural_only"                         # rare
-    cross_municipal = "cross_municipal"               # poll spans multiple municípios
-    not_realized = "not_realized"                     # "PESQUISA NÃO REALIZADA" stamp
-    other = "other"
-    unclear = "unclear"
+# NOTE: CoverageClassResolved enum removed in v2. Coverage class + rural are no
+# longer inferred from bairro NAME STRINGS in the extractor (subjective, hard to
+# audit). They are derived downstream from matched IBGE setor situacao (urbano/
+# rural) + an electorate-coverage ratio — see docs/decisions.md. If a rural guess
+# is ever wanted for name-only PDFs, that is a separate optional downstream LLM
+# pass, deliberately NOT baked into this faithful extraction.
 
 
 class BairroEntry(BaseModel):
@@ -805,30 +801,23 @@ class BairroEntry(BaseModel):
 
 
 class PollBairroDetail(ExtractionSchema):
-    """Coverage detail from per-poll bairro/município complement PDF."""
+    """Raw bairro/localidade list from the per-poll bairro/município PDF.
+
+    v2: extracts ONLY faithful facts parseable from the messy PDF layouts —
+    the bairro list (name + count + distrito), setor codes, and totals.
+    Coverage class and rural inclusion are NOT inferred here (v1 did, from
+    bairro name strings); they are derived downstream from matched IBGE setor
+    situacao + an electorate-coverage ratio. See docs/decisions.md.
+    """
     schema_name: ClassVar[str] = "poll_bairro_detail"
-    schema_version: ClassVar[str] = "v1"
+    schema_version: ClassVar[str] = "v2"
 
     pesquisa_realized: bool = Field(
         description=(
             "True normally. False ONLY when the PDF is the "
             "'PESQUISA NÃO REALIZADA' stamp (poll was cancelled). "
-            "When false, all other fields default to empty/zero/unclear."
+            "When false, all other fields default to empty/zero."
         )
-    )
-
-    coverage_class_resolved: CoverageClassResolved = Field(
-        description=(
-            "Final coverage classification from the actual bairro list. "
-            "full_municipality if the list spans the major bairros of "
-            "the city + rural districts; urban_only if no rural is "
-            "named; specific_neighborhoods if only a small subset; "
-            "not_realized if pesquisa_realized is false."
-        )
-    )
-    coverage_class_evidence: str = Field(
-        default="",
-        description="1-2 sentence quote or paraphrase from the PDF supporting the classification.",
     )
 
     bairros: list[BairroEntry] = Field(
@@ -868,21 +857,17 @@ class PollBairroDetail(ExtractionSchema):
     setor_codes_sample: list[str] = Field(
         default_factory=list,
         description=(
-            "Up to 10 example IBGE setor censitário codes if the PDF "
-            "lists them (typically 12-15 digits). Empty for most "
-            "pollsters; populated for QUAEST-style PDFs."
+            "IBGE setor censitário codes (12-15 digit numeric strings) "
+            "when the PDF prints them — up to 10 examples. ALWAYS "
+            "capture these when present: they key deterministic "
+            "urban/rural + coverage classification downstream. Empty "
+            "only when the PDF lists no setor codes. n_setores_total "
+            "carries the full count."
         ),
     )
     n_setores_total: int = Field(
         default=0,
-        description="Total setor codes in the PDF; 0 if not listed.",
-    )
-
-    rural_included: bool = Field(
-        description="True if any rural bairro / assentamento / distrito is in the list."
-    )
-    rural_explicit: bool = Field(
-        description="True only if the PDF explicitly states rural inclusion (e.g., 'inclui zona rural')."
+        description="Total distinct setor codes in the PDF; 0 if none listed.",
     )
 
     total_interviews_distributed: int = Field(

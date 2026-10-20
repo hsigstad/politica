@@ -1,80 +1,18 @@
 {
   "task": "bairro_detail",
-  "schema_name": "poll_bairro_detail",
+  "title": "Bairro/coverage detail (bairro_municipio PDF)",
   "protocol": "SP076792024",
   "model": "gpt-4o-mini",
+  "schema_class": "PollBairroDetail",
+  "prompt_stem": "poll_bairro_detail",
   "input_source": "SP076792024_434334_bairro_municipio.pdf",
   "input_doc": "RELATÓRIO FINAL PESQUISA ELEITORAL SP-07679/2024 EM CONFORMIDADE\n        COM A RESOLUÇÃO 23.600 – TSE E ALTERAÇÕES POSTERIORES\n\n\nMunicípio/Estado: ILHABELA - SP\n\n\nPúblico-alvo (universo pesquisado): 30.563 eleitores\n\n\nTamanho da amostra: 700 entrevistas\n\n\nPeríodo de realização: 23 de agosto até 26 de agosto de 2024\n\n\nMargem de erro: 3,8 (três vírgula oito) pontos percentuais para mais ou para\nmenos\n\n\nNível de confiança: 95% (noventa e cinco por cento)\n\n\nMetodologia da pesquisa: A amostra é representativa dos eleitores das áreas\npesquisadas e foi selecionada em duas etapas. Na primeira etapa realizou-se\num sorteio probabilístico das localidades onde as entrevistas foram realizadas\natravés   do     método   PPT    (Probabilidade    Proporcional     ao   Tamanho),\nconsiderando a população com 16 anos ou mais residente nas localidades\ncomo base para essa seleção. Na segunda etapa, a seleção do entrevistado\ndentro da localidade foi feita utilizando-se quotas amostrais proporcionais, em\nfunção     das     seguintes     variáveis:    GÊNERO:       TSE     Julho    2024\n(https://sig.tse.jus.br/ords/dwapr/r/seai/sig-eleitor-eleitorado-\nmensal/genero?p0_municipio=ILHABELA&p0_uf=SP&session=116447443003\n543) Masculino - 48%; Feminino - 52%; FAIXA ETÁRIA: TSE Julho 2024\n(https://sig.tse.jus.br/ords/dwapr/r/seai/sig-eleitor-eleitorado-mensal/faixa-\net%C3%A1ria?p0_municipio=ILHABELA&p0_uf=SP&session=1164474430035\n43) Entre 16 e 24 anos: 13%; Entre 25 e 34 anos: 20%; Entre 35 e 44 anos: 24%;\nEntre 45 e 59 anos: 26%; Com 60 anos ou mais: 17%; ESCOLARIDADE: TSE\nJulho     2024     (https://sig.tse.jus.br/ords/dwapr/r/seai/sig-eleitor-eleitorado-\nmensal/grau-de-\ninstrucao?p0_municipio=ILHABELA&p0_uf=SP&session=116447443003543)\n\fDe analfabeto até ensino fundamental completo: 28%; Ensino médio\nincompleto ou completo: 51% Ensino superior incompleto ou completo: 21% |\nRENDA                              DOMICILIAR                          MENSAL:\n(https://cidades.ibge.gov.br/brasil/sp/ilhabela/pesquisa/23/24304)     IBGE    -\nCenso 2010. Observação: Conforme informações obtidas do Instituto\nBrasileiro de Geografia e Estatística, o IBGE, não divulgou - e não tem previsão\n- de data para divulgação do perfil econômico (nível econômico) da população\nbrasileira; portanto, os dados quanto ao nível econômico obtidos no Censo\n2022,   não    podem     ser      utilizados,   pois   não   foram   publicados.\n(https://censo2022.ibge.gov.br/panorama/) Sem rendimentos até 2 salários\nmínimos: 34% Mais de 2 a 5 salários mínimos: 44% Mais de 5 salários mínimos:\n22% Estava prevista eventual ponderação para correção das variáveis gênero\ne faixa etária, com base nos percentuais acima apresentados, caso tivessem\nocorrido diferenças superiores a 4,5 (quatro vírgula cinco) pontos percentuais\nentre o previsto na amostra e a coleta realizada, para as variáveis escolaridade\ne renda domiciliar mensal, o fator de ponderação é igual a 1 (resultados\nobtidos no campo). O nível de confiança estimado é de 95% (noventa e cinco\npor cento) para uma margem de erro estimada, considerando uma técnica de\namostragem aleatória simples, de aproximadamente 3,8 (três vírgula oito)\npontos percentuais para mais ou para menos sobre os resultados obtidos.\n\n\nContratante da pesquisa e origem dos recursos: CPF/CNPJ: 08517423000195 -\nPARTIDO LIBERAL (PL) / PARTIDO LIBERAL Origem do Recurso: (Outros:\nRecursos Próprios do contratante )\n\n\nEstatístico responsável: Tatiani Cristina Ara / (CONRE 10245 - 4ª Região)\n\n\nAdvogado responsável: Orides Negrello Neto (OAB/PR 85.791)\n\n\nGÊNERO (SEXO)\nMasculino: 48% (338 entrevistas)\nFeminino: 52% (362 entrevistas)\n\fFAIXA ETÁRIA (IDADE)\nEntre 16 e 24 anos: 13% (91 entrevistas)\nEntre 25 e 34 anos: 20% (139 entrevistas)\nEntre 35 e 44 anos: 24% (168 entrevistas)\nEntre 45 e 59 anos: 26% (183 entrevistas)\n60 anos ou mais: 17% (119 entrevistas)\n\n\nGRAU DE INSTRUÇÃO (ESCOLARIDADE)\nAnalfabeto até ensino fundamental completo: 28% (199 entrevistas)\nEnsino médio completo e incompleto: 49% (340 entrevistas)\nEnsino superior completo e incompleto: 23% (161 entrevistas)\n\n\nNIVEL ECONÔMICO (RENDA)\nSem Rendimentos até 2 Salários-Mínimos: 34% (236 entrevistas)\nDe 2 até 5 Salários-Mínimos: 44% (307 entrevistas)\nMais de 5 Salários-Mínimos: 22% (157 entrevistas)\n\n\nDIVISÃO DAS AMOSTRAS EM ILHABELA - SP POR SETORES CENSITÁRIOS:\n352040005000001: 10 entrevistas\n352040005000002: 14 entrevistas\n352040005000005: 8 entrevistas\n352040005000007: 7 entrevistas\n352040005000008: 10 entrevistas\n352040005000015: 25 entrevistas\n352040005000016: 25 entrevistas\n352040005000017: 28 entrevistas\n352040005000018: 7 entrevistas\n352040005000019: 35 entrevistas\n352040005000020: 30 entrevistas\n352040005000021: 7 entrevistas\n352040005000022: 30 entrevistas\n352040005000023: 7 entrevistas\n352040005000024: 10 entrevistas\n352040005000025: 16 entrevistas\n\f352040005000026: 16 entrevistas\n352040005000027: 16 entrevistas\n352040005000028: 7 entrevistas\n352040005000029: 10 entrevistas\n352040005000030: 25 entrevistas\n352040005000031: 7 entrevistas\n352040005000032: 35 entrevistas\n352040005000033: 30 entrevistas\n352040005000034: 30 entrevistas\n352040005000036: 16 entrevistas\n352040005000037: 16 entrevistas\n352040005000038: 18 entrevistas\n352040005000039: 5 entrevistas\n352040005000040: 30 entrevistas\n352040005000041: 10 entrevistas\n352040005000042: 8 entrevistas\n352040005000043: 10 entrevistas\n352040010000001: 7 entrevistas\n352040010000002: 6 entrevistas\n352040010000004: 7 entrevistas\n352040010000005: 15 entrevistas\n352040010000006: 15 entrevistas\n352040010000007: 7 entrevistas\n352040010000008: 6 entrevistas\n352040010000009: 7 entrevistas\n352040010000010: 7 entrevistas\n352040010000011: 8 entrevistas\n352040010000012: 7 entrevistas\n352040010000013: 7 entrevistas\n352040010000014: 8 entrevistas\n352040010000017: 15 entrevistas\n352040015000004: 5 entrevistas\n352040015000012: 15 entrevistas",
   "valid": true,
   "output": {
     "pesquisa_realized": true,
-    "coverage_class_resolved": "urban_only",
-    "coverage_class_evidence": "A amostra é representativa dos eleitores das áreas pesquisadas e foi selecionada em duas etapas.",
-    "bairros": [
-      {
-        "name": "Centro",
-        "n_entrevistas": 100,
-        "distrito": "Centro"
-      },
-      {
-        "name": "Praia do Curral",
-        "n_entrevistas": 80,
-        "distrito": "Praia do Curral"
-      },
-      {
-        "name": "Praia do Julião",
-        "n_entrevistas": 70,
-        "distrito": "Praia do Julião"
-      },
-      {
-        "name": "Praia do Viana",
-        "n_entrevistas": 60,
-        "distrito": "Praia do Viana"
-      },
-      {
-        "name": "Praia do Bonete",
-        "n_entrevistas": 50,
-        "distrito": "Praia do Bonete"
-      },
-      {
-        "name": "Praia da Feiticeira",
-        "n_entrevistas": 40,
-        "distrito": "Praia da Feiticeira"
-      },
-      {
-        "name": "Praia do Jabaquara",
-        "n_entrevistas": 30,
-        "distrito": "Praia do Jabaquara"
-      },
-      {
-        "name": "Praia do Indaiá",
-        "n_entrevistas": 20,
-        "distrito": "Praia do Indaiá"
-      },
-      {
-        "name": "Praia do Perequê",
-        "n_entrevistas": 10,
-        "distrito": "Praia do Perequê"
-      },
-      {
-        "name": "Praia do Saco da Capela",
-        "n_entrevistas": 5,
-        "distrito": "Praia do Saco da Capela"
-      }
-    ],
-    "n_bairros_total": 10,
-    "distritos_listed": [
-      "Centro",
-      "Praia do Curral",
-      "Praia do Julião",
-      "Praia do Viana",
-      "Praia do Bonete",
-      "Praia da Feiticeira",
-      "Praia do Jabaquara",
-      "Praia do Indaiá",
-      "Praia do Perequê",
-      "Praia do Saco da Capela"
-    ],
+    "bairros": [],
+    "n_bairros_total": 0,
+    "distritos_listed": [],
     "regional_structure": false,
     "setor_codes_sample": [
       "352040005000001",
@@ -88,18 +26,13 @@
       "352040005000018",
       "352040005000019"
     ],
-    "n_setores_total": 50,
-    "rural_included": false,
-    "rural_explicit": false,
+    "n_setores_total": 40,
     "total_interviews_distributed": 700,
     "extraction_notes": ""
   },
   "usage": {
-    "prompt_tokens": 4135,
-    "completion_tokens": 501
+    "prompt_tokens": 3713,
+    "completion_tokens": 120
   },
-  "schema_class": "PollBairroDetail",
-  "title": "Bairro/coverage detail (bairro_municipio PDF)",
-  "prompt_stem": "poll_bairro_detail",
-  "schema_json": "{\n  \"$defs\": {\n    \"BairroEntry\": {\n      \"description\": \"One bairro / localidade entry with optional interview count.\",\n      \"properties\": {\n        \"name\": {\n          \"description\": \"Bairro / localidade name, verbatim as written in the PDF.\",\n          \"title\": \"Name\",\n          \"type\": \"string\"\n        },\n        \"n_entrevistas\": {\n          \"anyOf\": [\n            {\n              \"type\": \"integer\"\n            },\n            {\n              \"type\": \"null\"\n            }\n          ],\n          \"default\": null,\n          \"description\": \"Number of interviews allocated to this bairro, if stated. Null when not reported. For pollsters using regional structure (RJ-style with Total Região), report the per-bairro count, not the region total.\",\n          \"title\": \"N Entrevistas\"\n        },\n        \"distrito\": {\n          \"anyOf\": [\n            {\n              \"type\": \"string\"\n            },\n            {\n              \"type\": \"null\"\n            }\n          ],\n          \"default\": null,\n          \"description\": \"Distrito / region the bairro belongs to, if the PDF organizes bairros by distrito (e.g., RJ-style REGIÃO/Distrito structure). Null otherwise.\",\n          \"title\": \"Distrito\"\n        }\n      },\n      \"required\": [\n        \"name\"\n      ],\n      \"title\": \"BairroEntry\",\n      \"type\": \"object\"\n    },\n    \"CoverageClassResolved\": {\n      \"enum\": [\n        \"full_municipality\",\n        \"urban_only\",\n        \"urban_plus_selected_rural\",\n        \"specific_neighborhoods\",\n        \"rural_only\",\n        \"cross_municipal\",\n        \"not_realized\",\n        \"other\",\n        \"unclear\"\n      ],\n      \"title\": \"CoverageClassResolved\",\n      \"type\": \"string\"\n    }\n  },\n  \"description\": \"Coverage detail from per-poll bairro/município complement PDF.\",\n  \"properties\": {\n    \"pesquisa_realized\": {\n      \"description\": \"True normally. False ONLY when the PDF is the 'PESQUISA NÃO REALIZADA' stamp (poll was cancelled). When false, all other fields default to empty/zero/unclear.\",\n      \"title\": \"Pesquisa Realized\",\n      \"type\": \"boolean\"\n    },\n    \"coverage_class_resolved\": {\n      \"$ref\": \"#/$defs/CoverageClassResolved\",\n      \"description\": \"Final coverage classification from the actual bairro list. full_municipality if the list spans the major bairros of the city + rural districts; urban_only if no rural is named; specific_neighborhoods if only a small subset; not_realized if pesquisa_realized is false.\"\n    },\n    \"coverage_class_evidence\": {\n      \"default\": \"\",\n      \"description\": \"1-2 sentence quote or paraphrase from the PDF supporting the classification.\",\n      \"title\": \"Coverage Class Evidence\",\n      \"type\": \"string\"\n    },\n    \"bairros\": {\n      \"description\": \"All bairros / localidades listed in the PDF, deduplicated. HARD CAP at 50 entries (token budget). If more, populate the top 50 by n_entrevistas descending and record the true total in n_bairros_total. NEVER exceed 50. Empty list when the PDF is setor-microdata only with no bairro names.\",\n      \"items\": {\n        \"$ref\": \"#/$defs/BairroEntry\"\n      },\n      \"title\": \"Bairros\",\n      \"type\": \"array\"\n    },\n    \"n_bairros_total\": {\n      \"default\": 0,\n      \"description\": \"Total distinct bairros listed in the PDF (may exceed len(bairros) if truncated). 0 when no bairros are listed.\",\n      \"title\": \"N Bairros Total\",\n      \"type\": \"integer\"\n    },\n    \"distritos_listed\": {\n      \"description\": \"Distritos / regiões / administrative subdivisions if the PDF uses them (common in large munis like RJ, SP). Empty if the PDF doesn't structure by distrito.\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"title\": \"Distritos Listed\",\n      \"type\": \"array\"\n    },\n    \"regional_structure\": {\n      \"description\": \"True if the PDF organizes bairros by REGIÃO / Distrito (common in RJ, SP). False for flat bairro lists.\",\n      \"title\": \"Regional Structure\",\n      \"type\": \"boolean\"\n    },\n    \"setor_codes_sample\": {\n      \"description\": \"Up to 10 example IBGE setor censitário codes if the PDF lists them (typically 12-15 digits). Empty for most pollsters; populated for QUAEST-style PDFs.\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"title\": \"Setor Codes Sample\",\n      \"type\": \"array\"\n    },\n    \"n_setores_total\": {\n      \"default\": 0,\n      \"description\": \"Total setor codes in the PDF; 0 if not listed.\",\n      \"title\": \"N Setores Total\",\n      \"type\": \"integer\"\n    },\n    \"rural_included\": {\n      \"description\": \"True if any rural bairro / assentamento / distrito is in the list.\",\n      \"title\": \"Rural Included\",\n      \"type\": \"boolean\"\n    },\n    \"rural_explicit\": {\n      \"description\": \"True only if the PDF explicitly states rural inclusion (e.g., 'inclui zona rural').\",\n      \"title\": \"Rural Explicit\",\n      \"type\": \"boolean\"\n    },\n    \"total_interviews_distributed\": {\n      \"default\": 0,\n      \"description\": \"Sum of n_entrevistas across all bairros if reported. 0 if interview counts are not given. Should match the poll's QT_ENTREVISTADO when fully reported.\",\n      \"title\": \"Total Interviews Distributed\",\n      \"type\": \"integer\"\n    },\n    \"extraction_notes\": {\n      \"default\": \"\",\n      \"description\": \"Free-form notes on ambiguity, format unusual, or PDF truncation. Flag here if the PDF is text-thin (likely an image-only scan that needs OCR).\",\n      \"title\": \"Extraction Notes\",\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"pesquisa_realized\",\n    \"coverage_class_resolved\",\n    \"regional_structure\",\n    \"rural_included\",\n    \"rural_explicit\"\n  ],\n  \"title\": \"PollBairroDetail\",\n  \"type\": \"object\"\n}"
+  "schema_json": "{\n  \"$defs\": {\n    \"BairroEntry\": {\n      \"description\": \"One bairro / localidade entry with optional interview count.\",\n      \"properties\": {\n        \"name\": {\n          \"description\": \"Bairro / localidade name, verbatim as written in the PDF.\",\n          \"title\": \"Name\",\n          \"type\": \"string\"\n        },\n        \"n_entrevistas\": {\n          \"anyOf\": [\n            {\n              \"type\": \"integer\"\n            },\n            {\n              \"type\": \"null\"\n            }\n          ],\n          \"default\": null,\n          \"description\": \"Number of interviews allocated to this bairro, if stated. Null when not reported. For pollsters using regional structure (RJ-style with Total Região), report the per-bairro count, not the region total.\",\n          \"title\": \"N Entrevistas\"\n        },\n        \"distrito\": {\n          \"anyOf\": [\n            {\n              \"type\": \"string\"\n            },\n            {\n              \"type\": \"null\"\n            }\n          ],\n          \"default\": null,\n          \"description\": \"Distrito / region the bairro belongs to, if the PDF organizes bairros by distrito (e.g., RJ-style REGIÃO/Distrito structure). Null otherwise.\",\n          \"title\": \"Distrito\"\n        }\n      },\n      \"required\": [\n        \"name\"\n      ],\n      \"title\": \"BairroEntry\",\n      \"type\": \"object\"\n    }\n  },\n  \"description\": \"Raw bairro/localidade list from the per-poll bairro/município PDF.\\n\\nv2: extracts ONLY faithful facts parseable from the messy PDF layouts —\\nthe bairro list (name + count + distrito), setor codes, and totals.\\nCoverage class and rural inclusion are NOT inferred here (v1 did, from\\nbairro name strings); they are derived downstream from matched IBGE setor\\nsituacao + an electorate-coverage ratio. See docs/decisions.md.\",\n  \"properties\": {\n    \"pesquisa_realized\": {\n      \"description\": \"True normally. False ONLY when the PDF is the 'PESQUISA NÃO REALIZADA' stamp (poll was cancelled). When false, all other fields default to empty/zero.\",\n      \"title\": \"Pesquisa Realized\",\n      \"type\": \"boolean\"\n    },\n    \"bairros\": {\n      \"description\": \"All bairros / localidades listed in the PDF, deduplicated. HARD CAP at 50 entries (token budget). If more, populate the top 50 by n_entrevistas descending and record the true total in n_bairros_total. NEVER exceed 50. Empty list when the PDF is setor-microdata only with no bairro names.\",\n      \"items\": {\n        \"$ref\": \"#/$defs/BairroEntry\"\n      },\n      \"title\": \"Bairros\",\n      \"type\": \"array\"\n    },\n    \"n_bairros_total\": {\n      \"default\": 0,\n      \"description\": \"Total distinct bairros listed in the PDF (may exceed len(bairros) if truncated). 0 when no bairros are listed.\",\n      \"title\": \"N Bairros Total\",\n      \"type\": \"integer\"\n    },\n    \"distritos_listed\": {\n      \"description\": \"Distritos / regiões / administrative subdivisions if the PDF uses them (common in large munis like RJ, SP). Empty if the PDF doesn't structure by distrito.\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"title\": \"Distritos Listed\",\n      \"type\": \"array\"\n    },\n    \"regional_structure\": {\n      \"description\": \"True if the PDF organizes bairros by REGIÃO / Distrito (common in RJ, SP). False for flat bairro lists.\",\n      \"title\": \"Regional Structure\",\n      \"type\": \"boolean\"\n    },\n    \"setor_codes_sample\": {\n      \"description\": \"IBGE setor censitário codes (12-15 digit numeric strings) when the PDF prints them — up to 10 examples. ALWAYS capture these when present: they key deterministic urban/rural + coverage classification downstream. Empty only when the PDF lists no setor codes. n_setores_total carries the full count.\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"title\": \"Setor Codes Sample\",\n      \"type\": \"array\"\n    },\n    \"n_setores_total\": {\n      \"default\": 0,\n      \"description\": \"Total distinct setor codes in the PDF; 0 if none listed.\",\n      \"title\": \"N Setores Total\",\n      \"type\": \"integer\"\n    },\n    \"total_interviews_distributed\": {\n      \"default\": 0,\n      \"description\": \"Sum of n_entrevistas across all bairros if reported. 0 if interview counts are not given. Should match the poll's QT_ENTREVISTADO when fully reported.\",\n      \"title\": \"Total Interviews Distributed\",\n      \"type\": \"integer\"\n    },\n    \"extraction_notes\": {\n      \"default\": \"\",\n      \"description\": \"Free-form notes on ambiguity, format unusual, or PDF truncation. Flag here if the PDF is text-thin (likely an image-only scan that needs OCR).\",\n      \"title\": \"Extraction Notes\",\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"pesquisa_realized\",\n    \"regional_structure\"\n  ],\n  \"title\": \"PollBairroDetail\",\n  \"type\": \"object\"\n}"
 }

@@ -1,5 +1,40 @@
 # Decisions
 
+## 2026-10-20 — poll_bairro_detail v2: strip inferred coverage/rural, keep the raw list
+
+**Decision:** Before the (unscaled) bairro universe run, drop the four
+LLM-inferred fields from `poll_bairro_detail` — `coverage_class_resolved`,
+`coverage_class_evidence`, `rural_included`, `rural_explicit` (and the
+now-orphaned `CoverageClassResolved` enum). Keep only faithful facts the
+LLM can parse from the messy PDF layouts: `pesquisa_realized`, `bairros`
+(name + n_entrevistas + distrito), `n_bairros_total`, `distritos_listed`,
+`regional_structure`, `setor_codes_sample`, `n_setores_total`,
+`total_interviews_distributed`, `extraction_notes`. The prompt now also
+instructs the model to ALWAYS capture IBGE setor codes when the PDF prints
+them. Schema bumped v1 → v2.
+
+**Why:** same extract-raw-derive-downstream principle as the questionnaire
+v2 rework. Coverage class and rural inclusion were inferred from bairro
+NAME STRINGS — subjective and hard to audit. They are better derived
+downstream, grounded in real geography: matched IBGE setor `situacao`
+(urbano/rural) + an electorate-coverage ratio (sampled-bairro electorate /
+município electorate), reusing the bairro→seção→electorate join. If a rural
+guess is ever wanted for name-only PDFs, that is a SEPARATE optional
+downstream LLM pass, deliberately NOT baked into this extraction.
+
+**Consumers:** the only consumer of the dropped fields is poll-sponsor-bias
+(`curated_pairs_assemble.py`, `pilot_bairro_detail.py`,
+`_secao_oversampling_scope.py`, AN-107 coverage mechanism). politica itself
+has no clean/assembly consumer of `bairro_detail`. The poll-sponsor-bias
+session owns rebuilding the downstream coverage derivation (setor situacao
++ electorate ratio, consuming territorio read-only) so stripping the
+extractor does not strand AN-107.
+
+**Touched files:** `source/llm/schemas.py`,
+`source/llm/prompts/poll_bairro_detail_{system,user}.txt`. The worked-
+example page's bairro section (`source/site/worked_example/bairro_detail.json`)
+still shows the v1 shape until the bairro extractor is re-run.
+
 ## 2026-10-20 — Scenario-type vocabulary is fragmented across three poll extractions (crosswalk + forward plan)
 
 **Decision:** Do NOT re-extract already-scaled tasks to harmonize the

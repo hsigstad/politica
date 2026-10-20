@@ -81,6 +81,14 @@ def dump(task, input_source, input_doc, result):
 
 
 def main():
+    # Optional CLI task filter: `gen_worked_example.py bairro_detail sampling`
+    # regens only those sections; no args = all. Lets a single changed
+    # extractor be refreshed without re-running (and perturbing) the others.
+    tasks = set(sys.argv[1:]) or set(META)
+    unknown = tasks - set(META)
+    if unknown:
+        raise SystemExit(f"unknown task(s): {sorted(unknown)}; valid: {sorted(META)}")
+
     sp = pd.read_csv(SCRAPE / "pesquisa_eleitoral_2024_SP.csv", sep=";",
                      encoding="latin-1", dtype=str, on_bad_lines="skip")
     row = sp[sp["NR_PROTOCOLO_REGISTRO"] == PROTO].iloc[0]
@@ -89,32 +97,36 @@ def main():
     ds_met = str(row.get("DS_METODOLOGIA_PESQUISA") or "")
     ds_pla = str(row.get("DS_PLANO_AMOSTRAL") or "")
     ds_sis = str(row.get("DS_SISTEMA_CONTROLE") or "")
-    print(f"Running v2 extractors on {PROTO} ({muni}, {inst})...")
+    print(f"Running v2 extractors on {PROTO} ({muni}, {inst}) for: {sorted(tasks)}")
 
-    q_entry, q_bytes, q_text = pdf_bytes_and_text("questionario_pesquisa_2024.zip")
-    dump("questionario", q_entry, q_text, extract_poll_questionario(
-        protocol=PROTO, pdf_bytes=q_bytes, municipality=muni, uf=uf, institute=inst,
-        client=client, cache=LLMCache(CACHE / "questionario"), reextract=True))
+    if "questionario" in tasks:
+        q_entry, q_bytes, q_text = pdf_bytes_and_text("questionario_pesquisa_2024.zip")
+        dump("questionario", q_entry, q_text, extract_poll_questionario(
+            protocol=PROTO, pdf_bytes=q_bytes, municipality=muni, uf=uf, institute=inst,
+            client=client, cache=LLMCache(CACHE / "questionario"), reextract=True))
 
-    dump("sampling", "DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL",
-         ds_met + "\n\n" + ds_pla, extract_poll_sampling(
-             protocol=PROTO, uf=uf, institute=inst, ds_metodologia=ds_met,
-             ds_plano_amostral=ds_pla, client=client,
-             cache=LLMCache(CACHE / "sampling"), reextract=True))
+    if "sampling" in tasks:
+        dump("sampling", "DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL",
+             ds_met + "\n\n" + ds_pla, extract_poll_sampling(
+                 protocol=PROTO, uf=uf, institute=inst, ds_metodologia=ds_met,
+                 ds_plano_amostral=ds_pla, client=client,
+                 cache=LLMCache(CACHE / "sampling"), reextract=True))
 
-    dump("weighting", "DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE",
-         ds_met + "\n\n" + ds_pla + "\n\n" + ds_sis, extract_poll_weighting(
-             protocol=PROTO, ds_metodologia=ds_met, ds_plano_amostral=ds_pla,
-             ds_sistema_controle=ds_sis, uf=uf, institute=inst, client=client,
-             cache=LLMCache(CACHE / "weighting"), reextract=True))
+    if "weighting" in tasks:
+        dump("weighting", "DS_METODOLOGIA_PESQUISA + DS_PLANO_AMOSTRAL + DS_SISTEMA_CONTROLE",
+             ds_met + "\n\n" + ds_pla + "\n\n" + ds_sis, extract_poll_weighting(
+                 protocol=PROTO, ds_metodologia=ds_met, ds_plano_amostral=ds_pla,
+                 ds_sistema_controle=ds_sis, uf=uf, institute=inst, client=client,
+                 cache=LLMCache(CACHE / "weighting"), reextract=True))
 
-    try:
-        b_entry, b_bytes, b_text = pdf_bytes_and_text("bairro_municipio_2024.zip")
-        dump("bairro_detail", b_entry, b_text, extract_poll_bairro_detail(
-            protocol=PROTO, pdf_bytes=b_bytes, municipality=muni, uf=uf, institute=inst,
-            client=client, cache=LLMCache(CACHE / "bairro"), reextract=True))
-    except StopIteration:
-        print("  bairro_detail: no PDF for this protocol — skipping")
+    if "bairro_detail" in tasks:
+        try:
+            b_entry, b_bytes, b_text = pdf_bytes_and_text("bairro_municipio_2024.zip")
+            dump("bairro_detail", b_entry, b_text, extract_poll_bairro_detail(
+                protocol=PROTO, pdf_bytes=b_bytes, municipality=muni, uf=uf, institute=inst,
+                client=client, cache=LLMCache(CACHE / "bairro"), reextract=True))
+        except StopIteration:
+            print("  bairro_detail: no PDF for this protocol — skipping")
     print("DONE")
 
 
