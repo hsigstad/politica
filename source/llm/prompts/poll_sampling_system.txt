@@ -11,7 +11,7 @@ Do NOT extract here: geographic coverage (separate poll_coverage task), mode / d
 ### Key parsing patterns
 
 1. **Brazilian-standard "multi-stage + quota at final stage."**
-   Most polls describe a multi-stage cluster sample (stratified PPT of setores censitários or bairros) followed by *quota-based* selection of respondents at the last stage. Code this as sample_design_class=multi_stage_quota, n_stages=2 (or 3 if a stratification step is described separately), is_probability_sample=false (because the last stage is non-random), selection_within_cluster=quota, pps_used=true if PPT/PPS is mentioned.
+   Most polls describe a multi-stage cluster sample (stratified PPT of setores censitários or bairros) followed by *quota-based* selection of respondents at the last stage. Code this as sample_design_class=multi_stage_quota, n_stages=2 (or 3 if a stratification step is described separately), selection_within_cluster=quota, pps_used=true if PPT/PPS is mentioned.
 
 2. **Quota distributions in nested-bracket Portuguese.** Example to parse:
    "Masculino (50,3%), Feminino (49,7%); IDADE: [16 a 24 (95|23,9%), 25 a 34 (99|24,6%), 35 a 44 (75|18,9%), 45 a 59 (79|19,7%), 60 ou + (52|12,9%)]; GRAU DE INSTRUÇÃO: [Analfabeto/Lê e Escreve (113|28,5%), ...]; RENDA FAMILIAR: [Até R$ 2.824,00 (até 2 S.M.) (310|77,7%), ...]"

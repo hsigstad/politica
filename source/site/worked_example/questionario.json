@@ -1,8 +1,10 @@
 {
   "task": "questionario",
-  "schema_name": "poll_questionario",
+  "title": "Questionnaire (questionario_pesquisa PDF)",
   "protocol": "SP076792024",
   "model": "gpt-4o-mini",
+  "schema_class": "PollQuestionario",
+  "prompt_stem": "poll_questionario",
   "input_source": "SP076792024_434334_questionario_pesquisa.pdf",
   "input_doc": "Bom dia/ Boa Tarde. Meu nome é __________________. Sou entrevistador(a) do INSTITUTO PARANÁ DE\nPESQUISAS e estamos fazendo pesquisa no município de Ilhabela. O(A) Sr(a) poderia colaborar respondendo\nalgumas rápidas perguntas? Antes de começar, gostaria de saber se o(a) Sr(a) mora e vota no município de\nIlhabela?\n1) Não mora, nem vota (Agradecer e Encerrar)                                2) Sim (Continuar)\n\nGostaria de informar que sua participação é voluntária e suas respostas são confidenciais. Gostaria de informar\nainda que é uma pesquisa sobre assuntos políticos. Solicitamos sua autorização para usar e tratar todos os\ndados coletados e garantimos que suas respostas serão tratadas de forma anônima e confidencial, de acordo\ncom a lei geral de proteção de dados - LGPD. O(A) Sr(a) nos autoriza?\n1) Não (Agradecer e Encerrar)                                               2) Sim (Continuar)\n\n\nNos últimos 7 dias o(a) Sr(a) respondeu alguma pesquisa do INSTITUTO PARANÁ DE PESQUISAS?\n1) Não (Continuar)                                              2) Sim (Agradecer e Encerrar)\n\n1 - Gênero:\n1) Masculino                                                                 3) Não respondeu (Agradecer e encerrar)\n2) Feminino\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n2 - Faixa Etária:\n1) 16 a 24 anos                                                              4) 45 a 59 anos\n2) 25 a 34 anos                                                              5) 60 anos ou mais\n3) 35 a 44 anos                                                              6) Não respondeu (Agradecer e encerrar)\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n3 - Escolaridade:\n1)    De analfabeto à Ensino Fundamental completo                           3) Ensino Superior completo ou incompleto\n2)    Ensino Médio completo ou incompleto                                   4) Não respondeu (Agradecer e encerrar)\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)\n1) Sem rendimentos até 2 salários-mínimos (Até R$ 2.824,00)\n2) Mais de 2 a 5 salários-mínimos (R$ 2.824,01 a R$ 7.060,00)\n3) Mais de 5 salários-mínimos (R$ 7.060,01)\n4) Não respondeu (Agradecer e Encerrar)\n--------------------------------------------------------------------------------------------------------------------------------------------\n5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)\n1)      Assalariado registrado (PEA)                                   8)       Estagiário/aprendiz (Remunerado) (PEA)\n2)      Assalariado sem registro (PEA)                                 9)       Desempregado (Procura emprego) (PEA)\n3)      Funcionário Público (PEA)                                      10)      Desempregado (Ñ procura emprego) (Ñ PEA)\n4)      Autônomo regular (Paga ISS) (PEA)                              11)      Só dona de casa (Não PEA)\n5)      Profissional Liberal (PEA)                                     12)      Só aposentado (Não PEA)\n6)      Empresário (PEA)                                               13)      Só estudante (Não PEA)\n7)      Freelance / Bico (PEA)                                         14)      Só vive de rendas (Não PEA)\n---------------------------------------------------------------------------------------------------------------------------------------------\n\f                             SITUAÇÃO ELEITORAL PARA O EXECUTIVO MUNICIPAL\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n6 - Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria? (ESPONTÂNEA)\n1) Não sabe/ Não respondeu                        2) Ninguém/ Branco/ Nulo                           3) Quem? ______________\n----------------------------------------------------------------------------------------------------------------------------- --------------\n7 - Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a)\nSr(a) votaria? (Disco 1)\n1) Não sabe/ Não respondeu                      4) Enfermeira Juliana                           7) Toninho Colucci\n2) Nenhum/ Branco/ Nulo                         5) Manoel Marcos (Mané)\n3) Diana Almeida                                6) Ronaldo Mariano\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n8 - Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a)\nNÃO VOTARIA DE JEITO NENHUM? (RM) (Disco 1)\n1) Não sabe/ Não respondeu                       4) Enfermeira Juliana                            7) Toninho Colucci\n2) Poderia votar em todos                        5) Manoel Marcos (Mané)\n3) Diana Almeida                                 6) Ronaldo Mariano\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n                                     AVALIAÇÃO DA ADMINISTRAÇÃO MUNICIPAL\n----------------------------------------------------------------------------------------------------------------------------- ----------------\n9 - Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim\nou péssima?\n1) Ótima                                          3) Regular                                         5) Péssima\n2) Boa                                            4) Ruim                                            6) Não sabe/ não opinou\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n10 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho\nColucci, até o momento?\n1) Aprova                                         2) Desaprova                                       3) Não sabe/ não opinou\n--------------------------------------------------------------------------------------------------------------------------------------------\n                                     AVALIAÇÃO DA ADMINISTRAÇÃO ESTADUAL\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n11 - Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular,\nruim ou péssima?\n1) Ótima                                          3) Regular                                         5) Péssima\n2) Boa                                            4) Ruim                                            6) Não sabe/ não opinou\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n12 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador\nTarcísio de Freitas, até o momento?\n1) Aprova                                         2) Desaprova                                       3) Não sabe/ não opinou\n\f--------------------------------------------------------------------------------------------------------------------------------------------\n                                      AVALIAÇÃO DA ADMINISTRAÇÃO FEDERAL\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n13 - Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou\npéssima?\n1) Ótima                                          3) Regular                                         5) Péssima\n2) Boa                                            4) Ruim                                            6) Não sabe/ não opinou\n----------------------------------------------------------------------------------------------------------------------------- ---------------\n14 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula,\naté o momento?\n1) Aprova                                         2) Desaprova                                       3) Não sabe/ não opinou\n--------------------------------------------------------------------------------------------------------------------------------------------\n                                                  Dados de caracterização\n----------------------------------------------------------------------------------------------------------------------------- -------------\nNome do entrevistado: ___________________________________________________________\nBairro do entrevistado: ___________________________________ Telefone: ________________\nEntrevistador (Código): ____________________\n----------------------------------------------------------------------------------------------------------------------------- -----------------\nVerificação:\n--------------------------------------------------------------------------------------------------------------------------------------------",
   "valid": true,
@@ -11,75 +13,90 @@
     "scenarios": [
       {
         "position": 1,
-        "label": "1 - Gênero:",
+        "label": "1",
         "question_type": "screener",
-        "question_text": "1 - Gênero:",
+        "question_text": "Gostaria de saber se o(a) Sr(a) mora e vota no município de Ilhabela?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 2,
-        "label": "2 - Faixa Etária:",
+        "label": "1",
         "question_type": "screener",
-        "question_text": "2 - Faixa Etária:",
+        "question_text": "Gostaria de informar ainda que é uma pesquisa sobre assuntos políticos. Solicitamos sua autorização para usar e tratar todos os dados coletados e garantimos que suas respostas serão tratadas de forma anônima e confidencial, de acordo com a lei geral de proteção de dados - LGPD. O(A) Sr(a) nos autoriza?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 3,
-        "label": "3 - Escolaridade:",
+        "label": "1",
         "question_type": "screener",
-        "question_text": "3 - Escolaridade:",
+        "question_text": "Nos últimos 7 dias o(a) Sr(a) respondeu alguma pesquisa do INSTITUTO PARANÁ DE PESQUISAS?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 4,
-        "label": "4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)",
-        "question_type": "screener",
-        "question_text": "4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)",
+        "label": "1 - Gênero",
+        "question_type": "demographic",
+        "question_text": "Gênero:",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 5,
-        "label": "5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)",
-        "question_type": "espontanea",
-        "question_text": "5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)",
+        "label": "2 - Faixa Etária",
+        "question_type": "demographic",
+        "question_text": "Faixa Etária:",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 6,
-        "label": "6 - Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria? (ESPONTÂNEA)",
-        "question_type": "espontanea",
-        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria? (ESPONTÂNEA)",
+        "label": "3 - Escolaridade",
+        "question_type": "demographic",
+        "question_text": "Escolaridade:",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": true
+        "candidate_order": "not_applicable"
       },
       {
         "position": 7,
-        "label": "7 - Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)",
+        "label": "4 - Renda Domiciliar Mensal: (Mostrar Cartão de Renda)",
+        "question_type": "demographic",
+        "question_text": "Renda Domiciliar Mensal:",
+        "candidates_listed": [],
+        "subject_candidates": [],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 8,
+        "label": "5 - Atualmente, qual é a sua ocupação principal: nível econômico? (ESPONTÂNEA)",
+        "question_type": "espontanea",
+        "question_text": "Atualmente, qual é a sua ocupação principal: nível econômico?",
+        "candidates_listed": [],
+        "subject_candidates": [],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 9,
+        "label": "6",
+        "question_type": "espontanea",
+        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje, em quem o(a) Sr(a) votaria?",
+        "candidates_listed": [],
+        "subject_candidates": [],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 10,
+        "label": "7",
         "question_type": "estimulada",
-        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)",
+        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria?",
         "candidates_listed": [
           "Não sabe/ Não respondeu",
           "Nenhum/ Branco/ Nulo",
@@ -89,133 +106,104 @@
           "Ronaldo Mariano",
           "Toninho Colucci"
         ],
-        "n_candidates_listed": 7,
         "subject_candidates": [],
-        "candidate_order": "by_listed",
-        "includes_undecided_option": true
-      },
-      {
-        "position": 8,
-        "label": "8 - Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM? (RM) (Disco 1)",
-        "question_type": "rejeicao",
-        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM? (RM) (Disco 1)",
-        "candidates_listed": [],
-        "n_candidates_listed": 0,
-        "subject_candidates": [
-          "Enfermeira Juliana",
-          "Diana Almeida",
-          "Manoel Marcos (Mané)",
-          "Ronaldo Mariano",
-          "Toninho Colucci"
-        ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": true
-      },
-      {
-        "position": 9,
-        "label": "9 - Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?",
-        "question_type": "avaliacao",
-        "question_text": "Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?",
-        "candidates_listed": [],
-        "n_candidates_listed": 0,
-        "subject_candidates": [
-          "Toninho Colucci"
-        ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
-      },
-      {
-        "position": 10,
-        "label": "10 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?",
-        "question_type": "avaliacao",
-        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?",
-        "candidates_listed": [],
-        "n_candidates_listed": 0,
-        "subject_candidates": [
-          "Toninho Colucci"
-        ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "by_listed"
       },
       {
         "position": 11,
-        "label": "11 - Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?",
-        "question_type": "avaliacao",
-        "question_text": "Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?",
+        "label": "8",
+        "question_type": "rejeicao",
+        "question_text": "Se as eleições para Prefeito de Ilhabela fossem hoje em qual/ quais desses candidatos o(a) Sr(a) NÃO VOTARIA DE JEITO NENHUM?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
-        "subject_candidates": [
-          "Tarcísio de Freitas"
-        ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "subject_candidates": [],
+        "candidate_order": "not_applicable"
       },
       {
         "position": 12,
-        "label": "12 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?",
+        "label": "9",
         "question_type": "avaliacao",
-        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?",
+        "question_text": "Em sua opinião, a administração do Prefeito Toninho Colucci está sendo ótima, boa, regular, ruim ou péssima?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [
-          "Tarcísio de Freitas"
+          "Toninho Colucci"
         ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 13,
-        "label": "13 - Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?",
+        "label": "10",
         "question_type": "avaliacao",
-        "question_text": "Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?",
+        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Prefeito Toninho Colucci, até o momento?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [
-          "Lula"
+          "Toninho Colucci"
         ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 14,
-        "label": "14 - De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?",
+        "label": "11",
         "question_type": "avaliacao",
-        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?",
+        "question_text": "Em sua opinião, a administração do Governador Tarcísio de Freitas está sendo ótima, boa, regular, ruim ou péssima?",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [
-          "Lula"
+          "Tarcísio de Freitas"
         ],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       },
       {
         "position": 15,
+        "label": "12",
+        "question_type": "avaliacao",
+        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Governador Tarcísio de Freitas, até o momento?",
+        "candidates_listed": [],
+        "subject_candidates": [
+          "Tarcísio de Freitas"
+        ],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 16,
+        "label": "13",
+        "question_type": "avaliacao",
+        "question_text": "Em sua opinião, a administração do Presidente Lula está sendo ótima, boa, regular, ruim ou péssima?",
+        "candidates_listed": [],
+        "subject_candidates": [
+          "Lula"
+        ],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 17,
+        "label": "14",
+        "question_type": "avaliacao",
+        "question_text": "De uma maneira geral, o(a) Sr(a) diria que aprova ou desaprova a administração do Presidente Lula, até o momento?",
+        "candidates_listed": [],
+        "subject_candidates": [
+          "Lula"
+        ],
+        "candidate_order": "not_applicable"
+      },
+      {
+        "position": 18,
         "label": "Dados de caracterização",
-        "question_type": "demographic",
+        "question_type": "other",
         "question_text": "Dados de caracterização",
         "candidates_listed": [],
-        "n_candidates_listed": 0,
         "subject_candidates": [],
-        "candidate_order": "not_applicable",
-        "includes_undecided_option": false
+        "candidate_order": "not_applicable"
       }
     ],
-    "n_vote_intention_scenarios": 3,
-    "first_estimulada_position": 7,
-    "headline_scenario_label": "7 - Se as eleições para Prefeito de Ilhabela fossem hoje e os candidatos fossem esses, em quem o(a) Sr(a) votaria? (Disco 1)",
+    "scenarios_truncated": false,
     "name_rotation_documented": false,
     "name_rotation_evidence": "",
-    "nonresponse_instruction_present": true,
-    "nonresponse_instruction_text": "Não sabe/ Não respondeu, Ninguém/ Branco/ Nulo",
+    "nonresponse_instruction_present": false,
+    "nonresponse_instruction_text": "",
     "extraction_notes": ""
   },
   "usage": {
-    "prompt_tokens": 5419,
-    "completion_tokens": 2177
+    "prompt_tokens": 5173,
+    "completion_tokens": 1695
   },
-  "schema_class": "PollQuestionario",
-  "title": "Questionnaire (questionario_pesquisa PDF)",
-  "prompt_stem": "poll_questionario",
-  "schema_json": "{\n  \"$defs\": {\n    \"CandidateOrder\": {\n      \"enum\": [\n        \"alphabetical\",\n        \"by_number\",\n        \"by_party\",\n        \"by_listed\",\n        \"rotated\",\n        \"random\",\n        \"unclear\",\n        \"not_applicable\"\n      ],\n      \"title\": \"CandidateOrder\",\n      \"type\": \"string\"\n    },\n    \"QuestionType\": {\n      \"enum\": [\n        \"estimulada\",\n        \"espontanea\",\n        \"avaliacao\",\n        \"rejeicao\",\n        \"party\",\n        \"demographic\",\n        \"issue\",\n        \"screener\",\n        \"other\",\n        \"unclear\"\n      ],\n      \"title\": \"QuestionType\",\n      \"type\": \"string\"\n    },\n    \"QuestionnaireScenario\": {\n      \"description\": \"One question block from the questionnaire PDF, in filing order.\\n\\nThis models EVERY block in the instrument — not only vote-intention\\nscenarios but also approval/rejection, party-preference, issue,\\nscreener and demographic blocks — so the downstream analysis can\\nreconstruct question ordering and priming structure (e.g. an approval\\nor rejection item placed BEFORE the first estimulada). The order and\\n`position` of blocks is load-bearing; never reorder them.\",\n      \"properties\": {\n        \"position\": {\n          \"description\": \"1-based filing order of this block in the instrument (1 = first question printed). MUST reflect the true printed order; this is what lets the analysis test whether an approval/rejection item precedes the first estimulada.\",\n          \"title\": \"Position\",\n          \"type\": \"integer\"\n        },\n        \"label\": {\n          \"description\": \"The exact label or number used in the PDF, verbatim. E.g. 'P5', 'ESTIMULADA 1', 'ESPONTÂNEA', 'CENÁRIO A — COM CANDIDATO X'. If unlabeled, use 'unlabeled_<N>'.\",\n          \"title\": \"Label\",\n          \"type\": \"string\"\n        },\n        \"question_type\": {\n          \"$ref\": \"#/$defs/QuestionType\",\n          \"description\": \"Classification per the QuestionType enum.\"\n        },\n        \"question_text\": {\n          \"default\": \"\",\n          \"description\": \"1-2 sentences of the question prompt as written, verbatim Portuguese. Up to ~300 chars. If the question is mainly a candidate list with a stem like 'Se a eleição fosse hoje, em quem o(a) Sr.(a) votaria?', include the stem here.\",\n          \"title\": \"Question Text\",\n          \"type\": \"string\"\n        },\n        \"candidates_listed\": {\n          \"description\": \"VOTE-INTENTION ROSTER ONLY: candidate / option names as listed in the PDF, in the order they appear. Up to 15 entries. Preserve original capitalization. Populate for `estimulada` scenarios (the closed list shown to the respondent). Leave empty for every other question_type — use `subject_candidates` to record who an approval / rejection / issue question is ABOUT.\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"title\": \"Candidates Listed\",\n          \"type\": \"array\"\n        },\n        \"n_candidates_listed\": {\n          \"default\": 0,\n          \"description\": \"Total candidates / options in the roster; equals len(candidates_listed) unless truncated past the 15 cap.\",\n          \"title\": \"N Candidates Listed\",\n          \"type\": \"integer\"\n        },\n        \"subject_candidates\": {\n          \"description\": \"WHO THIS QUESTION IS ABOUT, when it targets specific candidate(s) but is NOT a vote-intention roster. Populate for `avaliacao` (the candidate(s) being rated), `rejeicao` (the candidate(s) named in a 'nunca votaria em X' item, if named rather than open), and `issue` items that name a candidate. Verbatim names, preserve capitalization. Empty for estimulada/espontanea (use candidates_listed), party, demographic and screener blocks. This is the primitive that lets the analysis match the item against the sponsor / the sponsor's opponent — do NOT judge sponsorship here, just record the names the PDF states.\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"title\": \"Subject Candidates\",\n          \"type\": \"array\"\n        },\n        \"candidate_order\": {\n          \"$ref\": \"#/$defs/CandidateOrder\",\n          \"description\": \"How the candidate list is ordered. 'rotated' or 'random' only when the PDF explicitly instructs the interviewer to rotate / randomize. 'by_listed' for any printed order with no stated rule. 'not_applicable' for non-vote-intention questions.\"\n        },\n        \"includes_undecided_option\": {\n          \"default\": false,\n          \"description\": \"True if the candidate roster includes 'Não sabe', 'Não respondeu', 'Branco/Nulo', 'Nenhum' or a similar explicit nonresponse / undecided option as a listed choice.\",\n          \"title\": \"Includes Undecided Option\",\n          \"type\": \"boolean\"\n        }\n      },\n      \"required\": [\n        \"position\",\n        \"label\",\n        \"question_type\",\n        \"candidate_order\"\n      ],\n      \"title\": \"QuestionnaireScenario\",\n      \"type\": \"object\"\n    }\n  },\n  \"description\": \"Survey-instrument extraction from `questionario_pesquisa` PDF.\\n\\nThe core output is `scenarios`: the COMPLETE, ORDERED transcript of\\nevery question block in the instrument (vote-intention, approval,\\nrejection, party, issue, screener, demographic), in true filing\\norder. Presence flags, counts, and priming diagnostics are NOT\\nextracted as separate judgments — they are derived downstream from\\nthis ordered transcript crossed with sponsor identity. In\\nparticular, Fernando's priming hypothesis (an approval item about\\nthe sponsor's candidate, or a rejection item about an opponent,\\nplaced BEFORE the first estimulada) is a predicate over\\n`position` + `question_type` + `subject_candidates`, computed in the\\nPanel-B analysis — not here.\",\n  \"properties\": {\n    \"pesquisa_realized\": {\n      \"description\": \"True normally. False ONLY when the PDF is a 'PESQUISA NÃO REALIZADA' stamp. When false, all other fields default to empty / 0 / unclear.\",\n      \"title\": \"Pesquisa Realized\",\n      \"type\": \"boolean\"\n    },\n    \"scenarios\": {\n      \"description\": \"The COMPLETE instrument transcript: EVERY question block, in true printed (filing) order, each with its 1-based `position`. Include vote-intention (estimulada/espontanea), approval (avaliacao), rejection (rejeicao), party, issue, screener AND demographic blocks — do NOT drop or reorder any. NEVER reorder to group by type: the order is the signal. Verbosity is tiered to stay within budget: for estimulada/avaliacao/rejeicao/party blocks give full question_text + candidates_listed / subject_candidates; for demographic/screener/issue blocks a one-line question_text (or just the label) is enough — but still list them in position order. HARD CAP 30 blocks: if the instrument is longer, keep the first 30 IN ORDER (never skip ahead) and note the truncation in extraction_notes.\",\n      \"items\": {\n        \"$ref\": \"#/$defs/QuestionnaireScenario\"\n      },\n      \"title\": \"Scenarios\",\n      \"type\": \"array\"\n    },\n    \"n_vote_intention_scenarios\": {\n      \"default\": 0,\n      \"description\": \"Full count of distinct vote-intention scenarios (estimulada + espontanea) in the instrument, regardless of the 30-block cap. The 'scenario-selection slant' diagnostic: sponsored polls may file >1 estimulada with different rosters. Report the true total even if truncated.\",\n      \"title\": \"N Vote Intention Scenarios\",\n      \"type\": \"integer\"\n    },\n    \"first_estimulada_position\": {\n      \"default\": 0,\n      \"description\": \"`position` of the FIRST estimulada block (the headline vote-intention question). 0 when the instrument has no estimulada. This is the cut point for the priming test — any approval/rejection block with a smaller position comes BEFORE the headline.\",\n      \"title\": \"First Estimulada Position\",\n      \"type\": \"integer\"\n    },\n    \"headline_scenario_label\": {\n      \"default\": \"\",\n      \"description\": \"Label of the first / primary `estimulada` scenario — this is what gets reported as the headline vote-intention number. Empty when no estimulada present.\",\n      \"title\": \"Headline Scenario Label\",\n      \"type\": \"string\"\n    },\n    \"name_rotation_documented\": {\n      \"default\": false,\n      \"description\": \"True if the PDF anywhere documents an instruction to rotate / alternate / randomize candidate name order across respondents (e.g. 'inverter ordem dos nomes', 'rotacionar', 'alternar a cada entrevista'). False for fixed-order printed rosters.\",\n      \"title\": \"Name Rotation Documented\",\n      \"type\": \"boolean\"\n    },\n    \"name_rotation_evidence\": {\n      \"default\": \"\",\n      \"description\": \"Verbatim quote or close paraphrase, 1-2 sentences, of the rotation instruction. Empty when name_rotation_documented is False.\",\n      \"title\": \"Name Rotation Evidence\",\n      \"type\": \"string\"\n    },\n    \"nonresponse_instruction_present\": {\n      \"default\": false,\n      \"description\": \"True if the questionnaire contains any printed instruction about handling undecided / refusal / blank / null responses (e.g. 'NÃO LER ESTAS OPÇÕES', 'redistribuir indecisos proporcionalmente', 'descartar brancos'). False otherwise.\",\n      \"title\": \"Nonresponse Instruction Present\",\n      \"type\": \"boolean\"\n    },\n    \"nonresponse_instruction_text\": {\n      \"default\": \"\",\n      \"description\": \"Verbatim or paraphrased text of the nonresponse instruction, up to ~400 chars Portuguese. Empty when nonresponse_instruction_present is False.\",\n      \"title\": \"Nonresponse Instruction Text\",\n      \"type\": \"string\"\n    },\n    \"extraction_notes\": {\n      \"default\": \"\",\n      \"description\": \"Free-form notes on PDF format anomalies, OCR concerns, or schema fits poorly (e.g. instrument is a different language, the PDF is a relatório attached by mistake). Empty when the extraction is clean.\",\n      \"title\": \"Extraction Notes\",\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"pesquisa_realized\"\n  ],\n  \"title\": \"PollQuestionario\",\n  \"type\": \"object\"\n}"
+  "schema_json": "{\n  \"$defs\": {\n    \"CandidateOrder\": {\n      \"enum\": [\n        \"alphabetical\",\n        \"by_number\",\n        \"by_party\",\n        \"by_listed\",\n        \"rotated\",\n        \"random\",\n        \"unclear\",\n        \"not_applicable\"\n      ],\n      \"title\": \"CandidateOrder\",\n      \"type\": \"string\"\n    },\n    \"QuestionType\": {\n      \"enum\": [\n        \"estimulada\",\n        \"espontanea\",\n        \"avaliacao\",\n        \"rejeicao\",\n        \"party\",\n        \"demographic\",\n        \"issue\",\n        \"screener\",\n        \"other\",\n        \"unclear\"\n      ],\n      \"title\": \"QuestionType\",\n      \"type\": \"string\"\n    },\n    \"QuestionnaireScenario\": {\n      \"description\": \"One question block from the questionnaire PDF, in filing order.\\n\\nThis models EVERY block in the instrument — not only vote-intention\\nscenarios but also approval/rejection, party-preference, issue,\\nscreener and demographic blocks — so the downstream analysis can\\nreconstruct question ordering and priming structure (e.g. an approval\\nor rejection item placed BEFORE the first estimulada). The order and\\n`position` of blocks is load-bearing; never reorder them.\",\n      \"properties\": {\n        \"position\": {\n          \"description\": \"1-based filing order of this block in the instrument (1 = first question printed). MUST reflect the true printed order; this is what lets the analysis test whether an approval/rejection item precedes the first estimulada.\",\n          \"title\": \"Position\",\n          \"type\": \"integer\"\n        },\n        \"label\": {\n          \"description\": \"The exact label or number used in the PDF, verbatim. E.g. 'P5', 'ESTIMULADA 1', 'ESPONTÂNEA', 'CENÁRIO A — COM CANDIDATO X'. If unlabeled, use 'unlabeled_<N>'.\",\n          \"title\": \"Label\",\n          \"type\": \"string\"\n        },\n        \"question_type\": {\n          \"$ref\": \"#/$defs/QuestionType\",\n          \"description\": \"Classification per the QuestionType enum.\"\n        },\n        \"question_text\": {\n          \"default\": \"\",\n          \"description\": \"1-2 sentences of the question prompt as written, verbatim Portuguese. Up to ~300 chars. If the question is mainly a candidate list with a stem like 'Se a eleição fosse hoje, em quem o(a) Sr.(a) votaria?', include the stem here.\",\n          \"title\": \"Question Text\",\n          \"type\": \"string\"\n        },\n        \"candidates_listed\": {\n          \"description\": \"VOTE-INTENTION ROSTER ONLY: candidate / option names as listed in the PDF, in the order they appear. Up to 15 entries. Preserve original capitalization. Populate for `estimulada` scenarios (the closed list shown to the respondent). Leave empty for every other question_type — use `subject_candidates` to record who an approval / rejection / issue question is ABOUT.\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"title\": \"Candidates Listed\",\n          \"type\": \"array\"\n        },\n        \"subject_candidates\": {\n          \"description\": \"WHO THIS QUESTION IS ABOUT, when it targets specific candidate(s) but is NOT a vote-intention roster. Populate for `avaliacao` (the candidate(s) being rated), `rejeicao` (the candidate(s) named in a 'nunca votaria em X' item, if named rather than open), and `issue` items that name a candidate. Verbatim names, preserve capitalization. Empty for estimulada/espontanea (use candidates_listed), party, demographic and screener blocks. This is the primitive that lets the analysis match the item against the sponsor / the sponsor's opponent — do NOT judge sponsorship here, just record the names the PDF states.\",\n          \"items\": {\n            \"type\": \"string\"\n          },\n          \"title\": \"Subject Candidates\",\n          \"type\": \"array\"\n        },\n        \"candidate_order\": {\n          \"$ref\": \"#/$defs/CandidateOrder\",\n          \"description\": \"How the candidate list is ordered. 'rotated' or 'random' only when the PDF explicitly instructs the interviewer to rotate / randomize. 'by_listed' for any printed order with no stated rule. 'not_applicable' for non-vote-intention questions.\"\n        }\n      },\n      \"required\": [\n        \"position\",\n        \"label\",\n        \"question_type\",\n        \"candidate_order\"\n      ],\n      \"title\": \"QuestionnaireScenario\",\n      \"type\": \"object\"\n    }\n  },\n  \"description\": \"Survey-instrument extraction from `questionario_pesquisa` PDF.\\n\\nThe core output is `scenarios`: the COMPLETE, ORDERED transcript of\\nevery question block in the instrument (vote-intention, approval,\\nrejection, party, issue, screener, demographic), in true filing\\norder. Presence flags, counts, and priming diagnostics are NOT\\nextracted as separate judgments — they are derived downstream from\\nthis ordered transcript crossed with sponsor identity. In\\nparticular, Fernando's priming hypothesis (an approval item about\\nthe sponsor's candidate, or a rejection item about an opponent,\\nplaced BEFORE the first estimulada) is a predicate over\\n`position` + `question_type` + `subject_candidates`, computed in the\\nPanel-B analysis — not here.\",\n  \"properties\": {\n    \"pesquisa_realized\": {\n      \"description\": \"True normally. False ONLY when the PDF is a 'PESQUISA NÃO REALIZADA' stamp. When false, all other fields default to empty / unclear.\",\n      \"title\": \"Pesquisa Realized\",\n      \"type\": \"boolean\"\n    },\n    \"scenarios\": {\n      \"description\": \"The COMPLETE instrument transcript: EVERY question block, in true printed (filing) order, each with its 1-based `position`. Include vote-intention (estimulada/espontanea), approval (avaliacao), rejection (rejeicao), party, issue, screener AND demographic blocks — do NOT drop or reorder any. NEVER reorder to group by type: the order is the signal. Verbosity is tiered to stay within budget: for estimulada/avaliacao/rejeicao/party blocks give full question_text + candidates_listed / subject_candidates; for demographic/screener/issue blocks a one-line question_text (or just the label) is enough — but still list them in position order. HARD CAP 30 blocks: if the instrument is longer, keep the first 30 IN ORDER (never skip ahead) and set scenarios_truncated=true. Do NOT count or total the scenarios — downstream derives counts/positions from this list.\",\n      \"items\": {\n        \"$ref\": \"#/$defs/QuestionnaireScenario\"\n      },\n      \"title\": \"Scenarios\",\n      \"type\": \"array\"\n    },\n    \"scenarios_truncated\": {\n      \"default\": false,\n      \"description\": \"True ONLY if the instrument has MORE question blocks than the (cap-30) ones returned. False normally. A yes/no observation, not a count — downstream derives the vote-intention count, first-estimulada position and headline label from the scenarios transcript (count of estimulada+espontanea; min position where type==estimulada; its label).\",\n      \"title\": \"Scenarios Truncated\",\n      \"type\": \"boolean\"\n    },\n    \"name_rotation_documented\": {\n      \"default\": false,\n      \"description\": \"True if the PDF anywhere documents an instruction to rotate / alternate / randomize candidate name order across respondents (e.g. 'inverter ordem dos nomes', 'rotacionar', 'alternar a cada entrevista'). False for fixed-order printed rosters.\",\n      \"title\": \"Name Rotation Documented\",\n      \"type\": \"boolean\"\n    },\n    \"name_rotation_evidence\": {\n      \"default\": \"\",\n      \"description\": \"Verbatim quote or close paraphrase, 1-2 sentences, of the rotation instruction. Empty when name_rotation_documented is False.\",\n      \"title\": \"Name Rotation Evidence\",\n      \"type\": \"string\"\n    },\n    \"nonresponse_instruction_present\": {\n      \"default\": false,\n      \"description\": \"True if the questionnaire contains any printed instruction about handling undecided / refusal / blank / null responses (e.g. 'NÃO LER ESTAS OPÇÕES', 'redistribuir indecisos proporcionalmente', 'descartar brancos'). False otherwise.\",\n      \"title\": \"Nonresponse Instruction Present\",\n      \"type\": \"boolean\"\n    },\n    \"nonresponse_instruction_text\": {\n      \"default\": \"\",\n      \"description\": \"Verbatim or paraphrased text of the nonresponse instruction, up to ~400 chars Portuguese. Empty when nonresponse_instruction_present is False.\",\n      \"title\": \"Nonresponse Instruction Text\",\n      \"type\": \"string\"\n    },\n    \"extraction_notes\": {\n      \"default\": \"\",\n      \"description\": \"Free-form notes on PDF format anomalies, OCR concerns, or schema fits poorly (e.g. instrument is a different language, the PDF is a relatório attached by mistake). Empty when the extraction is clean.\",\n      \"title\": \"Extraction Notes\",\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"pesquisa_realized\"\n  ],\n  \"title\": \"PollQuestionario\",\n  \"type\": \"object\"\n}"
 }

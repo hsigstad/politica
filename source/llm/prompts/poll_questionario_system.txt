@@ -22,7 +22,7 @@ A vote-intention block is `estimulada` or `espontanea`. If the SAME estimulada q
 
 ### Candidate roster vs. question subject
 
-- `candidates_listed` — VOTE-INTENTION ROSTER ONLY. The closed list shown in an `estimulada` block, in the exact printed order (up to 15). Include "Não sabe", "Branco/Nulo", "Outro/Outros" as entries when they appear inline, and set includes_undecided_option=true. Empty for every other type.
+- `candidates_listed` — VOTE-INTENTION ROSTER ONLY. The closed list shown in an `estimulada` block, in the exact printed order (up to 15). Include "Não sabe", "Branco/Nulo", "Outro/Outros" as entries when they appear inline (verbatim — downstream detects undecided/nonresponse options from these strings). Empty for every other type.
 - `subject_candidates` — WHO AN approval/rejection/issue QUESTION IS ABOUT, when it names specific candidate(s): the candidate(s) rated in an `avaliacao`, the candidate(s) named in a `rejeicao` (if named rather than open), a candidate named in an `issue`. Verbatim names. Empty for estimulada/espontanea/party/demographic/screener. Do NOT judge who the sponsor is — just record the names the PDF states.
 
 ### Candidate-order classification (for estimulada rosters)
@@ -51,9 +51,7 @@ A vote-intention block is `estimulada` or `espontanea`. If the SAME estimulada q
 - **candidates_listed**: up to 15 entries, exact printed order, original capitalization. estimulada rosters only.
 - **subject_candidates**: verbatim candidate name(s) an avaliacao/rejeicao/issue block is about. Empty otherwise.
 - **question_text**: verbatim Portuguese, up to ~300 chars for lever-bearing blocks; terse for demographics. Don't paraphrase lever-bearing questions.
-- **n_vote_intention_scenarios**: full count of estimulada+espontanea blocks, regardless of the 30-cap.
-- **first_estimulada_position**: position of the first estimulada; 0 if none.
-- **headline_scenario_label**: label of the first estimulada, verbatim. Empty when none.
+- **scenarios_truncated**: true ONLY if the instrument has more blocks than the 30 you returned. Do NOT count or total the blocks — downstream derives the vote-intention count, first-estimulada position and headline label from the scenarios list.
 - **name_rotation_documented / _evidence**: true ONLY when the PDF prints an explicit instruction to rotate/alternate/randomize name order. Fixed printed order is NOT rotation.
 - **nonresponse_instruction_present / _text**: capture flag + verbatim text of any printed rule for handling undecided/refusal/blank/null (e.g. "NÃO LER ESTAS OPÇÕES", "redistribuir indecisos proporcionalmente", "DESCARTAR BRANCOS"). Absence is the default.
 

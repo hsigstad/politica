@@ -1,5 +1,57 @@
 # Decisions
 
+## 2026-10-20 — Pre-dev-run schema hygiene across the unscaled poll extractors (no LLM counts, no derivable booleans)
+
+**Decision:** Apply the same extract-raw-derive-downstream principle used for
+bairro to the other unscaled extractors, before the dev run. The LLM extracts
+faithful rows/facts + reliable booleans; it does NOT count, total, or emit
+booleans that are trivially derivable downstream.
+
+- **poll_questionario v2 → v3.** DROP `n_vote_intention_scenarios`,
+  `first_estimulada_position`, `headline_scenario_label` (top-level) and
+  `QuestionnaireScenario.n_candidates_listed`, `includes_undecided_option` —
+  all derivable from the ordered `scenarios` transcript (count of
+  estimulada+espontanea; min position where type==estimulada, + its label;
+  len(candidates_listed); string-check candidates_listed for Não sabe /
+  Branco / Nulo / Nenhum). ADD `scenarios_truncated: bool` (analog of
+  bairro's `units_truncated`). KEEP `name_rotation_documented`/`_evidence`,
+  `candidate_order` {rotated,random}, `nonresponse_instruction_*` (printed
+  INSTRUCTIONS, not derivable from the roster) and the verbatim per-block
+  fields (position/label/question_type/question_text/candidates_listed/
+  subject_candidates).
+- **poll_sampling v1 → v2.** DROP `is_quota_sample` (= quota_variables
+  non-empty) and `is_probability_sample` (derive from sample_design_class /
+  selection_within_cluster). KEEP `quota_variables` — it is NOT redundant
+  with `quota_distributions` (which skips quota dimensions named without
+  percentages), so it is the only place an income quota declared without
+  printed bins survives; dropping it would blind the income lever. KEEP the
+  borderline `declared_sample_size` (a text-stated n that can differ from the
+  structured QT_ENTREVISTADO — a faithful fact, not a derivation) and
+  `n_stages` (can carry info even when stage_descriptions is sparse).
+- **poll_weighting v1 → v2.** DROP `described` (= application != not_described).
+
+**Why:** asking the model for exact counts/sums is unreliable (the bairro
+n_units_total 80-vs-49 case) and redundant; derivable booleans invite drift.
+Audited by the poll-sponsor-bias session before the dev run. All three are
+unscaled, so this costs no re-extraction.
+
+## Frozen-extractor fix backlog (apply ONLY if/when a frozen extractor is re-run)
+
+These extractors already ran at universe scale, so their prompts are FROZEN
+(touching them would strand prior results + force a costly re-run). Record
+wanted fixes here so they are not lost; apply them only on a deliberate re-run.
+
+- **poll_coverage** (universe-scaled, 14,876): apply the no-LLM-counts /
+  no-derivable-booleans principle to a future coverage v2 —
+  `n_neighborhoods_or_districts` (= len(neighborhoods_listed)),
+  `coverage_to_be_complemented` (≈ coverage_class==deferred_complement), and
+  the overlap among `coverage_field_substantive` / `rural_included` /
+  `rural_excluded_explicitly` are all derivable or redundant and should be
+  dropped/consolidated.
+- **poll_relatorio** (universe-scaled; `build/llm/poll_relatorio_2024.parquet`):
+  enum-ify the free-string `Scenario.scenario_type` against the canonical
+  vocabulary (see the scenario-type crosswalk entry below).
+
 ## 2026-10-20 — poll_bairro_detail v2→v4: strip inferred coverage/rural, collapse to one raw `units` row list, drop LLM-computed totals
 
 **Decision:** Before the (unscaled) bairro universe run, (v2) drop the four

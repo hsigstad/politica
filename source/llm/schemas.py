@@ -379,9 +379,16 @@ class QuotaDistribution(BaseModel):
 
 class PollSampling(ExtractionSchema):
     """Sampling design + sample size + quotas + population reference,
-    extracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA."""
+    extracted from DS_PLANO_AMOSTRAL + DS_METODOLOGIA_PESQUISA.
+
+    v2: dropped the derivable booleans is_probability_sample (derive from
+    sample_design_class / selection_within_cluster) and is_quota_sample
+    (derive from quota_variables non-empty). quota_variables is KEPT — it
+    carries the income-quota signal when the text names a quota dimension
+    without printing its percentages (quota_distributions skips those), so
+    it is NOT redundant with quota_distributions."""
     schema_name: ClassVar[str] = "poll_sampling"
-    schema_version: ClassVar[str] = "v1"
+    schema_version: ClassVar[str] = "v2"
 
     # A. Sampling design
     sample_design_class: SampleDesignClass = Field(
@@ -395,9 +402,6 @@ class PollSampling(ExtractionSchema):
     sample_design_evidence: str = Field(
         default="",
         description="1-2 sentence quote from the text supporting sample_design_class.",
-    )
-    is_probability_sample: bool = Field(
-        description="True only if the FINAL respondent selection is random (no quotas)."
     )
     n_stages: int = Field(
         default=1,
@@ -444,15 +448,15 @@ class PollSampling(ExtractionSchema):
     )
 
     # C. Quotas
-    is_quota_sample: bool = Field(
-        description="True if any quota is used at any stage."
-    )
     quota_variables: list[QuotaVariable] = Field(
         default_factory=list,
         description=(
-            "List of quota dimensions used. Mirror quota_distributions "
-            "below (each variable that has a distribution entry also "
-            "appears here)."
+            "Every quota dimension the text says is USED — including "
+            "dimensions named WITHOUT a percentage distribution (those are "
+            "absent from quota_distributions). Superset of the variables in "
+            "quota_distributions. This is where an income quota declared "
+            "without printed bins still shows up, so do not omit a named "
+            "quota dimension just because its percentages are missing."
         ),
     )
     quota_distributions: list[QuotaDistribution] = Field(
@@ -959,13 +963,6 @@ class QuestionnaireScenario(BaseModel):
             "rejection / issue question is ABOUT."
         ),
     )
-    n_candidates_listed: int = Field(
-        default=0,
-        description=(
-            "Total candidates / options in the roster; equals "
-            "len(candidates_listed) unless truncated past the 15 cap."
-        ),
-    )
     subject_candidates: list[str] = Field(
         default_factory=list,
         description=(
@@ -991,14 +988,6 @@ class QuestionnaireScenario(BaseModel):
             "non-vote-intention questions."
         )
     )
-    includes_undecided_option: bool = Field(
-        default=False,
-        description=(
-            "True if the candidate roster includes 'Não sabe', "
-            "'Não respondeu', 'Branco/Nulo', 'Nenhum' or a similar "
-            "explicit nonresponse / undecided option as a listed choice."
-        ),
-    )
 
 
 class PollQuestionario(ExtractionSchema):
@@ -1018,13 +1007,13 @@ class PollQuestionario(ExtractionSchema):
     """
 
     schema_name: ClassVar[str] = "poll_questionario"
-    schema_version: ClassVar[str] = "v2"
+    schema_version: ClassVar[str] = "v3"
 
     pesquisa_realized: bool = Field(
         description=(
             "True normally. False ONLY when the PDF is a "
             "'PESQUISA NÃO REALIZADA' stamp. When false, all other "
-            "fields default to empty / 0 / unclear."
+            "fields default to empty / unclear."
         )
     )
 
@@ -1044,36 +1033,20 @@ class PollQuestionario(ExtractionSchema):
             "(or just the label) is enough — but still list them in "
             "position order. HARD CAP 30 blocks: if the instrument is "
             "longer, keep the first 30 IN ORDER (never skip ahead) and "
-            "note the truncation in extraction_notes."
+            "set scenarios_truncated=true. Do NOT count or total the "
+            "scenarios — downstream derives counts/positions from this list."
         ),
     )
-
-    n_vote_intention_scenarios: int = Field(
-        default=0,
+    scenarios_truncated: bool = Field(
+        default=False,
         description=(
-            "Full count of distinct vote-intention scenarios "
-            "(estimulada + espontanea) in the instrument, regardless of "
-            "the 30-block cap. The 'scenario-selection slant' diagnostic: "
-            "sponsored polls may file >1 estimulada with different "
-            "rosters. Report the true total even if truncated."
-        ),
-    )
-    first_estimulada_position: int = Field(
-        default=0,
-        description=(
-            "`position` of the FIRST estimulada block (the headline "
-            "vote-intention question). 0 when the instrument has no "
-            "estimulada. This is the cut point for the priming test — "
-            "any approval/rejection block with a smaller position comes "
-            "BEFORE the headline."
-        ),
-    )
-    headline_scenario_label: str = Field(
-        default="",
-        description=(
-            "Label of the first / primary `estimulada` scenario — "
-            "this is what gets reported as the headline vote-"
-            "intention number. Empty when no estimulada present."
+            "True ONLY if the instrument has MORE question blocks than "
+            "the (cap-30) ones returned. False normally. A yes/no "
+            "observation, not a count — downstream derives the "
+            "vote-intention count, first-estimulada position and headline "
+            "label from the scenarios transcript (count of "
+            "estimulada+espontanea; min position where type==estimulada; "
+            "its label)."
         ),
     )
 
@@ -1164,15 +1137,10 @@ class PollWeighting(ExtractionSchema):
     weighting back to population → not biased.
     """
     schema_name: ClassVar[str] = "poll_weighting"
-    schema_version: ClassVar[str] = "v1"
+    schema_version: ClassVar[str] = "v2"
 
-    described: bool = Field(
-        description=(
-            "True if any post-fielding weighting / ponderação / correção "
-            "is described anywhere in the input text. False if the text "
-            "only describes the sampling plan with no correction stage."
-        )
-    )
+    # NOTE: `described` removed in v2 — derive it as (application !=
+    # not_described). `application` already carries the presence signal.
     application: WeightingApplication = Field(
         description=(
             "How the weighting is applied. always_applied: text says weights "

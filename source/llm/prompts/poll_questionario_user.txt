@@ -10,7 +10,6 @@ Extract the structured questionnaire features per the schema. Remember:
 - `scenarios` is the COMPLETE instrument in filing order: transcribe EVERY block (vote-intention, approval, rejection, party, issue, screener, demographic) with its 1-based `position`. NEVER reorder by type — the order is the signal.
 - HARD CAP 30 blocks (keep the first 30 IN ORDER if longer, note truncation); HARD CAP 15 candidates per estimulada roster.
 - `candidates_listed` = estimulada roster only; `subject_candidates` = the candidate(s) an approval/rejection/issue question is ABOUT. Record names verbatim; do NOT judge who the sponsor is.
-- `first_estimulada_position` = position of the first estimulada (0 if none); `n_vote_intention_scenarios` = full estimulada+espontanea count regardless of the cap.
+- Do NOT count or total the blocks (no count/position/headline fields) — downstream derives those from the scenarios list. Set `scenarios_truncated`=true only if more than 30 blocks existed.
 - `name_rotation_documented` only when the PDF prints an instruction to rotate; printed fixed order is NOT rotation.
 - `nonresponse_instruction_present` only when there is a printed handling rule; absence is the default.
-- `headline_scenario_label` = label of the FIRST estimulada, verbatim.
